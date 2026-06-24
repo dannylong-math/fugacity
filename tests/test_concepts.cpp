@@ -49,4 +49,6 @@ int main()
             expect(eos.size() == 2_ul);
         };
     };
+
+    return ::boost::ut::cfg<>.run();
 }

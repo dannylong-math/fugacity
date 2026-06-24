@@ -157,4 +157,6 @@ int main()
             expect(std::abs(Z - 1.0) < 1e-5) << "Z should approach 1 in the dilute limit, got" << Z;
         };
     };
+
+    return ::boost::ut::cfg<>.run();
 }

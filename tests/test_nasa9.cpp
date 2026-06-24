@@ -349,4 +349,6 @@ int main()
             }
         };
     };
+
+    return ::boost::ut::cfg<>.run();
 }

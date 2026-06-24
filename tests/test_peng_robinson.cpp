@@ -371,4 +371,6 @@ int main()
             run_free_function_consistency_tests<2>(eos);
         };
     };
+
+    return ::boost::ut::cfg<>.run();
 }

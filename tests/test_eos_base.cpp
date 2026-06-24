@@ -79,4 +79,6 @@ int main()
             expect(eq(count, std::size_t{0}));
         };
     };
+
+    return ::boost::ut::cfg<>.run();
 }

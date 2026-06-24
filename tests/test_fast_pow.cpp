@@ -49,4 +49,6 @@ int main()
             expect(v == 16.0_d);
         };
     };
+
+    return ::boost::ut::cfg<>.run();
 }

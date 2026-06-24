@@ -155,4 +155,6 @@ int main()
             expect(lt(std::abs(smooth_step<6>(Number{1}) - Number{1}), tol));
         } | std::tuple<double, long double>{};
     };
+
+    return ::boost::ut::cfg<>.run();
 }

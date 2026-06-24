@@ -45,4 +45,6 @@ int main()
             "Degree 5"_test = [] { test_horner<5, T>(); };
         } | std::tuple<double, long double>{};
     };
+
+    return ::boost::ut::cfg<>.run();
 }

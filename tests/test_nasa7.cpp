@@ -225,4 +225,6 @@ int main()
             run_free_function_consistency_tests<2>(binary);
         };
     };
+
+    return ::boost::ut::cfg<>.run();
 }
