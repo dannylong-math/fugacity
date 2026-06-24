@@ -1153,6 +1153,7 @@ void calc_sound_speed_squared_dx(const EoS<Ideal, Residual>& eos, const Number c
                             effective_molar_mass);
 }
 
+// TODO: add derivatives of vector-valued functions
 /**
  * @brief Chemical potentials @f$\mu_i = \partial A/\partial n_i@f$ of all
  *        components (ideal + residual).
