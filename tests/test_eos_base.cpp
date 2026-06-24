@@ -11,6 +11,7 @@
 #include <boost/ut.hpp>
 #include <cstddef>
 #include <span>
+#include <stdexcept>
 #include <vector>
 
 using namespace boost::ut;
@@ -78,6 +79,28 @@ int main()
 
             expect(eq(count, std::size_t{0}));
         };
+
+        // -------------------------------------------------------------------
+        // The explicit-count constructor of a compile-time-sized BaseEoS must
+        // agree with N. A matching count constructs cleanly; a mismatch trips
+        // the SYNTHESIZE_ASSERT precondition, which throws std::logic_error in a
+        // debug build (the check is elided in release, so this is debug-only).
+        // -------------------------------------------------------------------
+        "explicit count matching N constructs"_test = [] {
+            expect(nothrow([] {
+                const synthesize::BaseEoS<3> base{3};
+                (void)base;
+            }));
+        };
+
+#ifndef NDEBUG
+        "explicit count mismatching N throws std::logic_error"_test = [] {
+            expect(throws<std::logic_error>([] {
+                const synthesize::BaseEoS<3> base{4};
+                (void)base;
+            }));
+        };
+#endif
     };
 
     return ::boost::ut::cfg<>.run();
