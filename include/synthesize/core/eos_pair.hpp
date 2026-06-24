@@ -5,6 +5,7 @@
  * @brief Couples an ideal and a residual model into a single equation of state.
  */
 
+#include "synthesize/core/assertions.hpp"
 #include "synthesize/core/concepts.hpp"
 namespace synthesize {
 
@@ -29,14 +30,22 @@ public:
      * @brief Construct from an ideal and a residual model.
      * @param ideal    The ideal contribution.
      * @param residual The residual contribution.
-     * @pre  `ideal.size() == residual.size()` (checked via @c assert): both
-     *       models must describe the same number of components.
+     * @pre  `ideal.size() == residual.size()`: both models must describe the same
+     *       number of components. In a debug build a mismatch throws
+     *       @c std::logic_error (via SYNTHESIZE_ASSERT); in a release build the
+     *       check is elided, so the @c noexcept specification is preserved.
      */
-    EoS(Ideal ideal, Residual residual) noexcept(std::is_nothrow_move_constructible_v<Ideal> &&
-                                                 std::is_nothrow_move_constructible_v<Residual>) :
+    EoS(Ideal ideal, Residual residual)
+#ifdef NDEBUG
+        // In release the precondition check is elided, so the constructor can
+        // only throw if a move constructor does. In debug SYNTHESIZE_ASSERT may
+        // throw std::logic_error, so the constructor is left potentially-throwing.
+        noexcept(std::is_nothrow_move_constructible_v<Ideal> && std::is_nothrow_move_constructible_v<Residual>)
+#endif
+        :
         ideal_{std::move(ideal)}, residual_{std::move(residual)}
     {
-        assert(ideal_.size() == residual_.size());
+        SYNTHESIZE_ASSERT(ideal_.size() == residual_.size());
     }
 
     /// @brief Access the ideal contribution.

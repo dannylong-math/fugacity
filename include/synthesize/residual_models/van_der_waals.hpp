@@ -4,12 +4,12 @@
  * @brief Residual (departure) model for the van der Waals equation of state.
  */
 
+#include "synthesize/core/assertions.hpp"
 #include "synthesize/core/concepts.hpp"
 #include "synthesize/core/eos_base.hpp"
 #include "synthesize/core/numbers.hpp"
 
 #include <array>
-#include <cassert>
 #include <cmath>
 #include <concepts>
 #include <cstddef>
@@ -205,7 +205,7 @@ private:
     {
         constexpr double R = ideal_gas_constant<double>;
         const std::size_t n = inputs.size();
-        assert(kij.empty() || kij.size() == n * n);
+        SYNTHESIZE_ASSERT(kij.empty() || kij.size() == n * n);
 
         for (std::size_t i = 0; i < n; ++i) {
             b_[i] = R * inputs[i].T_c / (8.0 * inputs[i].P_c);
