@@ -25,13 +25,17 @@
 //
 #include "synthesize/core/core_calculations.hpp"
 
+#include <algorithm>
 #include <array>
 #include <boost/ut.hpp>
 #include <cmath>
 #include <cstddef>
 #include <format>
+#include <numeric>
+#include <random>
 #include <span>
 #include <string_view>
+#include <utility>
 
 namespace synthesize_test {
 
@@ -49,6 +53,142 @@ inline void check_rel(std::string_view name, double actual, double expected, dou
     const double rel = std::abs(actual - expected) / denom;
     expect(rel <= reltol) << std::format("{}: actual={:.12g} expected={:.12g} rel_err={:.3e} (tol={:.1e})", name,
                                          actual, expected, rel, reltol);
+}
+
+// `rtol` is intentionally looser than bitwise: the pointer core and the
+// container wrapper evaluate identical source, but the compiler may contract
+// floating-point (FMA) differently across the two inlined call sites, so the
+// results can disagree in the last digit or two. 1e-9 still catches any real
+// delegation/logic mistake while tolerating that last-bit rounding.
+template <std::size_t N, class Model, std::floating_point Number = double>
+void run_free_function_consistency_tests(const Model& model, Number rtol = 1e-9){
+    using namespace boost::ut;
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_real_distribution<Number> T_dist(1., 5000.);
+    std::uniform_real_distribution<Number> rho_dist(0.0001, 100.);
+
+    std::vector<Number> T_vals(50);
+    std::vector<std::array<Number, N>> rho_vecs(50);
+    std::ranges::generate(T_vals, [&](){return T_dist(gen);});
+    std::ranges::generate(rho_vecs,
+        [&](){
+            std::array<Number,N> rho;
+            for (std::size_t i=0;i<rho.size();++i){
+                rho.at(i) = rho_dist(gen);
+            }
+            return rho;
+        }
+    );
+    "Temperature values"_test = [&](const Number T) {
+        "Rho vec"_test = [&](const auto rho_i) {
+            const Number c = std::reduce(rho_i.begin(), rho_i.end(), Number{0});
+            std::array<Number, N> x{};
+            for (std::size_t i = 0; i < N; ++i) {
+                x.at(i) = rho_i.at(i) / c;
+            }
+            // Scratch gradient buffers for the reverse-mode `_dx` checks. Each
+            // `calc_*_dx` zeroes its output first, so reuse across calls is safe.
+            std::array<Number, N> grad_ptr{};
+            std::array<Number, N> grad_vec{};
+
+            // Every scalar free function has a pointer-based core and a
+            // container-based wrapper that must agree exactly. `consistency`
+            // invokes the same overload set with `x.data()` (pointer) and `x`
+            // (container) and checks the two results match. `std::forward`
+            // preserves the value category so the prvalue pointer selects the
+            // pointer overload while the lvalue container selects the wrapper.
+            auto consistency = [&](std::string_view name, auto fn) {
+                check_rel(name, fn(x.data()), fn(x), rtol);
+            };
+            // Same idea for the reverse-mode `_dx` functions, which fill a
+            // gradient buffer instead of returning a value.
+            auto consistency_grad = [&](std::string_view name, auto ptr_fill, auto vec_fill) {
+                ptr_fill(grad_ptr);
+                vec_fill(grad_vec);
+                for (std::size_t i = 0; i < N; ++i) {
+                    check_rel(name, grad_ptr.at(i), grad_vec.at(i), rtol);
+                }
+            };
+
+#define SYNTHESIZE_CHECK_SCALAR(FN) \
+    consistency(#FN, [&](auto&& xx) { return FN(model, c, std::forward<decltype(xx)>(xx), T); })
+#define SYNTHESIZE_CHECK_GRAD(FN)                                  \
+    consistency_grad(                                              \
+        #FN, [&](auto& g) { FN(model, c, x.data(), T, g.data()); }, \
+        [&](auto& g) { FN(model, c, x, T, g); })
+
+            SYNTHESIZE_CHECK_SCALAR(calc_helmholtz);
+            SYNTHESIZE_CHECK_SCALAR(calc_helmholtz_dT);
+            SYNTHESIZE_CHECK_SCALAR(calc_helmholtz_dc);
+            SYNTHESIZE_CHECK_GRAD(calc_helmholtz_dx);
+
+            SYNTHESIZE_CHECK_SCALAR(calc_pressure);
+            SYNTHESIZE_CHECK_SCALAR(calc_pressure_dT);
+            SYNTHESIZE_CHECK_SCALAR(calc_pressure_dc);
+            SYNTHESIZE_CHECK_GRAD(calc_pressure_dx);
+
+            SYNTHESIZE_CHECK_SCALAR(calc_internal_energy);
+            SYNTHESIZE_CHECK_SCALAR(calc_internal_energy_dT);
+            SYNTHESIZE_CHECK_SCALAR(calc_internal_energy_dc);
+            SYNTHESIZE_CHECK_GRAD(calc_internal_energy_dx);
+
+            SYNTHESIZE_CHECK_SCALAR(calc_enthalpy);
+            SYNTHESIZE_CHECK_SCALAR(calc_enthalpy_dT);
+            SYNTHESIZE_CHECK_SCALAR(calc_enthalpy_dc);
+            SYNTHESIZE_CHECK_GRAD(calc_enthalpy_dx);
+
+            SYNTHESIZE_CHECK_SCALAR(calc_entropy);
+            SYNTHESIZE_CHECK_SCALAR(calc_entropy_dT);
+            SYNTHESIZE_CHECK_SCALAR(calc_entropy_dc);
+            SYNTHESIZE_CHECK_GRAD(calc_entropy_dx);
+
+            SYNTHESIZE_CHECK_SCALAR(calc_gibbs);
+            SYNTHESIZE_CHECK_SCALAR(calc_gibbs_dT);
+            SYNTHESIZE_CHECK_SCALAR(calc_gibbs_dc);
+            SYNTHESIZE_CHECK_GRAD(calc_gibbs_dx);
+
+            SYNTHESIZE_CHECK_SCALAR(calc_dp_dc);
+            SYNTHESIZE_CHECK_SCALAR(calc_dp_dc_dT);
+            SYNTHESIZE_CHECK_SCALAR(calc_dp_dc_dc);
+            SYNTHESIZE_CHECK_GRAD(calc_dp_dc_dx);
+
+            SYNTHESIZE_CHECK_SCALAR(calc_dp_dT);
+            SYNTHESIZE_CHECK_SCALAR(calc_dp_dT_dT);
+            SYNTHESIZE_CHECK_SCALAR(calc_dp_dT_dc);
+            SYNTHESIZE_CHECK_GRAD(calc_dp_dT_dx);
+
+            SYNTHESIZE_CHECK_SCALAR(calc_cv);
+            SYNTHESIZE_CHECK_SCALAR(calc_cv_dT);
+            SYNTHESIZE_CHECK_SCALAR(calc_cv_dc);
+            SYNTHESIZE_CHECK_GRAD(calc_cv_dx);
+
+            SYNTHESIZE_CHECK_SCALAR(calc_cp);
+            SYNTHESIZE_CHECK_SCALAR(calc_cp_dT);
+            SYNTHESIZE_CHECK_SCALAR(calc_cp_dc);
+            SYNTHESIZE_CHECK_GRAD(calc_cp_dx);
+
+#undef SYNTHESIZE_CHECK_SCALAR
+#undef SYNTHESIZE_CHECK_GRAD
+
+            // Speed-of-sound family carries an extra effective-molar-mass
+            // argument, so it does not fit the macros above.
+            const Number molar_mass = Number{0.02862};
+            consistency("calc_sound_speed_squared", [&](auto&& xx) {
+                return calc_sound_speed_squared(model, c, std::forward<decltype(xx)>(xx), T, molar_mass);
+            });
+            consistency("calc_sound_speed_squared_dT", [&](auto&& xx) {
+                return calc_sound_speed_squared_dT(model, c, std::forward<decltype(xx)>(xx), T, molar_mass);
+            });
+            consistency("calc_sound_speed_squared_dc", [&](auto&& xx) {
+                return calc_sound_speed_squared_dc(model, c, std::forward<decltype(xx)>(xx), T, molar_mass);
+            });
+            consistency_grad(
+                "calc_sound_speed_squared_dx",
+                [&](auto& g) { calc_sound_speed_squared_dx(model, c, x.data(), T, molar_mass, g.data()); },
+                [&](auto& g) { calc_sound_speed_squared_dx(model, c, x, T, molar_mass, g); });
+        } | rho_vecs;
+    } | T_vals;
 }
 
 // ===========================================================================
