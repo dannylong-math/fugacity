@@ -105,5 +105,5 @@ jobs:
           files: build/coverage/coverage.lcov
           # Tokenless upload works for public repos. For a private repo, add a
           # CODECOV_TOKEN secret and it will be picked up automatically.
-          token: ${{ secrets.CODECOV_TOKEN }}
+          # token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: false
