@@ -19,6 +19,7 @@ foreach(test_source IN LISTS TEST_SOURCES)
         ${PROJECT_NAME}::${PROJECT_NAME}
         ${PROJECT_NAME}_warnings
         ${PROJECT_NAME}_sanitizers
+        ${PROJECT_NAME}_coverage
         Boost::ut
     )
     add_test(NAME ${test_name} COMMAND ${test_name})

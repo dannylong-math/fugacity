@@ -96,6 +96,33 @@ if(ENABLE_SANITIZERS)
     )
 endif()
 
+# Coverage — empty unless ENABLE_COVERAGE=ON (set by the coverage preset)
+#
+# Clang source-based coverage. The instrumentation injects `__profc_*` counter
+# globals into every function, including the Helmholtz kernels that Enzyme
+# differentiates. Without help, Enzyme aborts on those counters with
+# "cannot compute with global variable that doesn't have marked shadow global"
+# (the same class of conflict that makes UBSan unusable here). The
+# `-enzyme-globals-default-inactive` flag tells Enzyme to treat every unmarked
+# global — i.e. the profile counters — as inactive, which is correct: counters
+# carry no derivative. This was verified to leave derivative values unchanged
+# against the full derivative test suite.
+#
+# Source-based coverage needs the same flags at compile and link time. Keep this
+# separate from the sanitizers target; the two are not meant to be combined.
+add_library(${PROJECT_NAME}_coverage INTERFACE)
+option(ENABLE_COVERAGE "Enable Clang source-based code coverage (Clang only; not combined with sanitizers)" OFF)
+if(ENABLE_COVERAGE)
+    target_compile_options(${PROJECT_NAME}_coverage INTERFACE
+        -fprofile-instr-generate
+        -fcoverage-mapping
+        -mllvm -enzyme-globals-default-inactive=1
+    )
+    target_link_options(${PROJECT_NAME}_coverage INTERFACE
+        -fprofile-instr-generate
+    )
+endif()
+
 # clang-tidy — enable with ENABLE_CLANG_TIDY=ON or add to a preset
 option(ENABLE_CLANG_TIDY "Run clang-tidy during compilation" OFF)
 if(ENABLE_CLANG_TIDY)

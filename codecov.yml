@@ -1,0 +1,35 @@
+# Codecov configuration — https://docs.codecov.com/docs/codecov-yaml
+#
+# Coverage is produced by the `coverage` job in .github/workflows/ci.yml, which
+# builds the `coverage` CMake preset (Clang source-based instrumentation),
+# exports an lcov report and uploads it here.
+
+coverage:
+  # Round to whole percentages and show a sensible range on the badge.
+  precision: 1
+  round: nearest
+  range: "70...100"
+
+  status:
+    # Report status checks on PRs but never fail the build on coverage alone.
+    project:
+      default:
+        target: auto
+        threshold: 1%
+        informational: true
+    patch:
+      default:
+        informational: true
+
+# Only the library headers are meaningful coverage targets. Tests, fetched
+# dependencies, benchmarks and docs are excluded (the lcov export already drops
+# _deps and tests, but list them here too so the Codecov UI stays clean).
+ignore:
+  - "tests/**/*"
+  - "benchmarks/**/*"
+  - "docs/**/*"
+  - "**/_deps/**/*"
+
+comment:
+  layout: "reach, diff, files"
+  require_changes: false

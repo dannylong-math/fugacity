@@ -47,3 +47,63 @@ jobs:
             -D Enzyme_DIR="$(brew --prefix enzyme)/lib/cmake/Enzyme"
           cmake --build build/release-max -j2
           ctest --test-dir build/release-max --output-on-failure
+
+  coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Homebrew
+        uses: Homebrew/actions/setup-homebrew@main
+
+      - name: Install system packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake git
+
+      - name: Install LLVM (clang) and Enzyme
+        run: brew install llvm enzyme lld
+
+      - name: Add brew LLVM to PATH
+        run: echo "$(brew --prefix llvm)/bin" >> $GITHUB_PATH
+
+      - name: Build with coverage instrumentation
+        run: |
+          cmake --preset coverage \
+            -D Enzyme_DIR="$(brew --prefix enzyme)/lib/cmake/Enzyme"
+          cmake --build build/coverage -j2
+
+      - name: Run tests and collect profiles
+        run: |
+          mkdir -p build/coverage/profraw
+          # Each test process writes its own raw profile (%p = pid).
+          LLVM_PROFILE_FILE="$PWD/build/coverage/profraw/%p.profraw" \
+            ctest --test-dir build/coverage --output-on-failure
+
+      - name: Generate lcov report
+        run: |
+          # Merge every test process's raw profile into one indexed profile.
+          llvm-profdata merge -sparse build/coverage/profraw/*.profraw \
+            -o build/coverage/merged.profdata
+          # llvm-cov needs every instrumented binary; the first is positional,
+          # the rest are passed with -object.
+          mapfile -t BINS < <(find build/coverage/tests -maxdepth 1 -type f -executable -name 'test_*')
+          OBJ=(); for b in "${BINS[@]:1}"; do OBJ+=(-object "$b"); done
+          llvm-cov export "${BINS[0]}" "${OBJ[@]}" \
+            -instr-profile=build/coverage/merged.profdata \
+            -format=lcov \
+            -ignore-filename-regex='(_deps|/tests/).*' \
+            > build/coverage/coverage.lcov
+          # Print a human-readable summary into the job log.
+          llvm-cov report "${BINS[0]}" "${OBJ[@]}" \
+            -instr-profile=build/coverage/merged.profdata \
+            -ignore-filename-regex='(_deps|/tests/).*'
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          files: build/coverage/coverage.lcov
+          # Tokenless upload works for public repos. For a private repo, add a
+          # CODECOV_TOKEN secret and it will be picked up automatically.
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: false
