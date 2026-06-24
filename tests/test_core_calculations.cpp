@@ -48,11 +48,15 @@ int main()
             run_derivative_consistency_tests<2>(binary, 250.0, {0.7, 0.3}, 350.0);
             run_derivative_consistency_tests<2>(binary, 50.0, {0.5, 0.5}, 280.0);
             run_derivative_consistency_tests<2>(binary, 300.0, {0.2, 0.8}, 400.0);
+            // Pointer-core vs container-wrapper agreement for every free function.
+            run_free_function_consistency_tests<2>(binary);
         };
 
         "unary derivative consistency"_test = [&] {
             run_derivative_consistency_tests<1>(unary, 120.0, {1.0}, 310.0);
             run_derivative_consistency_tests<1>(unary, 200.0, {1.0}, 360.0);
+            // Pointer-core vs container-wrapper agreement for every free function.
+            run_free_function_consistency_tests<1>(unary);
         };
 
         // -------------------------------------------------------------------

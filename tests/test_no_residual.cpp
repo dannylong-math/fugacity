@@ -113,6 +113,9 @@ int main()
 
             run_derivative_consistency_tests<2>(eos, 100.0, {0.4, 0.6}, 300.0);
             run_derivative_consistency_tests<2>(eos, 250.0, {0.7, 0.3}, 350.0);
+
+            // Pointer-core vs container-wrapper agreement for every free function.
+            run_free_function_consistency_tests<2>(eos);
         };
     };
 }

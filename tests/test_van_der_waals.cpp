@@ -274,12 +274,16 @@ int main()
             const ge::EoS eos{make_ideal<1>(), ge::VanDerWaals<1>(unary_inputs)};
             run_derivative_consistency_tests<1>(eos, 100.0, {1.0}, 300.0, 0.028);
             run_derivative_consistency_tests<1>(eos, 8000.0, {1.0}, 320.0, 0.028);
+            // Pointer-core vs container-wrapper agreement for every free function.
+            run_free_function_consistency_tests<1>(eos);
         };
 
         "derivative consistency (binary mixture)"_test = [] {
             const ge::EoS eos{make_ideal<2>(), ge::VanDerWaals<2>(binary_inputs, binary_kij)};
             run_derivative_consistency_tests<2>(eos, 150.0, {0.3, 0.7}, 310.0, 0.036);
             run_derivative_consistency_tests<2>(eos, 5000.0, {0.6, 0.4}, 350.0, 0.033);
+            // Pointer-core vs container-wrapper agreement for every free function.
+            run_free_function_consistency_tests<2>(eos);
         };
     };
 }
