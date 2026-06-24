@@ -5,8 +5,8 @@
  *        generalized @f$(\Delta_1, \Delta_2)@f$ form.
  */
 
-#include "eoslab/core/eos_base.hpp"
-#include "eoslab/core/numbers.hpp"
+#include "synthesize/core/eos_base.hpp"
+#include "synthesize/core/numbers.hpp"
 
 #include <array>
 #include <cassert>
@@ -17,7 +17,7 @@
 #include <type_traits>
 #include <vector>
 
-namespace glis::eos {
+namespace synthesize {
 
 /**
  * @brief CRTP base orchestrating the residual Helmholtz energy of a
@@ -45,19 +45,19 @@ namespace glis::eos {
  *   a_{ii}(T) = a_{0,ii} \left[1 + m_{ii}\left(1 - \sqrt{T/T_{c,i}}\right)\right]^2
  *             = a_{0,ii}\, \alpha_i(T)^2,
  * @f]
- * and the three Helmholtz kernels required by the glis::eos::ResidualEoS
+ * and the three Helmholtz kernels required by the synthesize::ResidualEoS
  * concept.
  *
  * @par CRTP contract
  * A derived model @p Derived must provide
  * - `static constexpr double delta1, delta2` with `delta1 != delta2` (checked
  *   via @c static_assert; the degenerate @f$\Delta_1 = \Delta_2 = 0@f$ case is
- *   glis::eos::VanDerWaals), and
+ *   synthesize::VanDerWaals), and
  * - constructors that map its natural species inputs to one PureSpecies record
  *   per species and forward them, together with the @f$k_{ij}@f$ matrix, to the
  *   protected BaseCubic constructor.
  *
- * See glis::eos::PengRobinson for a complete derived model.
+ * See synthesize::PengRobinson for a complete derived model.
  *
  * @par Evaluation notes
  * - @f$\alpha_i@f$ may be negative (at @f$T@f$ well above a species'
@@ -244,4 +244,4 @@ private:
               // so a_m = sum_ij x_i x_j A_ij |alpha_i| |alpha_j|.
 };
 
-} // namespace glis::eos
+} // namespace synthesize

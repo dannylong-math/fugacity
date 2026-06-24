@@ -36,6 +36,18 @@
       }
     },
     {
+      "name": "coverage",
+      "displayName": "Coverage",
+      "description": "Clang source-based code coverage build. Uses -O1 -g (Enzyme needs >= -O1 for correct derivatives) with sanitizers off. Run the tests, then merge the .profraw files with llvm-profdata and report with llvm-cov.",
+      "inherits": "base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_CXX_FLAGS_DEBUG": "-O1 -g",
+        "ENABLE_SANITIZERS": "OFF",
+        "ENABLE_COVERAGE": "ON"
+      }
+    },
+    {
       "name": "release-max",
       "displayName": "Release (max optimizations)",
       "description": "If your domain guarantees no NaN or Inf can ever appear, add -ffinite-math-only for additional gains. It lets the compiler eliminate all NaN/Inf guards, but produces silent wrong results if a NaN does appear — use only when you have a proof your inputs are finite.",
@@ -49,12 +61,14 @@
   "buildPresets": [
     { "name": "debug",       "configurePreset": "debug"       },
     { "name": "debug-tidy",  "configurePreset": "debug-tidy"  },
+    { "name": "coverage",    "configurePreset": "coverage"    },
     { "name": "release",     "configurePreset": "release"     },
     { "name": "release-max", "configurePreset": "release-max" }
   ],
   "testPresets": [
     { "name": "debug",       "configurePreset": "debug",       "output": { "outputOnFailure": true } },
     { "name": "debug-tidy",  "configurePreset": "debug-tidy",  "output": { "outputOnFailure": true } },
+    { "name": "coverage",    "configurePreset": "coverage",    "output": { "outputOnFailure": true } },
     { "name": "release",     "configurePreset": "release",     "output": { "outputOnFailure": true } },
     { "name": "release-max", "configurePreset": "release-max", "output": { "outputOnFailure": true } }
   ]

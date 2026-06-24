@@ -1,4 +1,4 @@
-#include "eoslab/core/core_calculations.hpp"
+#include "synthesize/core/core_calculations.hpp"
 
 #include <boost/ut.hpp>
 #include <cmath>
@@ -7,12 +7,12 @@
 
 using namespace boost::ut;
 
-// Exercises the compile-time integer power helper glis::eos::detail::fast_pow.
+// Exercises the compile-time integer power helper synthesize::detail::fast_pow.
 // The previous implementation had a dead `N % 2 == 2` branch; these checks pin
 // down correct results for even, odd, zero, one, and negative exponents.
 int main()
 {
-    using glis::eos::detail::fast_pow;
+    using synthesize::detail::fast_pow;
 
     suite<"fast_pow"> s = [] {
         "matches std::pow for several exponents"_test = []<typename Number> {
@@ -49,4 +49,6 @@ int main()
             expect(v == 16.0_d);
         };
     };
+
+    return ::boost::ut::cfg<>.run();
 }

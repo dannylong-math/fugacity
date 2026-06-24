@@ -5,8 +5,8 @@
  * @brief Couples an ideal and a residual model into a single equation of state.
  */
 
-#include "eoslab/core/concepts.hpp"
-namespace glis::eos {
+#include "synthesize/core/concepts.hpp"
+namespace synthesize {
 
 /**
  * @brief A complete equation of state, formed by pairing an ideal contribution
@@ -17,8 +17,8 @@ namespace glis::eos {
  * energy is the sum of the ideal and residual parts, and the property routines
  * combine the two contributions as the relevant thermodynamics dictates.
  *
- * @tparam Ideal    A model satisfying glis::eos::IdealEoS.
- * @tparam Residual A model satisfying glis::eos::ResidualEoS.
+ * @tparam Ideal    A model satisfying synthesize::IdealEoS.
+ * @tparam Residual A model satisfying synthesize::ResidualEoS.
  */
 template<IdealEoS Ideal, ResidualEoS Residual> class EoS {
 public:
@@ -53,4 +53,4 @@ private:
     Ideal ideal_;       ///< The ideal contribution.
     Residual residual_; ///< The residual contribution.
 };
-} // namespace glis::eos
+} // namespace synthesize

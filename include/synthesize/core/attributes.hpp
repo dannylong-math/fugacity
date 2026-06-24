@@ -5,7 +5,7 @@
  */
 
 /**
- * @def GLIS_EOS_ALWAYS_INLINE
+ * @def SYNTHESIZE_ALWAYS_INLINE
  * @brief Forces the compiler to inline the annotated function.
  *
  * Applied to the small helpers (e.g., `eval_polynomial`) that
@@ -25,7 +25,7 @@
  * compiler, see the top-level CMakeLists) and to nothing otherwise.
  */
 #if defined(__clang__)
-#define GLIS_EOS_ALWAYS_INLINE [[clang::always_inline]]
+#define SYNTHESIZE_ALWAYS_INLINE [[clang::always_inline]]
 #else
-#define GLIS_EOS_ALWAYS_INLINE
+#define SYNTHESIZE_ALWAYS_INLINE
 #endif

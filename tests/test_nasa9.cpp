@@ -1,5 +1,5 @@
 //
-// Unit tests for the NASA-9 polynomial ideal-gas model (glis::eos::Nasa9).
+// Unit tests for the NASA-9 polynomial ideal-gas model (synthesize::Nasa9).
 //
 // As in test_nasa7.cpp, the model-agnostic structural and derivative checks
 // are delegated to the reusable helpers in derivative_test_harness.hpp:
@@ -30,12 +30,12 @@
 // kernel in that case.
 //
 #include "derivative_test_harness.hpp"
-#include "eoslab/core/core_calculations.hpp"
-#include "eoslab/core/eos_pair.hpp"
-#include "eoslab/core/numbers.hpp"
-#include "eoslab/ideal_models/nasa7.hpp"
-#include "eoslab/ideal_models/nasa9.hpp"
-#include "eoslab/residual_models/no_residual.hpp"
+#include "synthesize/core/core_calculations.hpp"
+#include "synthesize/core/eos_pair.hpp"
+#include "synthesize/core/numbers.hpp"
+#include "synthesize/ideal_models/nasa7.hpp"
+#include "synthesize/ideal_models/nasa9.hpp"
+#include "synthesize/residual_models/no_residual.hpp"
 
 #include <array>
 #include <boost/ut.hpp>
@@ -44,11 +44,11 @@
 #include <span>
 
 using namespace boost::ut;
-using namespace eoslab_test;
+using namespace synthesize_test;
 
 namespace {
 
-namespace ge = glis::eos;
+namespace ge = synthesize;
 
 template<std::size_t N> using Input = typename ge::Nasa9<N>::SpeciesInput;
 
@@ -250,6 +250,10 @@ int main()
             run_derivative_consistency_tests<2>(binary, 100.0, {0.4, 0.6}, 300.0);
             run_derivative_consistency_tests<2>(binary, 250.0, {0.7, 0.3}, 350.0);
             run_derivative_consistency_tests<2>(binary, 40.0, {0.5, 0.5}, 280.0);
+
+            // Pointer-core vs container-wrapper agreement for every free function.
+            run_free_function_consistency_tests<1>(unary);
+            run_free_function_consistency_tests<2>(binary);
         };
 
         // ===================================================================
@@ -345,4 +349,6 @@ int main()
             }
         };
     };
+
+    return ::boost::ut::cfg<>.run();
 }

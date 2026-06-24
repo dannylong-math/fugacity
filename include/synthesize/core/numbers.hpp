@@ -6,7 +6,7 @@
  */
 
 #include <concepts>
-namespace glis::eos {
+namespace synthesize {
 
 /**
  * @brief The universal (molar) gas constant @f$R@f$.
@@ -18,4 +18,4 @@ namespace glis::eos {
  */
 template<std::floating_point Number = double> inline constexpr Number ideal_gas_constant{8.31446261815324};
 
-} // namespace glis::eos
+} // namespace synthesize

@@ -4,9 +4,9 @@
  * @brief Residual (departure) model for the van der Waals equation of state.
  */
 
-#include "eoslab/core/concepts.hpp"
-#include "eoslab/core/eos_base.hpp"
-#include "eoslab/core/numbers.hpp"
+#include "synthesize/core/concepts.hpp"
+#include "synthesize/core/eos_base.hpp"
+#include "synthesize/core/numbers.hpp"
 
 #include <array>
 #include <cassert>
@@ -17,7 +17,7 @@
 #include <type_traits>
 #include <vector>
 
-namespace glis::eos {
+namespace synthesize {
 
 /**
  * @brief Residual Helmholtz contribution of the van der Waals equation of state.
@@ -27,7 +27,7 @@ namespace glis::eos {
  *   a_r = -R T \ln(1 - b_m c) - a_m c,
  * @f]
  * the @f$\Delta_1 = \Delta_2 = 0@f$ specialization of the generalized cubic
- * form (where @f$\psi_2@f$ degenerates to @f$c@f$; see glis::eos::BaseCubic for
+ * form (where @f$\psi_2@f$ degenerates to @f$c@f$; see synthesize::BaseCubic for
  * the general case). The mixture parameters follow the one-fluid rules
  * @f[
  *   a_m = \sum_i \sum_j x_i x_j\, (1 - k_{ij}) \sqrt{a_{0,ii}\, a_{0,jj}},
@@ -46,11 +46,11 @@ namespace glis::eos {
  * coefficients can affect @f$a_m@f$, so an asymmetric input matrix is
  * symmetrized internally without loss.
  *
- * Pair the model with an ideal contribution in a glis::eos::EoS and evaluate
+ * Pair the model with an ideal contribution in a synthesize::EoS and evaluate
  * properties through the free functions in core_calculations.hpp:
  *
  * @code{.cpp}
- * using namespace glis::eos;
+ * using namespace synthesize;
  *
  * // N2 and CO2 from their critical points, with one interaction coefficient.
  * VanDerWaals<2> residual(
@@ -231,4 +231,4 @@ private:
 static_assert(ResidualEoS<VanDerWaals<2>>, "VanDerWaals must satisfy the ResidualEoS concept.");
 static_assert(ResidualEoS<VanDerWaals<std::dynamic_extent>>, "VanDerWaals must satisfy the ResidualEoS concept.");
 
-} // namespace glis::eos
+} // namespace synthesize

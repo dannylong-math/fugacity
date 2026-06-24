@@ -1,4 +1,4 @@
-#include "eoslab/core/horner.hpp"
+#include "synthesize/core/horner.hpp"
 
 #include <algorithm>
 #include <array>
@@ -24,7 +24,7 @@ template<int N, std::floating_point Number> void test_horner(const std::size_t n
             for (int k = 1; k < N + 1; ++k) {
                 y += coeffs[k] * std::pow(x, k);
             }
-            Number yh = glis::eos::eval_polynomial<N>(coeffs, x);
+            Number yh = synthesize::eval_polynomial<N>(coeffs, x);
             expect(approx(yh, y, 1.e-9));
         }
     }
@@ -45,4 +45,6 @@ int main()
             "Degree 5"_test = [] { test_horner<5, T>(); };
         } | std::tuple<double, long double>{};
     };
+
+    return ::boost::ut::cfg<>.run();
 }

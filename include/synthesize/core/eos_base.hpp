@@ -6,13 +6,13 @@
  *        tag a model as an ideal contribution.
  */
 
-#include "eoslab/core/attributes.hpp"
+#include "synthesize/core/attributes.hpp"
 
 #include <cassert>
 #include <cstddef>
 #include <span>
 #include <utility>
-namespace glis::eos {
+namespace synthesize {
 
 /**
  * @brief Base class that stores the number of chemical components an EoS
@@ -60,7 +60,7 @@ public:
      * model.for_each_component([&](std::size_t i) { out[i] = 0.0; });
      * @endcode
      */
-    template<class F> GLIS_EOS_ALWAYS_INLINE constexpr void for_each_component(F f) const
+    template<class F> SYNTHESIZE_ALWAYS_INLINE constexpr void for_each_component(F f) const
     {
         [&]<std::size_t... Is>(std::index_sequence<Is...>) { (f(Is), ...); }(std::make_index_sequence<N>{});
     }
@@ -99,7 +99,7 @@ public:
      *           the standard algorithms), so a mutable callable may carry state
      *           across the visits.
      */
-    template<class F> GLIS_EOS_ALWAYS_INLINE constexpr void for_each_component(F f) const
+    template<class F> SYNTHESIZE_ALWAYS_INLINE constexpr void for_each_component(F f) const
     {
         for (std::size_t idx = 0; idx < n_; ++idx) {
             f(idx);
@@ -113,9 +113,9 @@ private:
 /**
  * @brief Empty tag type that marks a model as an *ideal* equation of state.
  *
- * A model must publicly derive from this class to satisfy the glis::eos::IdealEoS
+ * A model must publicly derive from this class to satisfy the synthesize::IdealEoS
  * concept. It carries no data or behaviour; it exists purely so the concepts can
  * distinguish ideal contributions from residual ones at compile time.
  */
 class BaseIdealEoS {};
-} // namespace glis::eos
+} // namespace synthesize

@@ -14,21 +14,21 @@ cmake_minimum_required(VERSION 3.21)
 # but is validated to be Clang right after project().
 # ----------------------------------------------------------------------------
 if(NOT DEFINED CMAKE_CXX_COMPILER AND NOT DEFINED ENV{CXX})
-    find_program(EOSLAB_CLANGXX NAMES clang++ clang++-22 clang++-21 clang++-20)
-    if(EOSLAB_CLANGXX)
-        set(CMAKE_CXX_COMPILER "${EOSLAB_CLANGXX}")
+    find_program(SYNTHESIZE_CLANGXX NAMES clang++ clang++-22 clang++-21 clang++-20)
+    if(SYNTHESIZE_CLANGXX)
+        set(CMAKE_CXX_COMPILER "${SYNTHESIZE_CLANGXX}")
     endif()
 endif()
 
-project(MyProject
+project(Synthesize
     VERSION 0.1.0
-    DESCRIPTION "A C++ library"
+    DESCRIPTION "A C++ library implementing equations of state in an efficient way."
     LANGUAGES CXX
 )
 
 if(NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     message(FATAL_ERROR
-        "EoSLab requires the Clang compiler because it depends on Enzyme, "
+        "Synthesize requires the Clang compiler because it depends on Enzyme, "
         "which is an LLVM/Clang plugin.\n"
         "Detected C++ compiler: '${CMAKE_CXX_COMPILER_ID}' "
         "(${CMAKE_CXX_COMPILER}).\n"
@@ -93,6 +93,33 @@ if(ENABLE_SANITIZERS)
     )
     target_link_options(${PROJECT_NAME}_sanitizers INTERFACE
         -fsanitize=address
+    )
+endif()
+
+# Coverage — empty unless ENABLE_COVERAGE=ON (set by the coverage preset)
+#
+# Clang source-based coverage. The instrumentation injects `__profc_*` counter
+# globals into every function, including the Helmholtz kernels that Enzyme
+# differentiates. Without help, Enzyme aborts on those counters with
+# "cannot compute with global variable that doesn't have marked shadow global"
+# (the same class of conflict that makes UBSan unusable here). The
+# `-enzyme-globals-default-inactive` flag tells Enzyme to treat every unmarked
+# global — i.e. the profile counters — as inactive, which is correct: counters
+# carry no derivative. This was verified to leave derivative values unchanged
+# against the full derivative test suite.
+#
+# Source-based coverage needs the same flags at compile and link time. Keep this
+# separate from the sanitizers target; the two are not meant to be combined.
+add_library(${PROJECT_NAME}_coverage INTERFACE)
+option(ENABLE_COVERAGE "Enable Clang source-based code coverage (Clang only; not combined with sanitizers)" OFF)
+if(ENABLE_COVERAGE)
+    target_compile_options(${PROJECT_NAME}_coverage INTERFACE
+        -fprofile-instr-generate
+        -fcoverage-mapping
+        -mllvm -enzyme-globals-default-inactive=1
+    )
+    target_link_options(${PROJECT_NAME}_coverage INTERFACE
+        -fprofile-instr-generate
     )
 endif()
 

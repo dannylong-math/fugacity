@@ -1,16 +1,16 @@
 #pragma once
 
-#include "eoslab/core/concepts.hpp"
+#include "synthesize/core/concepts.hpp"
 
 #include <span>
 
-namespace glis::eos {
+namespace synthesize {
 
 /**
  * @brief A residual contribution that is identically zero.
  *
  * Every thermodynamic quantity this model contributes evaluates to zero, so
- * pairing it (via glis::eos::EoS) with an ideal-gas model yields a complete
+ * pairing it (via synthesize::EoS) with an ideal-gas model yields a complete
  * equation of state whose residual (departure) part vanishes &mdash; i.e. a pure
  * ideal gas. It exists so that ideal-gas behaviour can be expressed through the
  * same EoS machinery as any other model without a special-case code path.
@@ -80,4 +80,4 @@ public:
 static_assert(ResidualEoS<NoResidual<2>>, "NoResidual must satisfy the ResidualEoS concept.");
 static_assert(ResidualEoS<NoResidual<std::dynamic_extent>>, "NoResidual must satisfy the ResidualEoS concept.");
 
-} // namespace glis::eos
+} // namespace synthesize

@@ -1,5 +1,5 @@
 //
-// Unit tests for the constant-cp ideal-gas model (glis::eos::ConstantCp).
+// Unit tests for the constant-cp ideal-gas model (synthesize::ConstantCp).
 //
 // Most of the heavy lifting is delegated to the reusable, model-agnostic helpers
 // in derivative_test_harness.hpp:
@@ -19,11 +19,11 @@
 // At the reference state (T = T_ref, c = c_ref): h = h_ref and s = s_ref.
 //
 #include "derivative_test_harness.hpp"
-#include "eoslab/core/core_calculations.hpp"
-#include "eoslab/core/eos_pair.hpp"
-#include "eoslab/core/numbers.hpp"
-#include "eoslab/ideal_models/const_cp.hpp"
-#include "eoslab/residual_models/no_residual.hpp"
+#include "synthesize/core/core_calculations.hpp"
+#include "synthesize/core/eos_pair.hpp"
+#include "synthesize/core/numbers.hpp"
+#include "synthesize/ideal_models/const_cp.hpp"
+#include "synthesize/residual_models/no_residual.hpp"
 
 #include <array>
 #include <boost/ut.hpp>
@@ -32,11 +32,11 @@
 #include <span>
 
 using namespace boost::ut;
-using namespace eoslab_test;
+using namespace synthesize_test;
 
 namespace {
 
-namespace ge = glis::eos;
+namespace ge = synthesize;
 
 template<std::size_t N> using Input = typename ge::ConstantCp<N>::SpeciesInput;
 
@@ -157,6 +157,12 @@ int main()
             run_derivative_consistency_tests<2>(binary, 100.0, {0.4, 0.6}, 300.0);
             run_derivative_consistency_tests<2>(binary, 250.0, {0.7, 0.3}, 350.0);
             run_derivative_consistency_tests<2>(binary, 40.0, {0.5, 0.5}, 280.0);
+
+            // Pointer-core vs container-wrapper agreement for every free function.
+            run_free_function_consistency_tests<1>(unary);
+            run_free_function_consistency_tests<2>(binary);
         };
     };
+
+    return ::boost::ut::cfg<>.run();
 }
