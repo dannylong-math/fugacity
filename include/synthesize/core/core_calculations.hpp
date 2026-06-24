@@ -238,7 +238,8 @@ void calc_dPsi_drhoi(const EoS& eos, const Number* SYNTHESIZE_RESTRICT rho_i, co
         // `calc_Psi` accumulates the per-component Helmholtz density into a local
         // scalar, so there is no caller-visible intermediate buffer to shadow:
         // `rho_i` is the only active input and the gradient lands in `dPsi_drho`.
-        __enzyme_autodiff<Number>((void*)calc_Psi<EoS, Number>, enzyme_const, &eos, enzyme_dup, rho_i, dPsi_drho,
+        // FIXME: should <Number> be <void> since nothing is returned?
+        __enzyme_autodiff<void>((void*)calc_Psi<EoS, Number>, enzyme_const, &eos, enzyme_dup, rho_i, dPsi_drho,
                                   enzyme_const, T);
         return;
     }
@@ -258,14 +259,74 @@ void calc_dPsi_drhoi(const EoS& eos, const Number* SYNTHESIZE_RESTRICT rho_i, co
  * @return Molar Helmholtz energy [J/mol].
  * @pre `x.size() == eos.size()`
  */
-template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number, std::size_t N>
-Number calc_helmholtz(const EoS<Ideal, Residual>& eos, const Number c, std::span<const Number, N> x, const Number T)
+template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number, typename V>
+Number calc_helmholtz(const EoS<Ideal, Residual>& eos, const Number c, V& x, const Number T)
 {
     // TODO: Consider a custom assertion with a better error message
     assert(x.size() == eos.size());
+    return calc_helmholtz(eos, c, x.data(), T);
+}
+
+
+template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number, typename V>
+Number calc_helmholtz_dT(const EoS<Ideal, Residual>& eos, const Number c, V& x, const Number T)
+{
+    // TODO: Consider a custom assertion with a better error message
+    assert(x.size() == eos.size());
+    return calc_helmholtz_dT(eos, c, x.data(), T);
+}
+
+template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number, typename V>
+Number calc_helmholtz_dc(const EoS<Ideal, Residual>& eos, const Number c, V& x, const Number T)
+{
+    // TODO: Consider a custom assertion with a better error message
+    assert(x.size() == eos.size());
+    return calc_helmholtz_dc(eos, c, x.data(), T);
+}
+
+template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number, typename V1, typename V2>
+Number calc_helmholtz(const EoS<Ideal, Residual>& eos, const Number c, V1& x, const Number T, V2& gradient)
+{
+    // TODO: Consider a custom assertion with a better error message
+    assert(x.size() == eos.size());
+    return calc_helmholtz_dx(eos, c, x.data(), T,gradient.data());
+}
+
+template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number>
+Number calc_helmholtz(const EoS<Ideal, Residual>& eos, const Number c, const Number* x, const Number T)
+{
+    // TODO: Handle errors
     const Ideal& ideal = eos.ideal();
     const Residual& residual = eos.residual();
-    return ideal.calc_helmholtz(c, x.data(), T) + residual.calc_helmholtz(c, x.data(), T);
+    return ideal.calc_helmholtz(c, x, T) + residual.calc_helmholtz(c, x, T);
+}
+
+template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number>
+Number calc_helmholtz_dT(const EoS<Ideal, Residual>& eos, const Number c, const Number* x, const Number T)
+{
+    // TODO: Handle errors
+    Number dT{1};
+    return __enzyme_fwddiff<Number>((void*)calc_helmholtz<Ideal, Residual, Number>, enzyme_const, &eos, enzyme_const,
+                                    c, enzyme_const, x, enzyme_dup, T, dT);
+}
+
+template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number>
+Number calc_helmholtz_dc(const EoS<Ideal, Residual>& eos, const Number c, const Number* x, const Number T)
+{
+    // TODO: Handle errors
+    Number dc{1};
+    return __enzyme_fwddiff<Number>((void*)calc_helmholtz<Ideal, Residual, Number>, enzyme_const, &eos, enzyme_dup,
+                                    c, dc, enzyme_const, x, enzyme_const, T);
+}
+
+template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number>
+void calc_helmholtz_dx(const EoS<Ideal, Residual>& eos, const Number c, const Number* x, const Number T,
+                         Number* gradient)
+{
+    std::fill_n(gradient, eos.size(), Number{0});
+    // TODO: Handle errors
+    __enzyme_autodiff<void>((void*)calc_helmholtz<Ideal, Residual, Number>, enzyme_const, &eos, enzyme_const, c,
+                            enzyme_dup, x, gradient, enzyme_const, T);
 }
 
 /**
@@ -278,16 +339,51 @@ Number calc_helmholtz(const EoS<Ideal, Residual>& eos, const Number c, std::span
  * @pre   `T > 0`.
  * @pre `x.size() == eos.size()`
  */
-template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number, std::size_t N>
-Number calc_pressure(const EoS<Ideal, Residual>& eos, const Number c, std::span<const Number, N> x, const Number T)
+template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number, typename V>
+Number calc_pressure(const EoS<Ideal, Residual>& eos, const Number c, V& x, const Number T)
 {
     // TODO: Consider a custom assertion with a better error message
     assert(x.size() == eos.size());
     assert(T > Number{0});
+    return calc_pressure(eos, c, x.data(), T);
+}
+
+template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number>
+Number calc_pressure(const EoS<Ideal, Residual>& eos, const Number c, const Number* x, const Number T)
+{
+    // TODO: Consider a custom assertion with a better error message
+    assert(T > Number{0});
     const Residual& residual = eos.residual();
     constexpr Number R = ideal_gas_constant<Number>;
     const Number invT = Number{1} / T;
-    return c * R * T * (Number{1} + detail::calc_lambda<0, 1>(residual, c, x.data(), invT));
+    return c * R * T * (Number{1} + detail::calc_lambda<0, 1>(residual, c, x, invT));
+}
+
+template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number>
+Number calc_pressure_dT(const EoS<Ideal, Residual>& eos, const Number c, const Number* x, const Number T)
+{
+    // TODO: Consider a custom assertion with a better error message
+    assert(T > Number{0});
+    Number dT{1};
+    return __enzyme_fwddiff<Number>((void*)calc_pressure<Ideal, Residual, Number>, enzyme_const, &eos, enzyme_const, c, enzyme_const, x, enzyme_dup, T, dT);
+}
+
+template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number>
+Number calc_pressure_dc(const EoS<Ideal, Residual>& eos, const Number c, const Number* x, const Number T)
+{
+    // TODO: Consider a custom assertion with a better error message
+    assert(T > Number{0});
+    Number dc{1};
+    return __enzyme_fwddiff<Number>((void*)calc_pressure<Ideal, Residual, Number>, enzyme_const, &eos, enzyme_dup, c, dc, enzyme_const, x, enzyme_const, T);
+}
+
+template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number>
+void calc_pressure_dx(const EoS<Ideal, Residual>& eos, const Number c, const Number* x, const Number T, Number* gradient)
+{
+    std::fill_n(gradient, eos.size(),Number{0});
+    // TODO: Consider a custom assertion with a better error message
+    assert(T > Number{0});
+    __enzyme_autodiff<void>((void*)calc_pressure<Ideal, Residual, Number>, enzyme_const, &eos, enzyme_const, c, enzyme_dup, x, gradient, enzyme_const, T);
 }
 
 /**
