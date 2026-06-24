@@ -19,12 +19,12 @@
  * - `rho_i` partial molar concentrations [mol/m^3]
  * - `R`     gas constant [J/(mol K)]
  */
+#include "synthesize/core/assertions.hpp"
 #include "synthesize/core/concepts.hpp"
 #include "synthesize/core/eos_pair.hpp"
 #include "synthesize/core/numbers.hpp"
 
 #include <algorithm>
-#include <cassert>
 #include <cmath>
 #include <concepts>
 #include <cstddef>
@@ -66,7 +66,7 @@ template<std::floating_point Number, int N> constexpr Number fast_pow(const Numb
         return Number{1};
     }
     else if constexpr (N < 0) {
-        assert(base != Number{0});
+        SYNTHESIZE_ASSERT(base != Number{0});
         return fast_pow<Number, -N>(Number{1} / base);
     }
     else if constexpr (N == 1) {
@@ -240,7 +240,7 @@ void calc_dPsi_drhoi(const EoS& eos, const Number* SYNTHESIZE_RESTRICT rho_i, co
         // `rho_i` is the only active input and the gradient lands in `dPsi_drho`.
         // FIXME: should <Number> be <void> since nothing is returned?
         __enzyme_autodiff<void>((void*)calc_Psi<EoS, Number>, enzyme_const, &eos, enzyme_dup, rho_i, dPsi_drho,
-                                  enzyme_const, T);
+                                enzyme_const, T);
         return;
     }
     else {
@@ -263,16 +263,15 @@ template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number, typen
 Number calc_helmholtz(const EoS<Ideal, Residual>& eos, const Number c, V& x, const Number T)
 {
     // TODO: Consider a custom assertion with a better error message
-    assert(x.size() == eos.size());
+    SYNTHESIZE_ASSERT(x.size() == eos.size());
     return calc_helmholtz(eos, c, x.data(), T);
 }
-
 
 template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number, typename V>
 Number calc_helmholtz_dT(const EoS<Ideal, Residual>& eos, const Number c, V& x, const Number T)
 {
     // TODO: Consider a custom assertion with a better error message
-    assert(x.size() == eos.size());
+    SYNTHESIZE_ASSERT(x.size() == eos.size());
     return calc_helmholtz_dT(eos, c, x.data(), T);
 }
 
@@ -280,7 +279,7 @@ template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number, typen
 Number calc_helmholtz_dc(const EoS<Ideal, Residual>& eos, const Number c, V& x, const Number T)
 {
     // TODO: Consider a custom assertion with a better error message
-    assert(x.size() == eos.size());
+    SYNTHESIZE_ASSERT(x.size() == eos.size());
     return calc_helmholtz_dc(eos, c, x.data(), T);
 }
 
@@ -288,8 +287,8 @@ template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number, typen
 void calc_helmholtz_dx(const EoS<Ideal, Residual>& eos, const Number c, V1& x, const Number T, V2& gradient)
 {
     // TODO: Consider a custom assertion with a better error message
-    assert(x.size() == eos.size());
-    calc_helmholtz_dx(eos, c, x.data(), T,gradient.data());
+    SYNTHESIZE_ASSERT(x.size() == eos.size());
+    calc_helmholtz_dx(eos, c, x.data(), T, gradient.data());
 }
 
 template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number>
@@ -306,8 +305,8 @@ Number calc_helmholtz_dT(const EoS<Ideal, Residual>& eos, const Number c, const 
 {
     // TODO: Handle errors
     Number dT{1};
-    return __enzyme_fwddiff<Number>((void*)calc_helmholtz<Ideal, Residual, Number>, enzyme_const, &eos, enzyme_const,
-                                    c, enzyme_const, x, enzyme_dup, T, dT);
+    return __enzyme_fwddiff<Number>((void*)calc_helmholtz<Ideal, Residual, Number>, enzyme_const, &eos, enzyme_const, c,
+                                    enzyme_const, x, enzyme_dup, T, dT);
 }
 
 template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number>
@@ -315,13 +314,13 @@ Number calc_helmholtz_dc(const EoS<Ideal, Residual>& eos, const Number c, const 
 {
     // TODO: Handle errors
     Number dc{1};
-    return __enzyme_fwddiff<Number>((void*)calc_helmholtz<Ideal, Residual, Number>, enzyme_const, &eos, enzyme_dup,
-                                    c, dc, enzyme_const, x, enzyme_const, T);
+    return __enzyme_fwddiff<Number>((void*)calc_helmholtz<Ideal, Residual, Number>, enzyme_const, &eos, enzyme_dup, c,
+                                    dc, enzyme_const, x, enzyme_const, T);
 }
 
 template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number>
 void calc_helmholtz_dx(const EoS<Ideal, Residual>& eos, const Number c, const Number* x, const Number T,
-                         Number* gradient)
+                       Number* gradient)
 {
     std::fill_n(gradient, eos.size(), Number{0});
     // TODO: Handle errors
@@ -343,8 +342,8 @@ template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number, typen
 Number calc_pressure(const EoS<Ideal, Residual>& eos, const Number c, V& x, const Number T)
 {
     // TODO: Consider a custom assertion with a better error message
-    assert(x.size() == eos.size());
-    assert(T > Number{0});
+    SYNTHESIZE_ASSERT(x.size() == eos.size());
+    SYNTHESIZE_REQUIRE_POSITIVE_TEMPERATURE(T);
     return calc_pressure(eos, c, x.data(), T);
 }
 
@@ -352,7 +351,7 @@ template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number, typen
 Number calc_pressure_dT(const EoS<Ideal, Residual>& eos, const Number c, V& x, const Number T)
 {
     // TODO: Consider a custom assertion with a better error message
-    assert(x.size() == eos.size());
+    SYNTHESIZE_ASSERT(x.size() == eos.size());
     return calc_pressure_dT(eos, c, x.data(), T);
 }
 
@@ -360,7 +359,7 @@ template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number, typen
 Number calc_pressure_dc(const EoS<Ideal, Residual>& eos, const Number c, V& x, const Number T)
 {
     // TODO: Consider a custom assertion with a better error message
-    assert(x.size() == eos.size());
+    SYNTHESIZE_ASSERT(x.size() == eos.size());
     return calc_pressure_dc(eos, c, x.data(), T);
 }
 
@@ -368,7 +367,7 @@ template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number, typen
 void calc_pressure_dx(const EoS<Ideal, Residual>& eos, const Number c, V1& x, const Number T, V2& gradient)
 {
     // TODO: Consider a custom assertion with a better error message
-    assert(x.size() == eos.size());
+    SYNTHESIZE_ASSERT(x.size() == eos.size());
     calc_pressure_dx(eos, c, x.data(), T, gradient.data());
 }
 
@@ -376,7 +375,7 @@ template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number>
 Number calc_pressure(const EoS<Ideal, Residual>& eos, const Number c, const Number* x, const Number T)
 {
     // TODO: Consider a custom assertion with a better error message
-    assert(T > Number{0});
+    SYNTHESIZE_REQUIRE_POSITIVE_TEMPERATURE(T);
     const Residual& residual = eos.residual();
     constexpr Number R = ideal_gas_constant<Number>;
     const Number invT = Number{1} / T;
@@ -387,27 +386,31 @@ template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number>
 Number calc_pressure_dT(const EoS<Ideal, Residual>& eos, const Number c, const Number* x, const Number T)
 {
     // TODO: Consider a custom assertion with a better error message
-    assert(T > Number{0});
+    SYNTHESIZE_REQUIRE_POSITIVE_TEMPERATURE(T);
     Number dT{1};
-    return __enzyme_fwddiff<Number>((void*)calc_pressure<Ideal, Residual, Number>, enzyme_const, &eos, enzyme_const, c, enzyme_const, x, enzyme_dup, T, dT);
+    return __enzyme_fwddiff<Number>((void*)calc_pressure<Ideal, Residual, Number>, enzyme_const, &eos, enzyme_const, c,
+                                    enzyme_const, x, enzyme_dup, T, dT);
 }
 
 template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number>
 Number calc_pressure_dc(const EoS<Ideal, Residual>& eos, const Number c, const Number* x, const Number T)
 {
     // TODO: Consider a custom assertion with a better error message
-    assert(T > Number{0});
+    SYNTHESIZE_REQUIRE_POSITIVE_TEMPERATURE(T);
     Number dc{1};
-    return __enzyme_fwddiff<Number>((void*)calc_pressure<Ideal, Residual, Number>, enzyme_const, &eos, enzyme_dup, c, dc, enzyme_const, x, enzyme_const, T);
+    return __enzyme_fwddiff<Number>((void*)calc_pressure<Ideal, Residual, Number>, enzyme_const, &eos, enzyme_dup, c,
+                                    dc, enzyme_const, x, enzyme_const, T);
 }
 
 template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number>
-void calc_pressure_dx(const EoS<Ideal, Residual>& eos, const Number c, const Number* x, const Number T, Number* gradient)
+void calc_pressure_dx(const EoS<Ideal, Residual>& eos, const Number c, const Number* x, const Number T,
+                      Number* gradient)
 {
-    std::fill_n(gradient, eos.size(),Number{0});
+    std::fill_n(gradient, eos.size(), Number{0});
     // TODO: Consider a custom assertion with a better error message
-    assert(T > Number{0});
-    __enzyme_autodiff<void>((void*)calc_pressure<Ideal, Residual, Number>, enzyme_const, &eos, enzyme_const, c, enzyme_dup, x, gradient, enzyme_const, T);
+    SYNTHESIZE_REQUIRE_POSITIVE_TEMPERATURE(T);
+    __enzyme_autodiff<void>((void*)calc_pressure<Ideal, Residual, Number>, enzyme_const, &eos, enzyme_const, c,
+                            enzyme_dup, x, gradient, enzyme_const, T);
 }
 
 /**
@@ -424,8 +427,8 @@ template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number, typen
 Number calc_internal_energy(const EoS<Ideal, Residual>& eos, const Number c, V& x, const Number T)
 {
     // TODO: Consider a custom assertion with a better error message
-    assert(x.size() == eos.size());
-    assert(T > Number{0});
+    SYNTHESIZE_ASSERT(x.size() == eos.size());
+    SYNTHESIZE_REQUIRE_POSITIVE_TEMPERATURE(T);
     return calc_internal_energy(eos, c, x.data(), T);
 }
 
@@ -433,7 +436,7 @@ template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number, typen
 Number calc_internal_energy_dT(const EoS<Ideal, Residual>& eos, const Number c, V& x, const Number T)
 {
     // TODO: Consider a custom assertion with a better error message
-    assert(x.size() == eos.size());
+    SYNTHESIZE_ASSERT(x.size() == eos.size());
     return calc_internal_energy_dT(eos, c, x.data(), T);
 }
 
@@ -441,7 +444,7 @@ template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number, typen
 Number calc_internal_energy_dc(const EoS<Ideal, Residual>& eos, const Number c, V& x, const Number T)
 {
     // TODO: Consider a custom assertion with a better error message
-    assert(x.size() == eos.size());
+    SYNTHESIZE_ASSERT(x.size() == eos.size());
     return calc_internal_energy_dc(eos, c, x.data(), T);
 }
 
@@ -449,7 +452,7 @@ template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number, typen
 void calc_internal_energy_dx(const EoS<Ideal, Residual>& eos, const Number c, V1& x, const Number T, V2& gradient)
 {
     // TODO: Consider a custom assertion with a better error message
-    assert(x.size() == eos.size());
+    SYNTHESIZE_ASSERT(x.size() == eos.size());
     calc_internal_energy_dx(eos, c, x.data(), T, gradient.data());
 }
 
@@ -457,7 +460,7 @@ template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number>
 Number calc_internal_energy(const EoS<Ideal, Residual>& eos, const Number c, const Number* x, const Number T)
 {
     // TODO: Consider a custom assertion with a better error message
-    assert(T > Number{0});
+    SYNTHESIZE_REQUIRE_POSITIVE_TEMPERATURE(T);
     const Ideal& ideal = eos.ideal();
     const Residual& residual = eos.residual();
     constexpr Number R = ideal_gas_constant<Number>;
@@ -504,8 +507,8 @@ template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number, typen
 Number calc_enthalpy(const EoS<Ideal, Residual>& eos, const Number c, V& x, const Number T)
 {
     // TODO: Consider a custom assertion with a better error message
-    assert(x.size() == eos.size());
-    assert(T > Number{0});
+    SYNTHESIZE_ASSERT(x.size() == eos.size());
+    SYNTHESIZE_REQUIRE_POSITIVE_TEMPERATURE(T);
     return calc_enthalpy(eos, c, x.data(), T);
 }
 
@@ -513,7 +516,7 @@ template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number, typen
 Number calc_enthalpy_dT(const EoS<Ideal, Residual>& eos, const Number c, V& x, const Number T)
 {
     // TODO: Consider a custom assertion with a better error message
-    assert(x.size() == eos.size());
+    SYNTHESIZE_ASSERT(x.size() == eos.size());
     return calc_enthalpy_dT(eos, c, x.data(), T);
 }
 
@@ -521,7 +524,7 @@ template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number, typen
 Number calc_enthalpy_dc(const EoS<Ideal, Residual>& eos, const Number c, V& x, const Number T)
 {
     // TODO: Consider a custom assertion with a better error message
-    assert(x.size() == eos.size());
+    SYNTHESIZE_ASSERT(x.size() == eos.size());
     return calc_enthalpy_dc(eos, c, x.data(), T);
 }
 
@@ -529,7 +532,7 @@ template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number, typen
 void calc_enthalpy_dx(const EoS<Ideal, Residual>& eos, const Number c, V1& x, const Number T, V2& gradient)
 {
     // TODO: Consider a custom assertion with a better error message
-    assert(x.size() == eos.size());
+    SYNTHESIZE_ASSERT(x.size() == eos.size());
     calc_enthalpy_dx(eos, c, x.data(), T, gradient.data());
 }
 
@@ -537,7 +540,7 @@ template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number>
 Number calc_enthalpy(const EoS<Ideal, Residual>& eos, const Number c, const Number* x, const Number T)
 {
     // TODO: Consider a custom assertion with a better error message
-    assert(T > Number{0});
+    SYNTHESIZE_REQUIRE_POSITIVE_TEMPERATURE(T);
     const Ideal& ideal = eos.ideal();
     const Residual& residual = eos.residual();
     constexpr Number R = ideal_gas_constant<Number>;
@@ -586,8 +589,8 @@ template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number, typen
 Number calc_entropy(const EoS<Ideal, Residual>& eos, const Number c, V& x, const Number T)
 {
     // TODO: Consider a custom assertion with a better error message
-    assert(x.size() == eos.size());
-    assert(T > Number{0});
+    SYNTHESIZE_ASSERT(x.size() == eos.size());
+    SYNTHESIZE_REQUIRE_POSITIVE_TEMPERATURE(T);
     return calc_entropy(eos, c, x.data(), T);
 }
 
@@ -595,7 +598,7 @@ template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number, typen
 Number calc_entropy_dT(const EoS<Ideal, Residual>& eos, const Number c, V& x, const Number T)
 {
     // TODO: Consider a custom assertion with a better error message
-    assert(x.size() == eos.size());
+    SYNTHESIZE_ASSERT(x.size() == eos.size());
     return calc_entropy_dT(eos, c, x.data(), T);
 }
 
@@ -603,7 +606,7 @@ template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number, typen
 Number calc_entropy_dc(const EoS<Ideal, Residual>& eos, const Number c, V& x, const Number T)
 {
     // TODO: Consider a custom assertion with a better error message
-    assert(x.size() == eos.size());
+    SYNTHESIZE_ASSERT(x.size() == eos.size());
     return calc_entropy_dc(eos, c, x.data(), T);
 }
 
@@ -611,7 +614,7 @@ template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number, typen
 void calc_entropy_dx(const EoS<Ideal, Residual>& eos, const Number c, V1& x, const Number T, V2& gradient)
 {
     // TODO: Consider a custom assertion with a better error message
-    assert(x.size() == eos.size());
+    SYNTHESIZE_ASSERT(x.size() == eos.size());
     calc_entropy_dx(eos, c, x.data(), T, gradient.data());
 }
 
@@ -619,7 +622,7 @@ template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number>
 Number calc_entropy(const EoS<Ideal, Residual>& eos, const Number c, const Number* x, const Number T)
 {
     // TODO: Consider a custom assertion with a better error message
-    assert(T > Number{0});
+    SYNTHESIZE_REQUIRE_POSITIVE_TEMPERATURE(T);
     const Ideal& ideal = eos.ideal();
     const Residual& residual = eos.residual();
     constexpr Number R = ideal_gas_constant<Number>;
@@ -640,13 +643,12 @@ template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number>
 Number calc_entropy_dc(const EoS<Ideal, Residual>& eos, const Number c, const Number* x, const Number T)
 {
     Number dc{1};
-    return __enzyme_fwddiff<Number>((void*)calc_entropy<Ideal, Residual, Number>, enzyme_const, &eos, enzyme_dup, c,
-                                    dc, enzyme_const, x, enzyme_const, T);
+    return __enzyme_fwddiff<Number>((void*)calc_entropy<Ideal, Residual, Number>, enzyme_const, &eos, enzyme_dup, c, dc,
+                                    enzyme_const, x, enzyme_const, T);
 }
 
 template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number>
-void calc_entropy_dx(const EoS<Ideal, Residual>& eos, const Number c, const Number* x, const Number T,
-                     Number* gradient)
+void calc_entropy_dx(const EoS<Ideal, Residual>& eos, const Number c, const Number* x, const Number T, Number* gradient)
 {
     std::fill_n(gradient, eos.size(), Number{0});
     __enzyme_autodiff<void>((void*)calc_entropy<Ideal, Residual, Number>, enzyme_const, &eos, enzyme_const, c,
@@ -667,8 +669,8 @@ template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number, typen
 Number calc_gibbs(const EoS<Ideal, Residual>& eos, const Number c, V& x, const Number T)
 {
     // TODO: Consider a custom assertion with a better error message
-    assert(x.size() == eos.size());
-    assert(T > Number{0});
+    SYNTHESIZE_ASSERT(x.size() == eos.size());
+    SYNTHESIZE_REQUIRE_POSITIVE_TEMPERATURE(T);
     return calc_gibbs(eos, c, x.data(), T);
 }
 
@@ -676,7 +678,7 @@ template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number, typen
 Number calc_gibbs_dT(const EoS<Ideal, Residual>& eos, const Number c, V& x, const Number T)
 {
     // TODO: Consider a custom assertion with a better error message
-    assert(x.size() == eos.size());
+    SYNTHESIZE_ASSERT(x.size() == eos.size());
     return calc_gibbs_dT(eos, c, x.data(), T);
 }
 
@@ -684,7 +686,7 @@ template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number, typen
 Number calc_gibbs_dc(const EoS<Ideal, Residual>& eos, const Number c, V& x, const Number T)
 {
     // TODO: Consider a custom assertion with a better error message
-    assert(x.size() == eos.size());
+    SYNTHESIZE_ASSERT(x.size() == eos.size());
     return calc_gibbs_dc(eos, c, x.data(), T);
 }
 
@@ -692,7 +694,7 @@ template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number, typen
 void calc_gibbs_dx(const EoS<Ideal, Residual>& eos, const Number c, V1& x, const Number T, V2& gradient)
 {
     // TODO: Consider a custom assertion with a better error message
-    assert(x.size() == eos.size());
+    SYNTHESIZE_ASSERT(x.size() == eos.size());
     calc_gibbs_dx(eos, c, x.data(), T, gradient.data());
 }
 
@@ -700,7 +702,7 @@ template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number>
 Number calc_gibbs(const EoS<Ideal, Residual>& eos, const Number c, const Number* x, const Number T)
 {
     // TODO: Consider a custom assertion with a better error message
-    assert(T > Number{0});
+    SYNTHESIZE_REQUIRE_POSITIVE_TEMPERATURE(T);
     const Ideal& ideal = eos.ideal();
     const Residual& residual = eos.residual();
     constexpr Number R = ideal_gas_constant<Number>;
@@ -730,8 +732,8 @@ template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number>
 void calc_gibbs_dx(const EoS<Ideal, Residual>& eos, const Number c, const Number* x, const Number T, Number* gradient)
 {
     std::fill_n(gradient, eos.size(), Number{0});
-    __enzyme_autodiff<void>((void*)calc_gibbs<Ideal, Residual, Number>, enzyme_const, &eos, enzyme_const, c,
-                            enzyme_dup, x, gradient, enzyme_const, T);
+    __enzyme_autodiff<void>((void*)calc_gibbs<Ideal, Residual, Number>, enzyme_const, &eos, enzyme_const, c, enzyme_dup,
+                            x, gradient, enzyme_const, T);
 }
 
 /**
@@ -749,8 +751,8 @@ template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number, typen
 Number calc_dp_dc(const EoS<Ideal, Residual>& eos, const Number c, V& x, const Number T)
 {
     // TODO: Consider a custom assertion with a better error message
-    assert(x.size() == eos.size());
-    assert(T > Number{0});
+    SYNTHESIZE_ASSERT(x.size() == eos.size());
+    SYNTHESIZE_REQUIRE_POSITIVE_TEMPERATURE(T);
     return calc_dp_dc(eos, c, x.data(), T);
 }
 
@@ -758,7 +760,7 @@ template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number, typen
 Number calc_dp_dc_dT(const EoS<Ideal, Residual>& eos, const Number c, V& x, const Number T)
 {
     // TODO: Consider a custom assertion with a better error message
-    assert(x.size() == eos.size());
+    SYNTHESIZE_ASSERT(x.size() == eos.size());
     return calc_dp_dc_dT(eos, c, x.data(), T);
 }
 
@@ -766,7 +768,7 @@ template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number, typen
 Number calc_dp_dc_dc(const EoS<Ideal, Residual>& eos, const Number c, V& x, const Number T)
 {
     // TODO: Consider a custom assertion with a better error message
-    assert(x.size() == eos.size());
+    SYNTHESIZE_ASSERT(x.size() == eos.size());
     return calc_dp_dc_dc(eos, c, x.data(), T);
 }
 
@@ -774,7 +776,7 @@ template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number, typen
 void calc_dp_dc_dx(const EoS<Ideal, Residual>& eos, const Number c, V1& x, const Number T, V2& gradient)
 {
     // TODO: Consider a custom assertion with a better error message
-    assert(x.size() == eos.size());
+    SYNTHESIZE_ASSERT(x.size() == eos.size());
     calc_dp_dc_dx(eos, c, x.data(), T, gradient.data());
 }
 
@@ -782,7 +784,7 @@ template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number>
 Number calc_dp_dc(const EoS<Ideal, Residual>& eos, const Number c, const Number* x, const Number T)
 {
     // TODO: Consider a custom assertion with a better error message
-    assert(T > Number{0});
+    SYNTHESIZE_REQUIRE_POSITIVE_TEMPERATURE(T);
     const Residual& residual = eos.residual();
     constexpr Number R = ideal_gas_constant<Number>;
     const Number invT = Number{1} / T;
@@ -811,8 +813,8 @@ template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number>
 void calc_dp_dc_dx(const EoS<Ideal, Residual>& eos, const Number c, const Number* x, const Number T, Number* gradient)
 {
     std::fill_n(gradient, eos.size(), Number{0});
-    __enzyme_autodiff<void>((void*)calc_dp_dc<Ideal, Residual, Number>, enzyme_const, &eos, enzyme_const, c,
-                            enzyme_dup, x, gradient, enzyme_const, T);
+    __enzyme_autodiff<void>((void*)calc_dp_dc<Ideal, Residual, Number>, enzyme_const, &eos, enzyme_const, c, enzyme_dup,
+                            x, gradient, enzyme_const, T);
 }
 
 /**
@@ -830,8 +832,8 @@ template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number, typen
 Number calc_dp_dT(const EoS<Ideal, Residual>& eos, const Number c, V& x, const Number T)
 {
     // TODO: Consider a custom assertion with a better error message
-    assert(x.size() == eos.size());
-    assert(T > Number{0});
+    SYNTHESIZE_ASSERT(x.size() == eos.size());
+    SYNTHESIZE_REQUIRE_POSITIVE_TEMPERATURE(T);
     return calc_dp_dT(eos, c, x.data(), T);
 }
 
@@ -839,7 +841,7 @@ template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number, typen
 Number calc_dp_dT_dT(const EoS<Ideal, Residual>& eos, const Number c, V& x, const Number T)
 {
     // TODO: Consider a custom assertion with a better error message
-    assert(x.size() == eos.size());
+    SYNTHESIZE_ASSERT(x.size() == eos.size());
     return calc_dp_dT_dT(eos, c, x.data(), T);
 }
 
@@ -847,7 +849,7 @@ template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number, typen
 Number calc_dp_dT_dc(const EoS<Ideal, Residual>& eos, const Number c, V& x, const Number T)
 {
     // TODO: Consider a custom assertion with a better error message
-    assert(x.size() == eos.size());
+    SYNTHESIZE_ASSERT(x.size() == eos.size());
     return calc_dp_dT_dc(eos, c, x.data(), T);
 }
 
@@ -855,7 +857,7 @@ template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number, typen
 void calc_dp_dT_dx(const EoS<Ideal, Residual>& eos, const Number c, V1& x, const Number T, V2& gradient)
 {
     // TODO: Consider a custom assertion with a better error message
-    assert(x.size() == eos.size());
+    SYNTHESIZE_ASSERT(x.size() == eos.size());
     calc_dp_dT_dx(eos, c, x.data(), T, gradient.data());
 }
 
@@ -863,7 +865,7 @@ template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number>
 Number calc_dp_dT(const EoS<Ideal, Residual>& eos, const Number c, const Number* x, const Number T)
 {
     // TODO: Consider a custom assertion with a better error message
-    assert(T > Number{0});
+    SYNTHESIZE_REQUIRE_POSITIVE_TEMPERATURE(T);
     const Residual& residual = eos.residual();
     constexpr Number R = ideal_gas_constant<Number>;
     const Number invT = Number{1} / T;
@@ -892,8 +894,8 @@ template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number>
 void calc_dp_dT_dx(const EoS<Ideal, Residual>& eos, const Number c, const Number* x, const Number T, Number* gradient)
 {
     std::fill_n(gradient, eos.size(), Number{0});
-    __enzyme_autodiff<void>((void*)calc_dp_dT<Ideal, Residual, Number>, enzyme_const, &eos, enzyme_const, c,
-                            enzyme_dup, x, gradient, enzyme_const, T);
+    __enzyme_autodiff<void>((void*)calc_dp_dT<Ideal, Residual, Number>, enzyme_const, &eos, enzyme_const, c, enzyme_dup,
+                            x, gradient, enzyme_const, T);
 }
 
 /**
@@ -910,8 +912,8 @@ template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number, typen
 Number calc_cv(const EoS<Ideal, Residual>& eos, const Number c, V& x, const Number T)
 {
     // TODO: Consider a custom assertion with a better error message
-    assert(x.size() == eos.size());
-    assert(T > Number{0});
+    SYNTHESIZE_ASSERT(x.size() == eos.size());
+    SYNTHESIZE_REQUIRE_POSITIVE_TEMPERATURE(T);
     return calc_cv(eos, c, x.data(), T);
 }
 
@@ -919,7 +921,7 @@ template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number, typen
 Number calc_cv_dT(const EoS<Ideal, Residual>& eos, const Number c, V& x, const Number T)
 {
     // TODO: Consider a custom assertion with a better error message
-    assert(x.size() == eos.size());
+    SYNTHESIZE_ASSERT(x.size() == eos.size());
     return calc_cv_dT(eos, c, x.data(), T);
 }
 
@@ -927,7 +929,7 @@ template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number, typen
 Number calc_cv_dc(const EoS<Ideal, Residual>& eos, const Number c, V& x, const Number T)
 {
     // TODO: Consider a custom assertion with a better error message
-    assert(x.size() == eos.size());
+    SYNTHESIZE_ASSERT(x.size() == eos.size());
     return calc_cv_dc(eos, c, x.data(), T);
 }
 
@@ -935,7 +937,7 @@ template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number, typen
 void calc_cv_dx(const EoS<Ideal, Residual>& eos, const Number c, V1& x, const Number T, V2& gradient)
 {
     // TODO: Consider a custom assertion with a better error message
-    assert(x.size() == eos.size());
+    SYNTHESIZE_ASSERT(x.size() == eos.size());
     calc_cv_dx(eos, c, x.data(), T, gradient.data());
 }
 
@@ -943,7 +945,7 @@ template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number>
 Number calc_cv(const EoS<Ideal, Residual>& eos, const Number c, const Number* x, const Number T)
 {
     // TODO: Consider a custom assertion with a better error message
-    assert(T > Number{0});
+    SYNTHESIZE_REQUIRE_POSITIVE_TEMPERATURE(T);
     const Ideal& ideal = eos.ideal();
     const Residual& residual = eos.residual();
     constexpr Number R = ideal_gas_constant<Number>;
@@ -971,8 +973,8 @@ template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number>
 void calc_cv_dx(const EoS<Ideal, Residual>& eos, const Number c, const Number* x, const Number T, Number* gradient)
 {
     std::fill_n(gradient, eos.size(), Number{0});
-    __enzyme_autodiff<void>((void*)calc_cv<Ideal, Residual, Number>, enzyme_const, &eos, enzyme_const, c, enzyme_dup,
-                            x, gradient, enzyme_const, T);
+    __enzyme_autodiff<void>((void*)calc_cv<Ideal, Residual, Number>, enzyme_const, &eos, enzyme_const, c, enzyme_dup, x,
+                            gradient, enzyme_const, T);
 }
 
 /**
@@ -989,8 +991,8 @@ template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number, typen
 Number calc_cp(const EoS<Ideal, Residual>& eos, const Number c, V& x, const Number T)
 {
     // TODO: Consider a custom assertion with a better error message
-    assert(x.size() == eos.size());
-    assert(T > Number{0});
+    SYNTHESIZE_ASSERT(x.size() == eos.size());
+    SYNTHESIZE_REQUIRE_POSITIVE_TEMPERATURE(T);
     return calc_cp(eos, c, x.data(), T);
 }
 
@@ -998,7 +1000,7 @@ template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number, typen
 Number calc_cp_dT(const EoS<Ideal, Residual>& eos, const Number c, V& x, const Number T)
 {
     // TODO: Consider a custom assertion with a better error message
-    assert(x.size() == eos.size());
+    SYNTHESIZE_ASSERT(x.size() == eos.size());
     return calc_cp_dT(eos, c, x.data(), T);
 }
 
@@ -1006,7 +1008,7 @@ template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number, typen
 Number calc_cp_dc(const EoS<Ideal, Residual>& eos, const Number c, V& x, const Number T)
 {
     // TODO: Consider a custom assertion with a better error message
-    assert(x.size() == eos.size());
+    SYNTHESIZE_ASSERT(x.size() == eos.size());
     return calc_cp_dc(eos, c, x.data(), T);
 }
 
@@ -1014,7 +1016,7 @@ template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number, typen
 void calc_cp_dx(const EoS<Ideal, Residual>& eos, const Number c, V1& x, const Number T, V2& gradient)
 {
     // TODO: Consider a custom assertion with a better error message
-    assert(x.size() == eos.size());
+    SYNTHESIZE_ASSERT(x.size() == eos.size());
     calc_cp_dx(eos, c, x.data(), T, gradient.data());
 }
 
@@ -1022,16 +1024,15 @@ template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number>
 Number calc_cp(const EoS<Ideal, Residual>& eos, const Number c, const Number* x, const Number T)
 {
     // TODO: Consider a custom assertion with a better error message
-    assert(T > Number{0});
+    SYNTHESIZE_REQUIRE_POSITIVE_TEMPERATURE(T);
     const Ideal& ideal = eos.ideal();
     const Residual& residual = eos.residual();
     constexpr Number R = ideal_gas_constant<Number>;
     const Number invT = Number{1} / T;
     const Number lr_01 = detail::calc_lambda<0, 1>(residual, c, x, invT);
-    return R *
-           (-detail::calc_lambda<2, 0>(ideal, c, x, invT) - detail::calc_lambda<2, 0>(residual, c, x, invT) +
-            (detail::fast_pow<Number, 2>(Number{1} + lr_01 - detail::calc_lambda<1, 1>(residual, c, x, invT)) /
-             (Number{1} + (Number{2} * lr_01) + detail::calc_lambda<0, 2>(residual, c, x, invT))));
+    return R * (-detail::calc_lambda<2, 0>(ideal, c, x, invT) - detail::calc_lambda<2, 0>(residual, c, x, invT) +
+                (detail::fast_pow<Number, 2>(Number{1} + lr_01 - detail::calc_lambda<1, 1>(residual, c, x, invT)) /
+                 (Number{1} + (Number{2} * lr_01) + detail::calc_lambda<0, 2>(residual, c, x, invT))));
 }
 
 template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number>
@@ -1054,10 +1055,9 @@ template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number>
 void calc_cp_dx(const EoS<Ideal, Residual>& eos, const Number c, const Number* x, const Number T, Number* gradient)
 {
     std::fill_n(gradient, eos.size(), Number{0});
-    __enzyme_autodiff<void>((void*)calc_cp<Ideal, Residual, Number>, enzyme_const, &eos, enzyme_const, c, enzyme_dup,
-                            x, gradient, enzyme_const, T);
+    __enzyme_autodiff<void>((void*)calc_cp<Ideal, Residual, Number>, enzyme_const, &eos, enzyme_const, c, enzyme_dup, x,
+                            gradient, enzyme_const, T);
 }
-
 
 // FIXME: the effective_molar_mass parameter should be turned into a function that can compute the molar mass
 //        This mainly affects taking derivatives correctly, so it is low priority
@@ -1077,8 +1077,8 @@ Number calc_sound_speed_squared(const EoS<Ideal, Residual>& eos, const Number c,
                                 const Number effective_molar_mass)
 {
     // TODO: Consider a custom assertion with a better error message
-    assert(x.size() == eos.size());
-    assert(T > Number{0});
+    SYNTHESIZE_ASSERT(x.size() == eos.size());
+    SYNTHESIZE_REQUIRE_POSITIVE_TEMPERATURE(T);
     return calc_sound_speed_squared(eos, c, x.data(), T, effective_molar_mass);
 }
 
@@ -1087,7 +1087,7 @@ Number calc_sound_speed_squared_dT(const EoS<Ideal, Residual>& eos, const Number
                                    const Number effective_molar_mass)
 {
     // TODO: Consider a custom assertion with a better error message
-    assert(x.size() == eos.size());
+    SYNTHESIZE_ASSERT(x.size() == eos.size());
     return calc_sound_speed_squared_dT(eos, c, x.data(), T, effective_molar_mass);
 }
 
@@ -1096,7 +1096,7 @@ Number calc_sound_speed_squared_dc(const EoS<Ideal, Residual>& eos, const Number
                                    const Number effective_molar_mass)
 {
     // TODO: Consider a custom assertion with a better error message
-    assert(x.size() == eos.size());
+    SYNTHESIZE_ASSERT(x.size() == eos.size());
     return calc_sound_speed_squared_dc(eos, c, x.data(), T, effective_molar_mass);
 }
 
@@ -1105,7 +1105,7 @@ void calc_sound_speed_squared_dx(const EoS<Ideal, Residual>& eos, const Number c
                                  const Number effective_molar_mass, V2& gradient)
 {
     // TODO: Consider a custom assertion with a better error message
-    assert(x.size() == eos.size());
+    SYNTHESIZE_ASSERT(x.size() == eos.size());
     calc_sound_speed_squared_dx(eos, c, x.data(), T, effective_molar_mass, gradient.data());
 }
 
@@ -1116,7 +1116,7 @@ Number calc_sound_speed_squared(const EoS<Ideal, Residual>& eos, const Number c,
     // TODO: If I need more derivatives of sound speed, then I might need to compute the effective molar mass inside
     // this function
     // TODO: Consider a custom assertion with a better error message
-    assert(T > Number{0});
+    SYNTHESIZE_REQUIRE_POSITIVE_TEMPERATURE(T);
     Number cp = calc_cp(eos, c, x, T);
     Number cv = calc_cv(eos, c, x, T);
     Number dp_dc = calc_dp_dc(eos, c, x, T);
@@ -1148,9 +1148,8 @@ void calc_sound_speed_squared_dx(const EoS<Ideal, Residual>& eos, const Number c
                                  const Number effective_molar_mass, Number* gradient)
 {
     std::fill_n(gradient, eos.size(), Number{0});
-    __enzyme_autodiff<void>((void*)calc_sound_speed_squared<Ideal, Residual, Number>, enzyme_const, &eos,
-                            enzyme_const, c, enzyme_dup, x, gradient, enzyme_const, T, enzyme_const,
-                            effective_molar_mass);
+    __enzyme_autodiff<void>((void*)calc_sound_speed_squared<Ideal, Residual, Number>, enzyme_const, &eos, enzyme_const,
+                            c, enzyme_dup, x, gradient, enzyme_const, T, enzyme_const, effective_molar_mass);
 }
 
 // TODO: add derivatives of vector-valued functions
@@ -1168,8 +1167,8 @@ template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number, std::
 void calc_chemical_potential(const EoS<Ideal, Residual>& eos, std::span<const Number, N> rho_i, const Number T,
                              std::span<Number, N> chemical_potential)
 {
-    assert(rho_i.size() == eos.size());
-    assert(chemical_potential.size() == eos.size());
+    SYNTHESIZE_ASSERT(rho_i.size() == eos.size());
+    SYNTHESIZE_ASSERT(chemical_potential.size() == eos.size());
     // Enzyme reverse mode accumulates into the output, so it must start zeroed;
     // the ideal and residual contributions are then summed in place.
     std::fill(chemical_potential.begin(), chemical_potential.end(), Number{0});
