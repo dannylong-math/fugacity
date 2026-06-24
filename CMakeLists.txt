@@ -20,15 +20,15 @@ if(NOT DEFINED CMAKE_CXX_COMPILER AND NOT DEFINED ENV{CXX})
     endif()
 endif()
 
-project(MyProject
+project(Synthesize
     VERSION 0.1.0
-    DESCRIPTION "A C++ library"
+    DESCRIPTION "A C++ library implementing equations of state in an efficient way."
     LANGUAGES CXX
 )
 
 if(NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     message(FATAL_ERROR
-        "EoSLab requires the Clang compiler because it depends on Enzyme, "
+        "Synthesize requires the Clang compiler because it depends on Enzyme, "
         "which is an LLVM/Clang plugin.\n"
         "Detected C++ compiler: '${CMAKE_CXX_COMPILER_ID}' "
         "(${CMAKE_CXX_COMPILER}).\n"
