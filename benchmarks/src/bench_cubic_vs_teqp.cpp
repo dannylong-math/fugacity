@@ -11,21 +11,21 @@
 // which teqp exposes as TDXDerivatives::get_Arxy<i, j> (get_Ar00, get_Ar10,
 // get_Ar01, get_Ar02, ...) and this library as detail::calc_lambda<i, j>
 // applied to the residual model. Both sides use the same species data and the
-// same state, so the rows labelled .../EoSLab and .../teqp time the same
+// same state, so the rows labelled .../Synthesize and .../teqp time the same
 // mathematical quantity.
 //
 // Layout: van der Waals first, then Peng-Robinson. Within each model family
 // the species count N sweeps {1, 5, 10, 50, 100, 500, 1000}; for each N every
-// derivative is benchmarked as the pair (EoSLab row, then teqp row).
+// derivative is benchmarked as the pair (Synthesize row, then teqp row).
 //
 // This library's models are used in their runtime-sized (dynamic-extent)
 // form, matching teqp's runtime-sized models; the parameter matrices then
 // live on the heap, which the N = 1000 case requires (an N x N double matrix
 // is 8 MB). kij = 0 on both sides.
 //
-#include "eoslab/core/core_calculations.hpp"
-#include "eoslab/residual_models/peng_robinson.hpp"
-#include "eoslab/residual_models/van_der_waals.hpp"
+#include "synthesize/core/core_calculations.hpp"
+#include "synthesize/residual_models/peng_robinson.hpp"
+#include "synthesize/residual_models/van_der_waals.hpp"
 
 #include "teqp/derivs.hpp"
 #include "teqp/models/cubics.hpp"
@@ -41,7 +41,7 @@
 #include <valarray>
 #include <vector>
 
-namespace ge = glis::eos;
+namespace ge = synthesize;
 
 namespace {
 
@@ -150,7 +150,7 @@ template<class Mine, class Teqp> struct Bench {
 // ---------------------------------------------------------------------------
 template<int iT, int iD, class B> void register_pair(const std::string& name, const std::shared_ptr<B>& b)
 {
-    benchmark::RegisterBenchmark(name + "/EoSLab", [b](benchmark::State& st) {
+    benchmark::RegisterBenchmark(name + "/Synthesize", [b](benchmark::State& st) {
         for (auto _ : st) {
             benchmark::DoNotOptimize(b->c);
             benchmark::DoNotOptimize(b->T);

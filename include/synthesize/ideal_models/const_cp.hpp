@@ -5,10 +5,10 @@
  *        molar heat capacity @f$c_p@f$.
  */
 
-#include "eoslab/core/concepts.hpp"
-#include "eoslab/core/eos_base.hpp"
-#include "eoslab/core/numbers.hpp"
-#include "eoslab/core/xlnx.hpp"
+#include "synthesize/core/concepts.hpp"
+#include "synthesize/core/eos_base.hpp"
+#include "synthesize/core/numbers.hpp"
+#include "synthesize/core/xlnx.hpp"
 
 #include <array>
 #include <cmath>
@@ -18,7 +18,7 @@
 #include <type_traits>
 #include <vector>
 
-namespace glis::eos {
+namespace synthesize {
 
 /**
  * @brief Ideal-gas equation of state with a constant isobaric molar heat
@@ -35,7 +35,7 @@ namespace glis::eos {
  * evaluate properties through the free functions in core_calculations.hpp:
  *
  * @code{.cpp}
- * using namespace glis::eos;
+ * using namespace synthesize;
  *
  * ConstantCp<2> ideal(std::array{
  *     ConstantCp<2>::SpeciesInput{
@@ -245,4 +245,4 @@ private:
 
 static_assert(IdealEoS<ConstantCp<2>>, "ConstantCp must satisfy the IdealEoS concept.");
 static_assert(IdealEoS<ConstantCp<std::dynamic_extent>>, "ConstantCp must satisfy the IdealEoS concept.");
-} // namespace glis::eos
+} // namespace synthesize

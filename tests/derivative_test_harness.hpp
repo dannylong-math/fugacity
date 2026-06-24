@@ -2,7 +2,7 @@
 //
 // Reusable, templated derivative-consistency harness.
 //
-// Given *any* EoS pair (an instance of glis::eos::EoS<Ideal, Residual>) and a
+// Given *any* EoS pair (an instance of synthesize::EoS<Ideal, Residual>) and a
 // thermodynamic state, this checks every derivative-based quantity in
 // core_calculations.hpp against an independent finite-difference reference.
 //
@@ -23,7 +23,7 @@
 //   c   [mol/m^3], x [-], T [K], pressure [Pa], energies [J/mol],
 //   entropy / heat capacities [J/mol/K], chemical potential [J/mol].
 //
-#include "eoslab/core/core_calculations.hpp"
+#include "synthesize/core/core_calculations.hpp"
 
 #include <array>
 #include <boost/ut.hpp>
@@ -33,7 +33,7 @@
 #include <span>
 #include <string_view>
 
-namespace eoslab_test {
+namespace synthesize_test {
 
 // 4th-order central first derivative of a unary callable, in long double.
 [[nodiscard]] long double central_diff(auto f, long double x, long double h)
@@ -91,10 +91,10 @@ void check_helmholtz_consistency(const Model& model, std::array<double, N> rho, 
 template<std::size_t N, class EoSPair>
 void check_ideal_gas_pressure(const EoSPair& eos, double c, std::array<double, N> x, double T, double rtol = 1e-12)
 {
-    const double R = glis::eos::ideal_gas_constant<double>;
+    const double R = synthesize::ideal_gas_constant<double>;
     std::array<double, N> xarr = x;
     const std::span<const double, N> xs{xarr};
-    check_rel("p == c R T", glis::eos::calc_pressure(eos, c, xs, T), c * R * T, rtol);
+    check_rel("p == c R T", synthesize::calc_pressure(eos, c, xs, T), c * R * T, rtol);
 }
 
 // Euler relation (a thermodynamic identity holding for EVERY EoS):
@@ -105,7 +105,7 @@ void check_ideal_gas_pressure(const EoSPair& eos, double c, std::array<double, N
 template<std::size_t N, class EoSPair>
 void check_euler_pressure(const EoSPair& eos, std::array<double, N> rho, double T, double rtol = 1e-8)
 {
-    namespace ge = glis::eos;
+    namespace ge = synthesize;
     double c = 0.0;
     for (const double r : rho) {
         c += r;
@@ -143,7 +143,7 @@ template<std::size_t N, class EoSPair>
 void run_derivative_consistency_tests(const EoSPair& eos, double c, std::array<double, N> x, double T,
                                       double effective_molar_mass = 0.02)
 {
-    namespace ge = glis::eos;
+    namespace ge = synthesize;
     using ld = long double;
 
     const ld R = ge::ideal_gas_constant<ld>;
@@ -284,4 +284,4 @@ void run_derivative_consistency_tests(const EoSPair& eos, double c, std::array<d
     }
 }
 
-} // namespace eoslab_test
+} // namespace synthesize_test

@@ -5,11 +5,11 @@
  *        parameterization of the per-species standard-state thermodynamics.
  */
 
-#include "eoslab/core/concepts.hpp"
-#include "eoslab/core/eos_base.hpp"
-#include "eoslab/core/horner.hpp"
-#include "eoslab/core/numbers.hpp"
-#include "eoslab/core/xlnx.hpp"
+#include "synthesize/core/concepts.hpp"
+#include "synthesize/core/eos_base.hpp"
+#include "synthesize/core/horner.hpp"
+#include "synthesize/core/numbers.hpp"
+#include "synthesize/core/xlnx.hpp"
 
 #include <array>
 #include <cmath>
@@ -19,7 +19,7 @@
 #include <type_traits>
 #include <vector>
 
-namespace glis::eos {
+namespace synthesize {
 
 /**
  * @brief Ideal-gas equation of state parameterized by the NASA-9 polynomials.
@@ -42,7 +42,7 @@ namespace glis::eos {
  * core_calculations.hpp:
  *
  * @code{.cpp}
- * using namespace glis::eos;
+ * using namespace synthesize;
  *
  * // N2, low-temperature (200-1000 K) NASA-9 coefficients.
  * Nasa9<1> ideal(std::array{Nasa9<1>::SpeciesInput{
@@ -262,4 +262,4 @@ private:
 
 static_assert(IdealEoS<Nasa9<2>>, "Nasa9 must satisfy the IdealEoS concept.");
 static_assert(IdealEoS<Nasa9<std::dynamic_extent>>, "Nasa9 must satisfy the IdealEoS concept.");
-} // namespace glis::eos
+} // namespace synthesize

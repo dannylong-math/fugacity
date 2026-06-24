@@ -1,5 +1,5 @@
 //
-// Unit tests for the Peng-Robinson residual model (glis::eos::PengRobinson).
+// Unit tests for the Peng-Robinson residual model (synthesize::PengRobinson).
 //
 // Structure mirrors test_van_der_waals.cpp: the model-agnostic structural and
 // derivative checks are delegated to derivative_test_harness.hpp, and what
@@ -25,11 +25,11 @@
 //   - the pressure-explicit PR form p = cRT/(1-bc) - a(T) c^2/(1+2bc-(bc)^2).
 //
 #include "derivative_test_harness.hpp"
-#include "eoslab/core/core_calculations.hpp"
-#include "eoslab/core/eos_pair.hpp"
-#include "eoslab/core/numbers.hpp"
-#include "eoslab/ideal_models/const_cp.hpp"
-#include "eoslab/residual_models/peng_robinson.hpp"
+#include "synthesize/core/core_calculations.hpp"
+#include "synthesize/core/eos_pair.hpp"
+#include "synthesize/core/numbers.hpp"
+#include "synthesize/ideal_models/const_cp.hpp"
+#include "synthesize/residual_models/peng_robinson.hpp"
 
 #include <array>
 #include <boost/ut.hpp>
@@ -40,11 +40,11 @@
 #include <vector>
 
 using namespace boost::ut;
-using namespace eoslab_test;
+using namespace synthesize_test;
 
 namespace {
 
-namespace ge = glis::eos;
+namespace ge = synthesize;
 
 template<std::size_t N> using Input = typename ge::PengRobinson<N>::SpeciesInput;
 

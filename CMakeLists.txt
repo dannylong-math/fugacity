@@ -14,9 +14,9 @@ cmake_minimum_required(VERSION 3.21)
 # but is validated to be Clang right after project().
 # ----------------------------------------------------------------------------
 if(NOT DEFINED CMAKE_CXX_COMPILER AND NOT DEFINED ENV{CXX})
-    find_program(EOSLAB_CLANGXX NAMES clang++ clang++-22 clang++-21 clang++-20)
-    if(EOSLAB_CLANGXX)
-        set(CMAKE_CXX_COMPILER "${EOSLAB_CLANGXX}")
+    find_program(SYNTHESIZE_CLANGXX NAMES clang++ clang++-22 clang++-21 clang++-20)
+    if(SYNTHESIZE_CLANGXX)
+        set(CMAKE_CXX_COMPILER "${SYNTHESIZE_CLANGXX}")
     endif()
 endif()
 

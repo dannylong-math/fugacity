@@ -4,14 +4,14 @@
  * @brief Concepts that define the interface every equation-of-state model must
  *        provide, and the ideal/residual classification.
  */
-#include "eoslab/core/eos_base.hpp"
+#include "synthesize/core/eos_base.hpp"
 
 #include <concepts>
 #include <cstddef>
-namespace glis::eos {
+namespace synthesize {
 
 /**
- * @def GLIS_EOS_RESTRICT
+ * @def SYNTHESIZE_RESTRICT
  * @brief Portable spelling of the C99 `restrict` pointer qualifier.
  *
  * Expands to the compiler's restrict keyword (`__restrict__` on GCC/Clang,
@@ -19,11 +19,11 @@ namespace glis::eos {
  * the buffers passed to the hot autodiff routines do not alias.
  */
 #if defined(__GNUC__) || defined(__clang__)
-#define GLIS_EOS_RESTRICT __restrict__
+#define SYNTHESIZE_RESTRICT __restrict__
 #elif defined(_MSC_VER)
-#define GLIS_EOS_RESTRICT __restrict
+#define SYNTHESIZE_RESTRICT __restrict
 #else
-#define GLIS_EOS_RESTRICT
+#define SYNTHESIZE_RESTRICT
 #endif
 
 /**
@@ -92,4 +92,4 @@ concept IdealEoS = std::derived_from<E, BaseIdealEoS> && EquationOfState<E>;
 template<class E>
 concept ResidualEoS = EquationOfState<E> && !IdealEoS<E>;
 
-} // namespace glis::eos
+} // namespace synthesize

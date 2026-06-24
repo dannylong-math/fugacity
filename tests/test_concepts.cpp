@@ -1,11 +1,11 @@
 #include "eos_test_models.hpp"
-#include "eoslab/core/concepts.hpp"
+#include "synthesize/core/concepts.hpp"
 
 #include <boost/ut.hpp>
 
 using namespace boost::ut;
-using namespace eoslab_test;
-namespace ge = glis::eos;
+using namespace synthesize_test;
+namespace ge = synthesize;
 
 // A type that does not model EquationOfState at all.
 namespace {

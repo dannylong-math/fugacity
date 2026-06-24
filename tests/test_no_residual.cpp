@@ -1,5 +1,5 @@
 //
-// Tests for glis::eos::NoResidual: a residual contribution that is identically
+// Tests for synthesize::NoResidual: a residual contribution that is identically
 // zero. Pairing it with an ideal-gas model yields a pure ideal gas.
 //
 // Two size regimes are exercised:
@@ -14,9 +14,9 @@
 //
 #include "derivative_test_harness.hpp"
 #include "eos_test_models.hpp"
-#include "eoslab/core/core_calculations.hpp"
-#include "eoslab/core/eos_pair.hpp"
-#include "eoslab/residual_models/no_residual.hpp"
+#include "synthesize/core/core_calculations.hpp"
+#include "synthesize/core/eos_pair.hpp"
+#include "synthesize/residual_models/no_residual.hpp"
 
 #include <array>
 #include <boost/ut.hpp>
@@ -26,8 +26,8 @@
 #include <tuple>
 
 using namespace boost::ut;
-using namespace eoslab_test;
-using glis::eos::NoResidual;
+using namespace synthesize_test;
+using synthesize::NoResidual;
 
 int main()
 {
@@ -85,16 +85,16 @@ int main()
         // storage-free NoResidual class.
         // -------------------------------------------------------------------
         "ideal gas pairing: Z == 1"_test = [] {
-            const double R = glis::eos::ideal_gas_constant<double>;
+            const double R = synthesize::ideal_gas_constant<double>;
             IdealGasTestModel<2> ideal{{2.5, 3.1}, {1.5, 2.0}};
             NoResidual<2> residual{};
-            glis::eos::EoS<IdealGasTestModel<2>, NoResidual<2>> eos{ideal, residual};
+            synthesize::EoS<IdealGasTestModel<2>, NoResidual<2>> eos{ideal, residual};
 
             const std::array<double, 2> x{0.4, 0.6};
             std::span<const double, 2> xs{x};
             for (const double c : {1.0, 100.0, 5000.0}) {
                 for (const double T : {200.0, 350.0, 500.0}) {
-                    const double Z = glis::eos::calc_pressure(eos, c, xs, T) / (c * R * T);
+                    const double Z = synthesize::calc_pressure(eos, c, xs, T) / (c * R * T);
                     expect(std::abs(Z - 1.0) < 1e-12) << "Z =" << Z;
                 }
             }
@@ -109,7 +109,7 @@ int main()
         "ideal gas pairing: derivative consistency"_test = [] {
             IdealGasTestModel<2> ideal{{2.5, 3.1}, {1.5, 2.0}};
             NoResidual<2> residual{};
-            glis::eos::EoS<IdealGasTestModel<2>, NoResidual<2>> eos{ideal, residual};
+            synthesize::EoS<IdealGasTestModel<2>, NoResidual<2>> eos{ideal, residual};
 
             run_derivative_consistency_tests<2>(eos, 100.0, {0.4, 0.6}, 300.0);
             run_derivative_consistency_tests<2>(eos, 250.0, {0.7, 0.3}, 350.0);

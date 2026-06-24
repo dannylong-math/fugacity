@@ -19,9 +19,9 @@
  * - `rho_i` partial molar concentrations [mol/m^3]
  * - `R`     gas constant [J/(mol K)]
  */
-#include "eoslab/core/concepts.hpp"
-#include "eoslab/core/eos_pair.hpp"
-#include "eoslab/core/numbers.hpp"
+#include "synthesize/core/concepts.hpp"
+#include "synthesize/core/eos_pair.hpp"
+#include "synthesize/core/numbers.hpp"
 
 #include <algorithm>
 #include <cassert>
@@ -44,7 +44,7 @@ template<typename return_type, typename... T> return_type __enzyme_autodiff(void
 /// @endcond
 // NOLINTEND
 
-namespace glis::eos {
+namespace synthesize {
 
 namespace detail {
 /**
@@ -172,7 +172,7 @@ template<int i, int j, EquationOfState EoS, std::floating_point Number>
  * @return Total Helmholtz energy density @f$\Psi@f$ [J/m^3].
  */
 template<EquationOfState EoS, std::floating_point Number>
-[[nodiscard]] Number calc_Psi(const EoS& eos, const Number* GLIS_EOS_RESTRICT rho_i, const Number T)
+[[nodiscard]] Number calc_Psi(const EoS& eos, const Number* SYNTHESIZE_RESTRICT rho_i, const Number T)
 {
     return eos.calc_helmholtz_density(rho_i, T);
 }
@@ -192,7 +192,7 @@ template<EquationOfState EoS, std::floating_point Number>
  * @return @f$\partial^{i}\Psi/\partial T^{i}@f$ [J/(m^3 K^i)].
  */
 template<int i, EquationOfState EoS, std::floating_point Number>
-[[nodiscard]] Number calc_dPsi_dT(const EoS& eos, const Number* GLIS_EOS_RESTRICT rho_i, const Number T)
+[[nodiscard]] Number calc_dPsi_dT(const EoS& eos, const Number* SYNTHESIZE_RESTRICT rho_i, const Number T)
 {
     static_assert(i >= 0, "The template parameter `i` must be non-negative. It represent the number of derivatives "
                           "with respect to `T`.");
@@ -225,8 +225,8 @@ template<int i, EquationOfState EoS, std::floating_point Number>
  * @param  dPsi_drho Output gradient (length `eos.size()`), accumulated [J/mol].
  */
 template<int i, EquationOfState EoS, std::floating_point Number>
-void calc_dPsi_drhoi(const EoS& eos, const Number* GLIS_EOS_RESTRICT rho_i, const Number T,
-                     Number* GLIS_EOS_RESTRICT dPsi_drho)
+void calc_dPsi_drhoi(const EoS& eos, const Number* SYNTHESIZE_RESTRICT rho_i, const Number T,
+                     Number* SYNTHESIZE_RESTRICT dPsi_drho)
 {
     // Only implemented for 1 derivative because higher order would require tensors.
     static_assert(i > 0, "The template parameter `i` must be positive. It represents the number of derivatives with "
@@ -599,4 +599,4 @@ void calc_fugacity(const EoS<Ideal, Residual>& eos, std::span<const Number, N> r
     }
 }
 
-} // namespace glis::eos
+} // namespace synthesize

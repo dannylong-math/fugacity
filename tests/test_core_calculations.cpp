@@ -1,6 +1,6 @@
 #include "derivative_test_harness.hpp"
 #include "eos_test_models.hpp"
-#include "eoslab/core/core_calculations.hpp"
+#include "synthesize/core/core_calculations.hpp"
 
 #include <array>
 #include <boost/ut.hpp>
@@ -8,7 +8,7 @@
 #include <span>
 
 using namespace boost::ut;
-using namespace eoslab_test;
+using namespace synthesize_test;
 
 namespace {
 
@@ -36,7 +36,7 @@ int main()
     // NOTE: boost::ut requires the suite lambda to be captureless (it is
     // converted to a function pointer), so shared state lives inside it.
     suite<"core_calculations"> core = [] {
-        const double R = glis::eos::ideal_gas_constant<double>;
+        const double R = synthesize::ideal_gas_constant<double>;
         auto binary = make_binary_model();
         auto unary = make_unary_model();
 
@@ -67,8 +67,8 @@ int main()
                     const double p_exact = R * T * (c + (B * c * c) + (C * c * c * c));
                     const double dpdc_exact = R * T * (1.0 + (2.0 * B * c) + (3.0 * C * c * c));
                     std::span<const double, 2> xs{x};
-                    check_rel("p_virial", glis::eos::calc_pressure(binary, c, xs, T), p_exact, 1e-12);
-                    check_rel("dp_dc_virial", glis::eos::calc_dp_dc(binary, c, xs, T), dpdc_exact, 1e-12);
+                    check_rel("p_virial", synthesize::calc_pressure(binary, c, xs, T), p_exact, 1e-12);
+                    check_rel("dp_dc_virial", synthesize::calc_dp_dc(binary, c, xs, T), dpdc_exact, 1e-12);
                 }
             }
         };
@@ -93,7 +93,7 @@ int main()
             }
             std::span<const double, 2> rhos{rho};
             std::array<double, 2> mu{};
-            glis::eos::calc_chemical_potential(binary, rhos, T, std::span<double, 2>{mu});
+            synthesize::calc_chemical_potential(binary, rhos, T, std::span<double, 2>{mu});
             check_rel("mu[0]", mu[0], mu_exact[0], 1e-11);
             check_rel("mu[1]", mu[1], mu_exact[1], 1e-11);
         };
@@ -149,7 +149,7 @@ int main()
             const double T = 300.0;
             const double c = 1.0e-3; // very dilute
             std::span<const double, 2> xs{x};
-            const double Z = glis::eos::calc_pressure(binary, c, xs, T) / (c * R * T);
+            const double Z = synthesize::calc_pressure(binary, c, xs, T) / (c * R * T);
             expect(std::abs(Z - 1.0) < 1e-5) << "Z should approach 1 in the dilute limit, got" << Z;
         };
     };

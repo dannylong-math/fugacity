@@ -1,5 +1,5 @@
 //
-// Benchmarks for the ideal-gas models in include/eoslab/ideal_models, exercised
+// Benchmarks for the ideal-gas models in include/synthesize/ideal_models, exercised
 // through every (non-detail) thermodynamic routine in core_calculations.hpp.
 //
 // What is covered
@@ -22,11 +22,11 @@
 // is the natural unit to read. A large banner marks each size and a small
 // heading marks each calculation/family block.
 //
-#include "eoslab/core/core_calculations.hpp"
-#include "eoslab/core/eos_pair.hpp"
-#include "eoslab/ideal_models/const_cp.hpp"
-#include "eoslab/ideal_models/nasa7.hpp"
-#include "eoslab/residual_models/no_residual.hpp"
+#include "synthesize/core/core_calculations.hpp"
+#include "synthesize/core/eos_pair.hpp"
+#include "synthesize/ideal_models/const_cp.hpp"
+#include "synthesize/ideal_models/nasa7.hpp"
+#include "synthesize/residual_models/no_residual.hpp"
 
 #include <array>
 #include <benchmark/benchmark.h>
@@ -39,7 +39,7 @@
 #include <string_view>
 #include <vector>
 
-namespace ge = glis::eos;
+namespace ge = synthesize;
 
 namespace {
 

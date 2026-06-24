@@ -1,5 +1,5 @@
 //
-// Unit tests for the van der Waals residual model (glis::eos::VanDerWaals).
+// Unit tests for the van der Waals residual model (synthesize::VanDerWaals).
 //
 // Structure mirrors test_nasa7.cpp: the model-agnostic structural and
 // derivative checks are delegated to derivative_test_harness.hpp, and what
@@ -14,11 +14,11 @@
 //     c_c = 1 / (3 b), which pin down the a0/b parameter construction.
 //
 #include "derivative_test_harness.hpp"
-#include "eoslab/core/core_calculations.hpp"
-#include "eoslab/core/eos_pair.hpp"
-#include "eoslab/core/numbers.hpp"
-#include "eoslab/ideal_models/const_cp.hpp"
-#include "eoslab/residual_models/van_der_waals.hpp"
+#include "synthesize/core/core_calculations.hpp"
+#include "synthesize/core/eos_pair.hpp"
+#include "synthesize/core/numbers.hpp"
+#include "synthesize/ideal_models/const_cp.hpp"
+#include "synthesize/residual_models/van_der_waals.hpp"
 
 #include <array>
 #include <boost/ut.hpp>
@@ -28,11 +28,11 @@
 #include <vector>
 
 using namespace boost::ut;
-using namespace eoslab_test;
+using namespace synthesize_test;
 
 namespace {
 
-namespace ge = glis::eos;
+namespace ge = synthesize;
 
 template<std::size_t N> using Input = typename ge::VanDerWaals<N>::SpeciesInput;
 

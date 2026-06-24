@@ -1,13 +1,13 @@
 #pragma once
 
-#include "eoslab/core/core_calculations.hpp"
+#include "synthesize/core/core_calculations.hpp"
 
 #include <algorithm>
 #include <array>
 #include <cmath>
 #include <concepts>
 #include <limits>
-namespace glis::eos {
+namespace synthesize {
 namespace detail {
 /**
  * @internal
@@ -169,4 +169,4 @@ template<int Continuity, std::floating_point Number> Number xlnx(const Number x)
         return detail::smooth_step<Continuity, Number>(x / eps) * x * std::log(x);
     }
 }
-} // namespace glis::eos
+} // namespace synthesize

@@ -4,9 +4,9 @@
  * @brief Residual (departure) model for the Peng-Robinson equation of state.
  */
 
-#include "eoslab/core/concepts.hpp"
-#include "eoslab/core/numbers.hpp"
-#include "eoslab/residual_models/cubic.hpp"
+#include "synthesize/core/concepts.hpp"
+#include "synthesize/core/numbers.hpp"
+#include "synthesize/residual_models/cubic.hpp"
 
 #include <array>
 #include <cmath>
@@ -15,12 +15,12 @@
 #include <span>
 #include <vector>
 
-namespace glis::eos {
+namespace synthesize {
 
 /**
  * @brief Residual Helmholtz contribution of the Peng-Robinson equation of state.
  *
- * A glis::eos::BaseCubic model with @f$\Delta_{1,2} = 1 \pm \sqrt{2}@f$ and the
+ * A synthesize::BaseCubic model with @f$\Delta_{1,2} = 1 \pm \sqrt{2}@f$ and the
  * pure-species parameters built from each species' critical point and acentric
  * factor:
  * @f[
@@ -46,11 +46,11 @@ namespace glis::eos {
  * The Helmholtz kernels and mixture rules live in BaseCubic; this class only
  * performs the parameter transformation at construction.
  *
- * Pair the model with an ideal contribution in a glis::eos::EoS and evaluate
+ * Pair the model with an ideal contribution in a synthesize::EoS and evaluate
  * properties through the free functions in core_calculations.hpp:
  *
  * @code{.cpp}
- * using namespace glis::eos;
+ * using namespace synthesize;
  *
  * // CH4 and CO2 from critical data, with one interaction coefficient.
  * PengRobinson<2> residual(
@@ -161,4 +161,4 @@ private:
 static_assert(ResidualEoS<PengRobinson<2>>, "PengRobinson must satisfy the ResidualEoS concept.");
 static_assert(ResidualEoS<PengRobinson<std::dynamic_extent>>, "PengRobinson must satisfy the ResidualEoS concept.");
 
-} // namespace glis::eos
+} // namespace synthesize

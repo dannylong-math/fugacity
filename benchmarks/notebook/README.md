@@ -10,8 +10,8 @@ The Python environment is managed by a local venv (kept out of git):
 cd benchmarks/notebook
 python3 -m venv .venv
 .venv/bin/pip install -r requirements.txt
-.venv/bin/python -m ipykernel install --user --name eoslab-bench \
-    --display-name "EoSLab Bench (.venv)"
+.venv/bin/python -m ipykernel install --user --name synthesize-bench \
+    --display-name "Synthesize Bench (.venv)"
 ```
 
 ## Use
@@ -23,7 +23,7 @@ python3 -m venv .venv
    cmake --build build/release --target bench_ideal_models
    ```
 
-2. Open `benchmark_explorer.ipynb` and select the **EoSLab Bench (.venv)** kernel:
+2. Open `benchmark_explorer.ipynb` and select the **Synthesize Bench (.venv)** kernel:
 
    ```bash
    .venv/bin/jupyter lab benchmark_explorer.ipynb
