@@ -60,6 +60,14 @@ int main()
         };
 
         // -------------------------------------------------------------------
+        // Input-validation preconditions: every free function rejects a
+        // mismatched-size mole-fraction container (std::logic_error, debug only)
+        // and a non-positive temperature (std::domain_error, always on).
+        // -------------------------------------------------------------------
+        "precondition checks (binary)"_test = [&] { run_precondition_tests<2>(binary, 100.0, {0.4, 0.6}, 300.0); };
+        "precondition checks (unary)"_test = [&] { run_precondition_tests<1>(unary, 120.0, {1.0}, 310.0); };
+
+        // -------------------------------------------------------------------
         // Independent closed-form checks (virial EoS).
         // -------------------------------------------------------------------
         "virial pressure analytic"_test = [&] {

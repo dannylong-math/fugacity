@@ -5,11 +5,11 @@
  *        generalized @f$(\Delta_1, \Delta_2)@f$ form.
  */
 
+#include "synthesize/core/assertions.hpp"
 #include "synthesize/core/eos_base.hpp"
 #include "synthesize/core/numbers.hpp"
 
 #include <array>
-#include <cassert>
 #include <cmath>
 #include <concepts>
 #include <cstddef>
@@ -207,7 +207,7 @@ protected:
     BaseCubic(std::span<const PureSpecies> species, std::span<const double> kij) : BaseEoS<N>(species.size())
     {
         const std::size_t n = species.size();
-        assert(kij.empty() || kij.size() == n * n);
+        SYNTHESIZE_ASSERT(kij.empty() || kij.size() == n * n);
         if constexpr (N == std::dynamic_extent) {
             b_.resize(n);
             p_.resize(n);

@@ -37,6 +37,7 @@
 #include <cstddef>
 #include <numbers>
 #include <span>
+#include <stdexcept>
 #include <vector>
 
 using namespace boost::ut;
@@ -267,6 +268,50 @@ int main()
                           zeros.calc_helmholtz(c, x.data(), 300.0), 1e-15);
             }
         };
+
+        // ===================================================================
+        // Dynamic constructor with an *omitted* kij span takes the
+        // `kij.empty()` branch in BaseCubic (the static default `{}` is an
+        // all-zero matrix, which is non-empty, so only the dynamic path reaches
+        // it). The result must equal passing an explicit all-zero matrix.
+        // ===================================================================
+        "dynamic empty kij equals zero matrix"_test = [] {
+            using DynInput = ge::PengRobinson<>::SpeciesInput;
+            std::vector<DynInput> in_dyn;
+            for (const auto& in : binary_inputs) {
+                in_dyn.push_back({.T_c = in.T_c, .P_c = in.P_c, .omega = in.omega});
+            }
+            const ge::PengRobinson<> empty_kij{std::span<const DynInput>{in_dyn}}; // kij defaulted to empty span
+            const std::vector<double> zeros_dyn(4, 0.0);
+            const ge::PengRobinson<> zero_kij{std::span<const DynInput>{in_dyn}, std::span<const double>{zeros_dyn}};
+            const std::array<double, 2> x{0.4, 0.6};
+            for (const double c : {100.0, 4000.0}) {
+                for (const double T : {250.0, 400.0}) {
+                    check_rel("a_r (empty kij == zero matrix)", empty_kij.calc_helmholtz(c, x.data(), T),
+                              zero_kij.calc_helmholtz(c, x.data(), T), 1e-15);
+                }
+            }
+        };
+
+#ifndef NDEBUG
+        // ===================================================================
+        // A non-empty kij whose size is not n*n violates the BaseCubic
+        // precondition (SYNTHESIZE_ASSERT), which throws std::logic_error in a
+        // debug build.
+        // ===================================================================
+        "wrong-sized kij throws"_test = [] {
+            using DynInput = ge::PengRobinson<>::SpeciesInput;
+            std::vector<DynInput> in_dyn;
+            for (const auto& in : binary_inputs) {
+                in_dyn.push_back({.T_c = in.T_c, .P_c = in.P_c, .omega = in.omega});
+            }
+            const std::vector<double> kij_bad(3, 0.0); // size 3, not 2*2 = 4
+            expect(throws<std::logic_error>([&] {
+                const ge::PengRobinson<> bad{std::span<const DynInput>{in_dyn}, std::span<const double>{kij_bad}};
+                (void)bad;
+            }));
+        };
+#endif
 
         // ===================================================================
         // Static and dynamic instances built from the same data must agree.

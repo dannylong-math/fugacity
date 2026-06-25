@@ -34,8 +34,10 @@
 #include <numeric>
 #include <random>
 #include <span>
+#include <stdexcept>
 #include <string_view>
 #include <utility>
+#include <vector>
 
 namespace synthesize_test {
 
@@ -60,8 +62,9 @@ inline void check_rel(std::string_view name, double actual, double expected, dou
 // floating-point (FMA) differently across the two inlined call sites, so the
 // results can disagree in the last digit or two. 1e-9 still catches any real
 // delegation/logic mistake while tolerating that last-bit rounding.
-template <std::size_t N, class Model, std::floating_point Number = double>
-void run_free_function_consistency_tests(const Model& model, Number rtol = 1e-9){
+template<std::size_t N, class Model, std::floating_point Number = double>
+void run_free_function_consistency_tests(const Model& model, Number rtol = 1e-9)
+{
     using namespace boost::ut;
     std::random_device rd;
     std::mt19937 gen(rd());
@@ -70,16 +73,14 @@ void run_free_function_consistency_tests(const Model& model, Number rtol = 1e-9)
 
     std::vector<Number> T_vals(50);
     std::vector<std::array<Number, N>> rho_vecs(50);
-    std::ranges::generate(T_vals, [&](){return T_dist(gen);});
-    std::ranges::generate(rho_vecs,
-        [&](){
-            std::array<Number,N> rho;
-            for (std::size_t i=0;i<rho.size();++i){
-                rho.at(i) = rho_dist(gen);
-            }
-            return rho;
+    std::ranges::generate(T_vals, [&]() { return T_dist(gen); });
+    std::ranges::generate(rho_vecs, [&]() {
+        std::array<Number, N> rho;
+        for (std::size_t i = 0; i < rho.size(); ++i) {
+            rho.at(i) = rho_dist(gen);
         }
-    );
+        return rho;
+    });
     "Temperature values"_test = [&](const Number T) {
         "Rho vec"_test = [&](const auto rho_i) {
             const Number c = std::reduce(rho_i.begin(), rho_i.end(), Number{0});
@@ -98,9 +99,7 @@ void run_free_function_consistency_tests(const Model& model, Number rtol = 1e-9)
             // (container) and checks the two results match. `std::forward`
             // preserves the value category so the prvalue pointer selects the
             // pointer overload while the lvalue container selects the wrapper.
-            auto consistency = [&](std::string_view name, auto fn) {
-                check_rel(name, fn(x.data()), fn(x), rtol);
-            };
+            auto consistency = [&](std::string_view name, auto fn) { check_rel(name, fn(x.data()), fn(x), rtol); };
             // Same idea for the reverse-mode `_dx` functions, which fill a
             // gradient buffer instead of returning a value.
             auto consistency_grad = [&](std::string_view name, auto ptr_fill, auto vec_fill) {
@@ -111,12 +110,11 @@ void run_free_function_consistency_tests(const Model& model, Number rtol = 1e-9)
                 }
             };
 
-#define SYNTHESIZE_CHECK_SCALAR(FN) \
+#define SYNTHESIZE_CHECK_SCALAR(FN)                                                                                    \
     consistency(#FN, [&](auto&& xx) { return FN(model, c, std::forward<decltype(xx)>(xx), T); })
-#define SYNTHESIZE_CHECK_GRAD(FN)                                  \
-    consistency_grad(                                              \
-        #FN, [&](auto& g) { FN(model, c, x.data(), T, g.data()); }, \
-        [&](auto& g) { FN(model, c, x, T, g); })
+#define SYNTHESIZE_CHECK_GRAD(FN)                                                                                      \
+    consistency_grad(                                                                                                  \
+        #FN, [&](auto& g) { FN(model, c, x.data(), T, g.data()); }, [&](auto& g) { FN(model, c, x, T, g); })
 
             SYNTHESIZE_CHECK_SCALAR(calc_helmholtz);
             SYNTHESIZE_CHECK_SCALAR(calc_helmholtz_dT);
@@ -189,6 +187,146 @@ void run_free_function_consistency_tests(const Model& model, Number rtol = 1e-9)
                 [&](auto& g) { calc_sound_speed_squared_dx(model, c, x, T, molar_mass, g); });
         } | rho_vecs;
     } | T_vals;
+}
+
+// ===========================================================================
+// Precondition (input-validation) checks for the free functions.
+//
+// Every container-based free function validates that the mole-fraction container
+// matches the component count, and every temperature-dependent function rejects
+// a non-positive temperature. This helper drives both failure paths generically
+// for the whole property catalogue, so a single call exercises:
+//
+//   * size mismatch  -> std::logic_error  via SYNTHESIZE_ASSERT. This is a
+//     debug-only check (elided under NDEBUG), so those expectations are compiled
+//     only when NDEBUG is not defined.
+//   * non-positive T -> std::domain_error. This is an always-on check, exercised
+//     on both the container wrapper and the pointer-core overload of each
+//     temperature-dependent function.
+//
+//   eos : an EoS<Ideal, Residual>
+//   c   : a valid molar concentration           [mol/m^3]
+//   x   : valid mole fractions (size N)          [-]
+//   T   : a valid (positive) temperature         [K]
+// ===========================================================================
+template<std::size_t N, class EoSPair>
+void run_precondition_tests(const EoSPair& eos, double c, std::array<double, N> x, [[maybe_unused]] double T,
+                            double effective_molar_mass = 0.02)
+{
+    using namespace boost::ut;
+    namespace ge = synthesize;
+
+    const double bad_T = -1.0; // non-positive temperature
+    const double mm = effective_molar_mass;
+    std::array<double, N> xv = x; // valid-size mole fractions
+    std::array<double, N> grad{}; // valid-size gradient scratch
+
+    // ---- non-positive temperature: always-on std::domain_error --------------
+    auto temp_throws = [&](std::string_view name, auto fn) {
+        expect(throws<std::domain_error>([&] { fn(); })) << name << "must reject T <= 0";
+    };
+    // Each temperature-checked property validates T in both its container wrapper
+    // and its pointer-core overload; drive both.
+#define SYNTHESIZE_CHECK_T(FN)                                                                                         \
+    temp_throws(#FN " (wrapper)", [&] { (void)FN(eos, c, xv, bad_T); });                                               \
+    temp_throws(#FN " (core)", [&] { (void)FN(eos, c, xv.data(), bad_T); })
+
+    SYNTHESIZE_CHECK_T(ge::calc_pressure);
+    SYNTHESIZE_CHECK_T(ge::calc_internal_energy);
+    SYNTHESIZE_CHECK_T(ge::calc_enthalpy);
+    SYNTHESIZE_CHECK_T(ge::calc_entropy);
+    SYNTHESIZE_CHECK_T(ge::calc_gibbs);
+    SYNTHESIZE_CHECK_T(ge::calc_dp_dc);
+    SYNTHESIZE_CHECK_T(ge::calc_dp_dT);
+    SYNTHESIZE_CHECK_T(ge::calc_cv);
+    SYNTHESIZE_CHECK_T(ge::calc_cp);
+#undef SYNTHESIZE_CHECK_T
+
+    // Speed of sound carries an extra molar-mass argument.
+    temp_throws("calc_sound_speed_squared (wrapper)",
+                [&] { (void)ge::calc_sound_speed_squared(eos, c, xv, bad_T, mm); });
+    temp_throws("calc_sound_speed_squared (core)",
+                [&] { (void)ge::calc_sound_speed_squared(eos, c, xv.data(), bad_T, mm); });
+
+    // Pressure's first-derivative cores validate T as well.
+    temp_throws("calc_pressure_dT (core)", [&] { (void)ge::calc_pressure_dT(eos, c, xv.data(), bad_T); });
+    temp_throws("calc_pressure_dc (core)", [&] { (void)ge::calc_pressure_dc(eos, c, xv.data(), bad_T); });
+    temp_throws("calc_pressure_dx (core)", [&] { ge::calc_pressure_dx(eos, c, xv.data(), bad_T, grad.data()); });
+
+    // ---- mismatched mole-fraction size: std::logic_error (debug only) -------
+#ifndef NDEBUG
+    // Deliberately wrong-sized (N+1) containers for the size-mismatch checks.
+    // Using a fixed-size std::array (not a runtime-sized vector) keeps the
+    // `x.size() == eos.size()` comparison a compile-time-false constant, so the
+    // failing call does not introduce a spurious runtime branch whose passing
+    // side would never be taken.
+    std::array<double, N + 1> x_bad{};
+    std::array<double, N + 1> grad_bad{};
+    auto size_throws = [&](std::string_view name, auto fn) {
+        expect(throws<std::logic_error>([&] { fn(); })) << name << "must reject mismatched x size";
+    };
+#define SYNTHESIZE_CHECK_SIZE_SCALAR(FN) size_throws(#FN, [&] { (void)FN(eos, c, x_bad, T); })
+#define SYNTHESIZE_CHECK_SIZE_GRAD(FN) size_throws(#FN, [&] { FN(eos, c, x_bad, T, grad_bad); })
+
+    SYNTHESIZE_CHECK_SIZE_SCALAR(ge::calc_helmholtz);
+    SYNTHESIZE_CHECK_SIZE_SCALAR(ge::calc_helmholtz_dT);
+    SYNTHESIZE_CHECK_SIZE_SCALAR(ge::calc_helmholtz_dc);
+    SYNTHESIZE_CHECK_SIZE_GRAD(ge::calc_helmholtz_dx);
+
+    SYNTHESIZE_CHECK_SIZE_SCALAR(ge::calc_pressure);
+    SYNTHESIZE_CHECK_SIZE_SCALAR(ge::calc_pressure_dT);
+    SYNTHESIZE_CHECK_SIZE_SCALAR(ge::calc_pressure_dc);
+    SYNTHESIZE_CHECK_SIZE_GRAD(ge::calc_pressure_dx);
+
+    SYNTHESIZE_CHECK_SIZE_SCALAR(ge::calc_internal_energy);
+    SYNTHESIZE_CHECK_SIZE_SCALAR(ge::calc_internal_energy_dT);
+    SYNTHESIZE_CHECK_SIZE_SCALAR(ge::calc_internal_energy_dc);
+    SYNTHESIZE_CHECK_SIZE_GRAD(ge::calc_internal_energy_dx);
+
+    SYNTHESIZE_CHECK_SIZE_SCALAR(ge::calc_enthalpy);
+    SYNTHESIZE_CHECK_SIZE_SCALAR(ge::calc_enthalpy_dT);
+    SYNTHESIZE_CHECK_SIZE_SCALAR(ge::calc_enthalpy_dc);
+    SYNTHESIZE_CHECK_SIZE_GRAD(ge::calc_enthalpy_dx);
+
+    SYNTHESIZE_CHECK_SIZE_SCALAR(ge::calc_entropy);
+    SYNTHESIZE_CHECK_SIZE_SCALAR(ge::calc_entropy_dT);
+    SYNTHESIZE_CHECK_SIZE_SCALAR(ge::calc_entropy_dc);
+    SYNTHESIZE_CHECK_SIZE_GRAD(ge::calc_entropy_dx);
+
+    SYNTHESIZE_CHECK_SIZE_SCALAR(ge::calc_gibbs);
+    SYNTHESIZE_CHECK_SIZE_SCALAR(ge::calc_gibbs_dT);
+    SYNTHESIZE_CHECK_SIZE_SCALAR(ge::calc_gibbs_dc);
+    SYNTHESIZE_CHECK_SIZE_GRAD(ge::calc_gibbs_dx);
+
+    SYNTHESIZE_CHECK_SIZE_SCALAR(ge::calc_dp_dc);
+    SYNTHESIZE_CHECK_SIZE_SCALAR(ge::calc_dp_dc_dT);
+    SYNTHESIZE_CHECK_SIZE_SCALAR(ge::calc_dp_dc_dc);
+    SYNTHESIZE_CHECK_SIZE_GRAD(ge::calc_dp_dc_dx);
+
+    SYNTHESIZE_CHECK_SIZE_SCALAR(ge::calc_dp_dT);
+    SYNTHESIZE_CHECK_SIZE_SCALAR(ge::calc_dp_dT_dT);
+    SYNTHESIZE_CHECK_SIZE_SCALAR(ge::calc_dp_dT_dc);
+    SYNTHESIZE_CHECK_SIZE_GRAD(ge::calc_dp_dT_dx);
+
+    SYNTHESIZE_CHECK_SIZE_SCALAR(ge::calc_cv);
+    SYNTHESIZE_CHECK_SIZE_SCALAR(ge::calc_cv_dT);
+    SYNTHESIZE_CHECK_SIZE_SCALAR(ge::calc_cv_dc);
+    SYNTHESIZE_CHECK_SIZE_GRAD(ge::calc_cv_dx);
+
+    SYNTHESIZE_CHECK_SIZE_SCALAR(ge::calc_cp);
+    SYNTHESIZE_CHECK_SIZE_SCALAR(ge::calc_cp_dT);
+    SYNTHESIZE_CHECK_SIZE_SCALAR(ge::calc_cp_dc);
+    SYNTHESIZE_CHECK_SIZE_GRAD(ge::calc_cp_dx);
+#undef SYNTHESIZE_CHECK_SIZE_SCALAR
+#undef SYNTHESIZE_CHECK_SIZE_GRAD
+
+    // Speed of sound carries an extra molar-mass argument.
+    size_throws("calc_sound_speed_squared", [&] { (void)ge::calc_sound_speed_squared(eos, c, x_bad, T, mm); });
+    size_throws("calc_sound_speed_squared_dT", [&] { (void)ge::calc_sound_speed_squared_dT(eos, c, x_bad, T, mm); });
+    size_throws("calc_sound_speed_squared_dc", [&] { (void)ge::calc_sound_speed_squared_dc(eos, c, x_bad, T, mm); });
+    size_throws("calc_sound_speed_squared_dx",
+                [&] { ge::calc_sound_speed_squared_dx(eos, c, x_bad, T, mm, grad_bad); });
+#endif
 }
 
 // ===========================================================================

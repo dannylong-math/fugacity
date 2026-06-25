@@ -6,9 +6,9 @@
  *        tag a model as an ideal contribution.
  */
 
+#include "synthesize/core/assertions.hpp"
 #include "synthesize/core/attributes.hpp"
 
-#include <cassert>
 #include <cstddef>
 #include <span>
 #include <utility>
@@ -31,9 +31,11 @@ public:
 
     /**
      * @brief Construct with an explicit component count.
-     * @param n Number of components. Must equal @p N (checked via @c assert).
+     * @param n Number of components. Must equal @p N; a mismatch throws
+     *          @c std::logic_error in a debug build and is elided in release
+     *          (via SYNTHESIZE_ASSERT).
      */
-    constexpr explicit BaseEoS([[maybe_unused]] const std::size_t n) { assert(n == N); }
+    constexpr explicit BaseEoS([[maybe_unused]] const std::size_t n) { SYNTHESIZE_ASSERT(n == N); }
 
     /**
      * @brief Number of chemical components.

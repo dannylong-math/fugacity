@@ -3,6 +3,7 @@
 #include <boost/ut.hpp>
 #include <cmath>
 #include <limits>
+#include <stdexcept>
 #include <tuple>
 
 using namespace boost::ut;
@@ -48,6 +49,16 @@ int main()
             static_assert(v == 16.0);
             expect(v == 16.0_d);
         };
+
+#ifndef NDEBUG
+        // A negative exponent forms the reciprocal, so a zero base is a
+        // precondition violation. SYNTHESIZE_ASSERT rejects it with
+        // std::logic_error in a debug build (elided in release).
+        "negative exponent with zero base throws"_test = [] {
+            expect(throws<std::logic_error>([] { (void)fast_pow<double, -1>(0.0); }));
+            expect(throws<std::logic_error>([] { (void)fast_pow<double, -3>(0.0); }));
+        };
+#endif
     };
 
     return ::boost::ut::cfg<>.run();
