@@ -6,6 +6,23 @@ FetchContent_Declare(ut
 )
 FetchContent_MakeAvailable(ut)
 
+# The numerical derivative oracle uses Boost.Multiprecision in standalone mode.
+# Keeping it in the test target avoids making Boost part of Synthesize's public
+# interface or production dependency set.
+FetchContent_Declare(boost_config
+    GIT_REPOSITORY https://github.com/boostorg/config.git
+    GIT_TAG boost-1.89.0
+    GIT_SHALLOW TRUE
+)
+FetchContent_MakeAvailable(boost_config)
+
+FetchContent_Declare(multiprecision
+    GIT_REPOSITORY https://github.com/boostorg/multiprecision.git
+    GIT_TAG boost-1.89.0
+    GIT_SHALLOW TRUE
+)
+FetchContent_MakeAvailable(multiprecision)
+
 # CONFIGURE_DEPENDS: cmake reruns glob if files are added/removed
 file(GLOB_RECURSE TEST_SOURCES CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp"
@@ -21,6 +38,9 @@ foreach(test_source IN LISTS TEST_SOURCES)
         ${PROJECT_NAME}_sanitizers
         ${PROJECT_NAME}_coverage
         Boost::ut
+        Boost::config
+        Boost::multiprecision
     )
+    target_compile_definitions(${test_name} PRIVATE BOOST_MP_STANDALONE)
     add_test(NAME ${test_name} COMMAND ${test_name})
 endforeach()
