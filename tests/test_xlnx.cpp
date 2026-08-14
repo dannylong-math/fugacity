@@ -1,4 +1,4 @@
-#include "synthesize/core/xlnx.hpp"
+#include "fugacity/core/xlnx.hpp"
 
 #include <algorithm>
 #include <array>
@@ -23,7 +23,7 @@ template<typename Number> constexpr Number ipow(const Number x, const int k)
 /// @brief Assert that `get_smooth_step_coeffs<N>()` matches the expected coefficients exactly.
 template<int N> void expect_coeffs(const std::array<long long, N + 1>& expected)
 {
-    constexpr auto coeffs = synthesize::detail::get_smooth_step_coeffs<N>();
+    constexpr auto coeffs = fugacity::detail::get_smooth_step_coeffs<N>();
     for (std::size_t i = 0; i < coeffs.size(); ++i) {
         boost::ut::expect(boost::ut::eq(coeffs[i], expected[i])) << "N = " << N << ", coefficient " << i;
     }
@@ -33,7 +33,7 @@ template<int N> void expect_coeffs(const std::array<long long, N + 1>& expected)
 int main()
 {
     using namespace boost::ut;
-    using synthesize::xlnx;
+    using fugacity::xlnx;
 
     suite<"xlnx"> s = [] {
         constexpr unsigned int n_tests = 100;
@@ -125,7 +125,7 @@ int main()
         // full form. Restricted to double/long double because the high-degree polynomials suffer
         // heavy cancellation near x = 1 that swamps float precision.
         "smooth_step evaluation"_test = [&]<typename Number> {
-            using synthesize::detail::smooth_step;
+            using fugacity::detail::smooth_step;
             const Number tol = std::is_same_v<Number, double> ? Number{1e-9} : Number{1e-11};
             const std::array<Number, 7> xs{Number{0},    Number{0.1}, Number{0.25}, Number{0.5},
                                            Number{0.75}, Number{0.9}, Number{1}};

@@ -104,5 +104,5 @@ jobs:
         with:
           files: build/coverage/coverage.lcov
           token: ${{ secrets.CODECOV_TOKEN }}
-          slug: Miscibility/synthesize
+          slug: dannylong-math/fugacity
           fail_ci_if_error: false

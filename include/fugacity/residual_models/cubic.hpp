@@ -5,9 +5,9 @@
  *        generalized @f$(\Delta_1, \Delta_2)@f$ form.
  */
 
-#include "synthesize/core/assertions.hpp"
-#include "synthesize/core/eos_base.hpp"
-#include "synthesize/core/numbers.hpp"
+#include "fugacity/core/assertions.hpp"
+#include "fugacity/core/eos_base.hpp"
+#include "fugacity/core/numbers.hpp"
 
 #include <array>
 #include <cmath>
@@ -17,7 +17,7 @@
 #include <type_traits>
 #include <vector>
 
-namespace synthesize {
+namespace fugacity {
 
 /**
  * @brief CRTP base orchestrating the residual Helmholtz energy of a
@@ -45,19 +45,19 @@ namespace synthesize {
  *   a_{ii}(T) = a_{0,ii} \left[1 + m_{ii}\left(1 - \sqrt{T/T_{c,i}}\right)\right]^2
  *             = a_{0,ii}\, \alpha_i(T)^2,
  * @f]
- * and the three Helmholtz kernels required by the synthesize::ResidualEoS
+ * and the three Helmholtz kernels required by the fugacity::ResidualEoS
  * concept.
  *
  * @par CRTP contract
  * A derived model @p Derived must provide
  * - `static constexpr double delta1, delta2` with `delta1 != delta2` (checked
  *   via @c static_assert; the degenerate @f$\Delta_1 = \Delta_2 = 0@f$ case is
- *   synthesize::VanDerWaals), and
+ *   fugacity::VanDerWaals), and
  * - constructors that map its natural species inputs to one PureSpecies record
  *   per species and forward them, together with the @f$k_{ij}@f$ matrix, to the
  *   protected BaseCubic constructor.
  *
- * See synthesize::PengRobinson for a complete derived model.
+ * See fugacity::PengRobinson for a complete derived model.
  *
  * @par Evaluation notes
  * - @f$\alpha_i@f$ may be negative (at @f$T@f$ well above a species'
@@ -207,7 +207,7 @@ protected:
     BaseCubic(std::span<const PureSpecies> species, std::span<const double> kij) : BaseEoS<N>(species.size())
     {
         const std::size_t n = species.size();
-        SYNTHESIZE_ASSERT(kij.empty() || kij.size() == n * n);
+        FUGACITY_ASSERT(kij.empty() || kij.size() == n * n);
         if constexpr (N == std::dynamic_extent) {
             b_.resize(n);
             p_.resize(n);
@@ -244,4 +244,4 @@ private:
               // so a_m = sum_ij x_i x_j A_ij |alpha_i| |alpha_j|.
 };
 
-} // namespace synthesize
+} // namespace fugacity

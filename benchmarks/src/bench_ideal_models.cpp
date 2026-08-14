@@ -1,5 +1,5 @@
 //
-// Benchmarks for the ideal-gas models in include/synthesize/ideal_models, exercised
+// Benchmarks for the ideal-gas models in include/fugacity/ideal_models, exercised
 // through every (non-detail) thermodynamic routine in core_calculations.hpp.
 //
 // What is covered
@@ -22,11 +22,11 @@
 // is the natural unit to read. A large banner marks each size and a small
 // heading marks each calculation/family block.
 //
-#include "synthesize/core/core_calculations.hpp"
-#include "synthesize/core/eos_pair.hpp"
-#include "synthesize/ideal_models/const_cp.hpp"
-#include "synthesize/ideal_models/nasa7.hpp"
-#include "synthesize/residual_models/no_residual.hpp"
+#include "fugacity/core/core_calculations.hpp"
+#include "fugacity/core/eos_pair.hpp"
+#include "fugacity/ideal_models/const_cp.hpp"
+#include "fugacity/ideal_models/nasa7.hpp"
+#include "fugacity/residual_models/no_residual.hpp"
 
 #include <array>
 #include <benchmark/benchmark.h>
@@ -39,7 +39,7 @@
 #include <string_view>
 #include <vector>
 
-namespace ge = synthesize;
+namespace fug = fugacity;
 
 namespace {
 
@@ -117,8 +117,8 @@ template<template<std::size_t> class Tmpl, std::size_t N> Tmpl<N> make_model(std
 // Bench: an ideal model paired with NoResidual, plus the working buffers.
 // ---------------------------------------------------------------------------
 template<class Ideal, std::size_t N> struct Bench {
-    using Residual = ge::NoResidual<N>;
-    using Pair = ge::EoS<Ideal, Residual>;
+    using Residual = fug::NoResidual<N>;
+    using Pair = fug::EoS<Ideal, Residual>;
 
     static constexpr std::size_t extent = N; ///< Span extent for the property calls.
 
@@ -233,46 +233,46 @@ template<class B> void register_calc(const std::string& name, B* b, Calc calc)
 
     switch (calc) {
     case Calc::helmholtz:
-        SCALAR(ge::calc_helmholtz(b->eos, b->c, cspan<E>(b->x), b->T));
+        SCALAR(fug::calc_helmholtz(b->eos, b->c, cspan<E>(b->x), b->T));
         break;
     case Calc::pressure:
-        SCALAR(ge::calc_pressure(b->eos, b->c, cspan<E>(b->x), b->T));
+        SCALAR(fug::calc_pressure(b->eos, b->c, cspan<E>(b->x), b->T));
         break;
     case Calc::internal_energy:
-        SCALAR(ge::calc_internal_energy(b->eos, b->c, cspan<E>(b->x), b->T));
+        SCALAR(fug::calc_internal_energy(b->eos, b->c, cspan<E>(b->x), b->T));
         break;
     case Calc::enthalpy:
-        SCALAR(ge::calc_enthalpy(b->eos, b->c, cspan<E>(b->x), b->T));
+        SCALAR(fug::calc_enthalpy(b->eos, b->c, cspan<E>(b->x), b->T));
         break;
     case Calc::entropy:
-        SCALAR(ge::calc_entropy(b->eos, b->c, cspan<E>(b->x), b->T));
+        SCALAR(fug::calc_entropy(b->eos, b->c, cspan<E>(b->x), b->T));
         break;
     case Calc::gibbs:
-        SCALAR(ge::calc_gibbs(b->eos, b->c, cspan<E>(b->x), b->T));
+        SCALAR(fug::calc_gibbs(b->eos, b->c, cspan<E>(b->x), b->T));
         break;
     case Calc::dp_dc:
-        SCALAR(ge::calc_dp_dc(b->eos, b->c, cspan<E>(b->x), b->T));
+        SCALAR(fug::calc_dp_dc(b->eos, b->c, cspan<E>(b->x), b->T));
         break;
     case Calc::dp_dT:
-        SCALAR(ge::calc_dp_dT(b->eos, b->c, cspan<E>(b->x), b->T));
+        SCALAR(fug::calc_dp_dT(b->eos, b->c, cspan<E>(b->x), b->T));
         break;
     case Calc::cv:
-        SCALAR(ge::calc_cv(b->eos, b->c, cspan<E>(b->x), b->T));
+        SCALAR(fug::calc_cv(b->eos, b->c, cspan<E>(b->x), b->T));
         break;
     case Calc::cp:
-        SCALAR(ge::calc_cp(b->eos, b->c, cspan<E>(b->x), b->T));
+        SCALAR(fug::calc_cp(b->eos, b->c, cspan<E>(b->x), b->T));
         break;
     case Calc::sound_speed_sq:
-        SCALAR(ge::calc_sound_speed_squared(b->eos, b->c, cspan<E>(b->x), b->T, b->molar_mass));
+        SCALAR(fug::calc_sound_speed_squared(b->eos, b->c, cspan<E>(b->x), b->T, b->molar_mass));
         break;
     case Calc::chemical_potential:
-        VOIDC(ge::calc_chemical_potential(b->eos, cspan<E>(b->rho), b->T, mspan<E>(b->out)));
+        VOIDC(fug::calc_chemical_potential(b->eos, cspan<E>(b->rho), b->T, mspan<E>(b->out)));
         break;
     case Calc::log_fugacity_coeff:
-        VOIDC(ge::calc_log_fugacity_coeff(b->eos, b->c, cspan<E>(b->x), b->T, cspan<E>(b->rho), mspan<E>(b->out)));
+        VOIDC(fug::calc_log_fugacity_coeff(b->eos, b->c, cspan<E>(b->x), b->T, cspan<E>(b->rho), mspan<E>(b->out)));
         break;
     case Calc::fugacity:
-        VOIDC(ge::calc_fugacity(b->eos, cspan<E>(b->rho), b->T, mspan<E>(b->out)));
+        VOIDC(fug::calc_fugacity(b->eos, cspan<E>(b->rho), b->T, mspan<E>(b->out)));
         break;
     }
 
@@ -289,10 +289,10 @@ template<std::size_t N> void register_size()
 {
     constexpr std::size_t dyn = std::dynamic_extent;
 
-    auto cc_s = std::make_shared<Bench<ge::ConstantCp<N>, N>>(N, make_model<ge::ConstantCp, N>(N));
-    auto cc_d = std::make_shared<Bench<ge::ConstantCp<dyn>, dyn>>(N, make_model<ge::ConstantCp, dyn>(N));
-    auto n7_s = std::make_shared<Bench<ge::Nasa7<N>, N>>(N, make_model<ge::Nasa7, N>(N));
-    auto n7_d = std::make_shared<Bench<ge::Nasa7<dyn>, dyn>>(N, make_model<ge::Nasa7, dyn>(N));
+    auto cc_s = std::make_shared<Bench<fug::ConstantCp<N>, N>>(N, make_model<fug::ConstantCp, N>(N));
+    auto cc_d = std::make_shared<Bench<fug::ConstantCp<dyn>, dyn>>(N, make_model<fug::ConstantCp, dyn>(N));
+    auto n7_s = std::make_shared<Bench<fug::Nasa7<N>, N>>(N, make_model<fug::Nasa7, N>(N));
+    auto n7_d = std::make_shared<Bench<fug::Nasa7<dyn>, dyn>>(N, make_model<fug::Nasa7, dyn>(N));
 
     g_keepalive.push_back(cc_s);
     g_keepalive.push_back(cc_d);

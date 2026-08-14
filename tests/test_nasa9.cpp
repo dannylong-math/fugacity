@@ -1,5 +1,5 @@
 //
-// Unit tests for the NASA-9 polynomial ideal-gas model (synthesize::Nasa9).
+// Unit tests for the NASA-9 polynomial ideal-gas model (fugacity::Nasa9).
 //
 // Universal, ideal-gas, derivative, wrapper, precondition, deterministic-sweep,
 // and static/dynamic checks are registered through support/eos_test_suite.hpp.
@@ -27,12 +27,12 @@
 //
 #include "support/eos_test_suite.hpp"
 #include "support/numeric_checks.hpp"
-#include "synthesize/core/core_calculations.hpp"
-#include "synthesize/core/eos_pair.hpp"
-#include "synthesize/core/numbers.hpp"
-#include "synthesize/ideal_models/nasa7.hpp"
-#include "synthesize/ideal_models/nasa9.hpp"
-#include "synthesize/residual_models/no_residual.hpp"
+#include "fugacity/core/core_calculations.hpp"
+#include "fugacity/core/eos_pair.hpp"
+#include "fugacity/core/numbers.hpp"
+#include "fugacity/ideal_models/nasa7.hpp"
+#include "fugacity/ideal_models/nasa9.hpp"
+#include "fugacity/residual_models/no_residual.hpp"
 
 #include <array>
 #include <boost/ut.hpp>
@@ -42,18 +42,18 @@
 #include <vector>
 
 using namespace boost::ut;
-using namespace synthesize_test;
+using namespace fugacity_test;
 
 namespace {
 
-namespace ge = synthesize;
+namespace fug = fugacity;
 
-template<std::size_t N> using Input = typename ge::Nasa9<N>::SpeciesInput;
+template<std::size_t N> using Input = typename fug::Nasa9<N>::SpeciesInput;
 
 // Build a complete EoS: a NASA-9 ideal contribution + a vanishing residual.
 template<std::size_t N> auto make_nasa9_eos(const std::array<Input<N>, N>& in)
 {
-    return ge::EoS<ge::Nasa9<N>, ge::NoResidual<N>>{ge::Nasa9<N>(in), ge::NoResidual<N>{}};
+    return fug::EoS<fug::Nasa9<N>, fug::NoResidual<N>>{fug::Nasa9<N>(in), fug::NoResidual<N>{}};
 }
 
 // Representative low-temperature (200-1000 K) NASA-9 coefficient sets for N2
@@ -84,9 +84,9 @@ constexpr std::array<Input<2>, 2> binary_inputs{{
      .p_ref = 9.0e4},
 }};
 
-std::vector<ge::Nasa9<>::SpeciesInput> dynamic_binary_inputs()
+std::vector<fug::Nasa9<>::SpeciesInput> dynamic_binary_inputs()
 {
-    std::vector<ge::Nasa9<>::SpeciesInput> result;
+    std::vector<fug::Nasa9<>::SpeciesInput> result;
     result.reserve(binary_inputs.size());
     for (const auto& input : binary_inputs) {
         result.push_back({.a0 = input.a0,
@@ -107,8 +107,8 @@ std::vector<ge::Nasa9<>::SpeciesInput> dynamic_binary_inputs()
 auto make_dynamic_nasa9_eos()
 {
     const auto inputs = dynamic_binary_inputs();
-    return ge::EoS{ge::Nasa9<>{std::span<const ge::Nasa9<>::SpeciesInput>{inputs}},
-                   ge::NoResidual<std::dynamic_extent>{inputs.size()}};
+    return fug::EoS{fug::Nasa9<>{std::span<const fug::Nasa9<>::SpeciesInput>{inputs}},
+                   fug::NoResidual<std::dynamic_extent>{inputs.size()}};
 }
 
 std::vector<eos_test_state> nasa9_contract_states()
@@ -145,14 +145,14 @@ constexpr std::array<Input<1>, 1> unary_inputs{{{.a0 = 2.210371497e4,
 // --- Closed-form NASA-9 reference relations (in double) --------------------
 double nasa9_cp(const Input<1>& in, double T)
 {
-    const double R = ge::ideal_gas_constant<double>;
+    const double R = fug::ideal_gas_constant<double>;
     return R * ((in.a0 / (T * T)) + (in.a1 / T) + in.a2 + (in.a3 * T) + (in.a4 * T * T) + (in.a5 * T * T * T) +
                 (in.a6 * T * T * T * T));
 }
 
 double nasa9_enthalpy(const Input<1>& in, double T)
 {
-    const double R = ge::ideal_gas_constant<double>;
+    const double R = fug::ideal_gas_constant<double>;
     return R * T *
            ((-in.a0 / (T * T)) + (in.a1 * std::log(T) / T) + in.a2 + (in.a3 / 2 * T) + (in.a4 / 3 * T * T) +
             (in.a5 / 4 * T * T * T) + (in.a6 / 5 * T * T * T * T) + (in.a7 / T));
@@ -161,14 +161,14 @@ double nasa9_enthalpy(const Input<1>& in, double T)
 // Standard-state entropy: the model entropy at the reference concentration c_ref.
 double nasa9_entropy_std(const Input<1>& in, double T)
 {
-    const double R = ge::ideal_gas_constant<double>;
+    const double R = fug::ideal_gas_constant<double>;
     return R * ((-in.a0 / (2 * T * T)) - (in.a1 / T) + (in.a2 * std::log(T)) + (in.a3 * T) + (in.a4 / 2 * T * T) +
                 (in.a5 / 3 * T * T * T) + (in.a6 / 4 * T * T * T * T) + in.a8);
 }
 
 // Map a NASA-7 input onto the equivalent NASA-9 input: a0 = a1 = 0 and the
 // NASA-9 coefficients (a2..a8) set to the NASA-7 coefficients (a0..a6).
-template<std::size_t N> Input<N> as_nasa9(const typename ge::Nasa7<N>::SpeciesInput& in)
+template<std::size_t N> Input<N> as_nasa9(const typename fug::Nasa7<N>::SpeciesInput& in)
 {
     return Input<N>{.a0 = 0.0,
                     .a1 = 0.0,
@@ -188,7 +188,7 @@ template<std::size_t N> Input<N> as_nasa9(const typename ge::Nasa7<N>::SpeciesIn
 int main()
 {
     suite<"nasa9"> nasa9 = [] {
-        const double R = ge::ideal_gas_constant<double>;
+        const double R = fug::ideal_gas_constant<double>;
 
         auto dynamic_eos = make_dynamic_nasa9_eos();
         const auto fixture = eos_test_fixture{.contribution = dynamic_eos.ideal(),
@@ -212,10 +212,10 @@ int main()
             const std::array<double, 1> x{1.0};
             const std::span<const double, 1> xs{x};
 
-            check_rel("calc_cp       == NASA9 c_p", ge::calc_cp(eos, c_ref, xs, T_ref), nasa9_cp(in, T_ref), 1e-9);
-            check_rel("calc_enthalpy == NASA9 h", ge::calc_enthalpy(eos, c_ref, xs, T_ref), nasa9_enthalpy(in, T_ref),
+            check_rel("calc_cp       == NASA9 c_p", fug::calc_cp(eos, c_ref, xs, T_ref), nasa9_cp(in, T_ref), 1e-9);
+            check_rel("calc_enthalpy == NASA9 h", fug::calc_enthalpy(eos, c_ref, xs, T_ref), nasa9_enthalpy(in, T_ref),
                       1e-9);
-            check_rel("calc_entropy  == NASA9 s", ge::calc_entropy(eos, c_ref, xs, T_ref), nasa9_entropy_std(in, T_ref),
+            check_rel("calc_entropy  == NASA9 s", fug::calc_entropy(eos, c_ref, xs, T_ref), nasa9_entropy_std(in, T_ref),
                       1e-9);
         };
 
@@ -239,9 +239,9 @@ int main()
                     const double h_expected = nasa9_enthalpy(in, T);
                     const double cp_expected = nasa9_cp(in, T);
                     const double s_expected = nasa9_entropy_std(in, T) - (R * std::log((c * T) / (c_ref * T_ref)));
-                    check_rel("calc_enthalpy(T)", ge::calc_enthalpy(eos, c, xs, T), h_expected, 1e-9);
-                    check_rel("calc_cp(T,c)", ge::calc_cp(eos, c, xs, T), cp_expected, 1e-9);
-                    check_rel("calc_entropy(T,c)", ge::calc_entropy(eos, c, xs, T), s_expected, 1e-9);
+                    check_rel("calc_enthalpy(T)", fug::calc_enthalpy(eos, c, xs, T), h_expected, 1e-9);
+                    check_rel("calc_cp(T,c)", fug::calc_cp(eos, c, xs, T), cp_expected, 1e-9);
+                    check_rel("calc_entropy(T,c)", fug::calc_entropy(eos, c, xs, T), s_expected, 1e-9);
                 }
             }
         };
@@ -254,7 +254,7 @@ int main()
         // ===================================================================
         "a0 = a1 = 0 reduces to NASA7"_test = [&] {
             // The NASA-7 inputs from test_nasa7.cpp (N2 and O2, different refs).
-            const std::array<ge::Nasa7<2>::SpeciesInput, 2> n7_inputs{{
+            const std::array<fug::Nasa7<2>::SpeciesInput, 2> n7_inputs{{
                 {.a0 = 3.53100528,
                  .a1 = -1.23660988e-4,
                  .a2 = -5.02999433e-7,
@@ -276,8 +276,8 @@ int main()
             }};
             const std::array<Input<2>, 2> n9_inputs{{as_nasa9<2>(n7_inputs[0]), as_nasa9<2>(n7_inputs[1])}};
 
-            const ge::Nasa7<2> n7(n7_inputs);
-            const ge::Nasa9<2> n9(n9_inputs);
+            const fug::Nasa7<2> n7(n7_inputs);
+            const fug::Nasa9<2> n9(n9_inputs);
 
             for (const double T : {250.0, 300.0, 410.0, 600.0}) {
                 for (const std::array<double, 2> rho :
@@ -303,7 +303,7 @@ int main()
         // The reduction also holds for every derived property; spot-check the
         // caloric ones through complete EoS pairs at one mixture state.
         "a0 = a1 = 0 reduces to NASA7 (properties)"_test = [&] {
-            const std::array<ge::Nasa7<2>::SpeciesInput, 2> n7_inputs{{
+            const std::array<fug::Nasa7<2>::SpeciesInput, 2> n7_inputs{{
                 {.a0 = 3.53100528,
                  .a1 = -1.23660988e-4,
                  .a2 = -5.02999433e-7,
@@ -325,17 +325,17 @@ int main()
             }};
             const std::array<Input<2>, 2> n9_inputs{{as_nasa9<2>(n7_inputs[0]), as_nasa9<2>(n7_inputs[1])}};
 
-            const ge::EoS eos7{ge::Nasa7<2>(n7_inputs), ge::NoResidual<2>{}};
-            const ge::EoS eos9{ge::Nasa9<2>(n9_inputs), ge::NoResidual<2>{}};
+            const fug::EoS eos7{fug::Nasa7<2>(n7_inputs), fug::NoResidual<2>{}};
+            const fug::EoS eos9{fug::Nasa9<2>(n9_inputs), fug::NoResidual<2>{}};
 
             const double c = 110.0;
             const std::array<double, 2> x{0.4, 0.6};
             const std::span<const double, 2> xs{x};
             for (const double T : {280.0, 350.0}) {
-                check_rel("cp", ge::calc_cp(eos9, c, xs, T), ge::calc_cp(eos7, c, xs, T), 1e-10);
-                check_rel("enthalpy", ge::calc_enthalpy(eos9, c, xs, T), ge::calc_enthalpy(eos7, c, xs, T), 1e-10);
-                check_rel("entropy", ge::calc_entropy(eos9, c, xs, T), ge::calc_entropy(eos7, c, xs, T), 1e-10);
-                check_rel("pressure", ge::calc_pressure(eos9, c, xs, T), ge::calc_pressure(eos7, c, xs, T), 1e-10);
+                check_rel("cp", fug::calc_cp(eos9, c, xs, T), fug::calc_cp(eos7, c, xs, T), 1e-10);
+                check_rel("enthalpy", fug::calc_enthalpy(eos9, c, xs, T), fug::calc_enthalpy(eos7, c, xs, T), 1e-10);
+                check_rel("entropy", fug::calc_entropy(eos9, c, xs, T), fug::calc_entropy(eos7, c, xs, T), 1e-10);
+                check_rel("pressure", fug::calc_pressure(eos9, c, xs, T), fug::calc_pressure(eos7, c, xs, T), 1e-10);
             }
         };
     };

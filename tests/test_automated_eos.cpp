@@ -1,10 +1,10 @@
 #include "support/eos_test_suite.hpp"
-#include "synthesize/core/eos_pair.hpp"
-#include "synthesize/core/numbers.hpp"
-#include "synthesize/ideal_models/const_cp.hpp"
-#include "synthesize/residual_models/no_residual.hpp"
-#include "synthesize/residual_models/peng_robinson.hpp"
-#include "synthesize/residual_models/van_der_waals.hpp"
+#include "fugacity/core/eos_pair.hpp"
+#include "fugacity/core/numbers.hpp"
+#include "fugacity/ideal_models/const_cp.hpp"
+#include "fugacity/residual_models/no_residual.hpp"
+#include "fugacity/residual_models/peng_robinson.hpp"
+#include "fugacity/residual_models/van_der_waals.hpp"
 
 #include <array>
 #include <boost/ut.hpp>
@@ -13,14 +13,14 @@
 #include <vector>
 
 using namespace boost::ut;
-using namespace synthesize_test;
+using namespace fugacity_test;
 
 namespace {
-namespace ge = synthesize;
+namespace fug = fugacity;
 
-using FixedIdeal = ge::ConstantCp<2>;
-using DynamicIdeal = ge::ConstantCp<std::dynamic_extent>;
-using FixedUnaryIdeal = ge::ConstantCp<1>;
+using FixedIdeal = fug::ConstantCp<2>;
+using DynamicIdeal = fug::ConstantCp<std::dynamic_extent>;
+using FixedUnaryIdeal = fug::ConstantCp<1>;
 
 constexpr std::array<FixedIdeal::SpeciesInput, 2> fixed_inputs{{
     {.T_ref = 300.0, .p_ref = 1.0e5, .c_p = 29.1, .h_ref = 1500.0, .s_ref = 191.0},
@@ -33,13 +33,13 @@ std::vector<DynamicIdeal::SpeciesInput> make_dynamic_inputs()
             {.T_ref = 320.0, .p_ref = 9.0e4, .c_p = 33.6, .h_ref = -2200.0, .s_ref = 189.0}};
 }
 
-auto make_fixed_eos() { return ge::EoS{FixedIdeal{fixed_inputs}, ge::NoResidual<2>{}}; }
+auto make_fixed_eos() { return fug::EoS{FixedIdeal{fixed_inputs}, fug::NoResidual<2>{}}; }
 
 auto make_dynamic_eos()
 {
     const auto inputs = make_dynamic_inputs();
-    return ge::EoS{DynamicIdeal{std::span<const DynamicIdeal::SpeciesInput>{inputs}},
-                   ge::NoResidual<std::dynamic_extent>{inputs.size()}};
+    return fug::EoS{DynamicIdeal{std::span<const DynamicIdeal::SpeciesInput>{inputs}},
+                   fug::NoResidual<std::dynamic_extent>{inputs.size()}};
 }
 
 auto make_fixed_unary_eos()
@@ -47,56 +47,56 @@ auto make_fixed_unary_eos()
     constexpr std::array<FixedUnaryIdeal::SpeciesInput, 1> inputs{{
         {.T_ref = 300.0, .p_ref = 1.0e5, .c_p = 29.1, .h_ref = 1500.0, .s_ref = 191.0},
     }};
-    return ge::EoS{FixedUnaryIdeal{inputs}, ge::NoResidual<1>{}};
+    return fug::EoS{FixedUnaryIdeal{inputs}, fug::NoResidual<1>{}};
 }
 
 auto make_dynamic_unary_eos()
 {
     const std::vector<DynamicIdeal::SpeciesInput> inputs{
         {.T_ref = 300.0, .p_ref = 1.0e5, .c_p = 29.1, .h_ref = 1500.0, .s_ref = 191.0}};
-    return ge::EoS{DynamicIdeal{std::span<const DynamicIdeal::SpeciesInput>{inputs}},
-                   ge::NoResidual<std::dynamic_extent>{inputs.size()}};
+    return fug::EoS{DynamicIdeal{std::span<const DynamicIdeal::SpeciesInput>{inputs}},
+                   fug::NoResidual<std::dynamic_extent>{inputs.size()}};
 }
 
 auto make_fixed_vdw_eos()
 {
-    using Residual = ge::VanDerWaals<2>;
+    using Residual = fug::VanDerWaals<2>;
     const std::array<Residual::SpeciesInput, 2> inputs{
         {{.T_c = 126.192, .P_c = 3.3958e6}, {.T_c = 304.1282, .P_c = 7.3773e6}}};
-    return ge::EoS{FixedIdeal{fixed_inputs}, Residual{inputs}};
+    return fug::EoS{FixedIdeal{fixed_inputs}, Residual{inputs}};
 }
 
 auto make_dynamic_vdw_eos()
 {
-    using Residual = ge::VanDerWaals<std::dynamic_extent>;
+    using Residual = fug::VanDerWaals<std::dynamic_extent>;
     const auto ideal_inputs = make_dynamic_inputs();
     const std::vector<Residual::SpeciesInput> residual_inputs{{.T_c = 126.192, .P_c = 3.3958e6},
                                                               {.T_c = 304.1282, .P_c = 7.3773e6}};
-    return ge::EoS{DynamicIdeal{std::span<const DynamicIdeal::SpeciesInput>{ideal_inputs}},
+    return fug::EoS{DynamicIdeal{std::span<const DynamicIdeal::SpeciesInput>{ideal_inputs}},
                    Residual{std::span<const Residual::SpeciesInput>{residual_inputs}}};
 }
 
 auto make_fixed_pr_eos()
 {
-    using Residual = ge::PengRobinson<2>;
+    using Residual = fug::PengRobinson<2>;
     const std::array<Residual::SpeciesInput, 2> inputs{{
         {.T_c = 190.564, .P_c = 4.5992e6, .omega = 0.011},
         {.T_c = 304.1282, .P_c = 7.3773e6, .omega = 0.22394},
     }};
     constexpr std::array<double, 4> kij{0.0, 0.09, 0.09, 0.0};
-    return ge::EoS{FixedIdeal{fixed_inputs}, Residual{inputs, kij}};
+    return fug::EoS{FixedIdeal{fixed_inputs}, Residual{inputs, kij}};
 }
 
 auto make_dynamic_pr_eos()
 {
-    using Residual = ge::PengRobinson<std::dynamic_extent>;
+    using Residual = fug::PengRobinson<std::dynamic_extent>;
     const auto ideal_inputs = make_dynamic_inputs();
     const std::vector<Residual::SpeciesInput> residual_inputs{
         {.T_c = 190.564, .P_c = 4.5992e6, .omega = 0.011},
         {.T_c = 304.1282, .P_c = 7.3773e6, .omega = 0.22394},
     };
     constexpr std::array<double, 4> kij{0.0, 0.09, 0.09, 0.0};
-    return ge::EoS{DynamicIdeal{std::span<const DynamicIdeal::SpeciesInput>{ideal_inputs}},
+    return fug::EoS{DynamicIdeal{std::span<const DynamicIdeal::SpeciesInput>{ideal_inputs}},
                    Residual{std::span<const Residual::SpeciesInput>{residual_inputs}, std::span{kij}}};
 }
 
@@ -155,7 +155,7 @@ int main()
                 },
                 point, 1.0, 10.0, 250.0);
             const auto actual = static_cast<double>(estimate.value);
-            const double expected = ge::ideal_gas_constant<double> * temperature / point;
+            const double expected = fug::ideal_gas_constant<double> * temperature / point;
             const auto state = make_eos_test_state(point, std::array{0.4, 0.6}, temperature, "multiprecision-oracle");
             check_close("d(RT log(c))/dc", actual, expected, {.abs = 1e-13, .rel = 1e-13}, state,
                         static_cast<double>(estimate.step), static_cast<double>(estimate.error));

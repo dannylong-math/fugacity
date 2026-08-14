@@ -1,11 +1,11 @@
 #include "support/analytic_eos_models.hpp"
-#include "synthesize/core/concepts.hpp"
+#include "fugacity/core/concepts.hpp"
 
 #include <boost/ut.hpp>
 
 using namespace boost::ut;
-using namespace synthesize_test;
-namespace ge = synthesize;
+using namespace fugacity_test;
+namespace fug = fugacity;
 
 // A type that does not model EquationOfState at all.
 namespace {
@@ -16,22 +16,22 @@ struct NotAnEoS {
 
 // Compile-time verification of the concept hierarchy. If any of these fire, the
 // concepts in concepts.hpp (or the test models) regressed.
-static_assert(ge::EquationOfState<IdealGasTestModel<2>>);
-static_assert(ge::EquationOfState<VirialResidualTestModel<2>>);
+static_assert(fug::EquationOfState<IdealGasTestModel<2>>);
+static_assert(fug::EquationOfState<VirialResidualTestModel<2>>);
 
-static_assert(ge::IdealEoS<IdealGasTestModel<2>>);
-static_assert(!ge::IdealEoS<VirialResidualTestModel<2>>); // not derived from BaseIdealEoS
+static_assert(fug::IdealEoS<IdealGasTestModel<2>>);
+static_assert(!fug::IdealEoS<VirialResidualTestModel<2>>); // not derived from BaseIdealEoS
 
-static_assert(ge::ResidualEoS<VirialResidualTestModel<2>>);
-static_assert(!ge::ResidualEoS<IdealGasTestModel<2>>); // it IS an ideal EoS
+static_assert(fug::ResidualEoS<VirialResidualTestModel<2>>);
+static_assert(!fug::ResidualEoS<IdealGasTestModel<2>>); // it IS an ideal EoS
 
-static_assert(!ge::EquationOfState<NotAnEoS>);
-static_assert(!ge::IdealEoS<NotAnEoS>);
-static_assert(!ge::ResidualEoS<NotAnEoS>);
+static_assert(!fug::EquationOfState<NotAnEoS>);
+static_assert(!fug::IdealEoS<NotAnEoS>);
+static_assert(!fug::ResidualEoS<NotAnEoS>);
 
 // The dynamic-extent variants also model the concepts.
-static_assert(ge::IdealEoS<IdealGasTestModel<3>>);
-static_assert(ge::ResidualEoS<VirialResidualTestModel<3>>);
+static_assert(fug::IdealEoS<IdealGasTestModel<3>>);
+static_assert(fug::ResidualEoS<VirialResidualTestModel<3>>);
 
 int main()
 {
@@ -39,9 +39,9 @@ int main()
         "models satisfy the expected concepts"_test = [] {
             // The static_asserts above already enforce this at compile time;
             // mirror them at runtime so the test reports as executed.
-            expect(ge::IdealEoS<IdealGasTestModel<2>>);
-            expect(ge::ResidualEoS<VirialResidualTestModel<2>>);
-            expect(not ge::EquationOfState<NotAnEoS>);
+            expect(fug::IdealEoS<IdealGasTestModel<2>>);
+            expect(fug::ResidualEoS<VirialResidualTestModel<2>>);
+            expect(not fug::EquationOfState<NotAnEoS>);
         };
 
         "EoS pair exposes size and members"_test = [] {

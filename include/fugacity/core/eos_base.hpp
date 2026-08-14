@@ -6,13 +6,13 @@
  *        tag a model as an ideal contribution.
  */
 
-#include "synthesize/core/assertions.hpp"
-#include "synthesize/core/attributes.hpp"
+#include "fugacity/core/assertions.hpp"
+#include "fugacity/core/attributes.hpp"
 
 #include <cstddef>
 #include <span>
 #include <utility>
-namespace synthesize {
+namespace fugacity {
 
 /**
  * @brief Base class that stores the number of chemical components an EoS
@@ -33,9 +33,9 @@ public:
      * @brief Construct with an explicit component count.
      * @param n Number of components. Must equal @p N; a mismatch throws
      *          @c std::logic_error in a debug build and is elided in release
-     *          (via SYNTHESIZE_ASSERT).
+     *          (via FUGACITY_ASSERT).
      */
-    constexpr explicit BaseEoS([[maybe_unused]] const std::size_t n) { SYNTHESIZE_ASSERT(n == N); }
+    constexpr explicit BaseEoS([[maybe_unused]] const std::size_t n) { FUGACITY_ASSERT(n == N); }
 
     /**
      * @brief Number of chemical components.
@@ -62,7 +62,7 @@ public:
      * model.for_each_component([&](std::size_t i) { out[i] = 0.0; });
      * @endcode
      */
-    template<class F> SYNTHESIZE_ALWAYS_INLINE constexpr void for_each_component(F f) const
+    template<class F> FUGACITY_ALWAYS_INLINE constexpr void for_each_component(F f) const
     {
         [&]<std::size_t... Is>(std::index_sequence<Is...>) { (f(Is), ...); }(std::make_index_sequence<N>{});
     }
@@ -101,7 +101,7 @@ public:
      *           the standard algorithms), so a mutable callable may carry state
      *           across the visits.
      */
-    template<class F> SYNTHESIZE_ALWAYS_INLINE constexpr void for_each_component(F f) const
+    template<class F> FUGACITY_ALWAYS_INLINE constexpr void for_each_component(F f) const
     {
         for (std::size_t idx = 0; idx < n_; ++idx) {
             f(idx);
@@ -115,9 +115,9 @@ private:
 /**
  * @brief Empty tag type that marks a model as an *ideal* equation of state.
  *
- * A model must publicly derive from this class to satisfy the synthesize::IdealEoS
+ * A model must publicly derive from this class to satisfy the fugacity::IdealEoS
  * concept. It carries no data or behaviour; it exists purely so the concepts can
  * distinguish ideal contributions from residual ones at compile time.
  */
 class BaseIdealEoS {};
-} // namespace synthesize
+} // namespace fugacity

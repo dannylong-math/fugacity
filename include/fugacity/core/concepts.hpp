@@ -4,14 +4,14 @@
  * @brief Concepts that define the interface every equation-of-state model must
  *        provide, and the ideal/residual classification.
  */
-#include "synthesize/core/eos_base.hpp"
+#include "fugacity/core/eos_base.hpp"
 
 #include <concepts>
 #include <cstddef>
-namespace synthesize {
+namespace fugacity {
 
 /**
- * @def SYNTHESIZE_RESTRICT
+ * @def FUGACITY_RESTRICT
  * @brief Portable spelling of the C99 `restrict` pointer qualifier.
  *
  * Expands to the compiler's restrict keyword (`__restrict__` on GCC/Clang,
@@ -19,11 +19,11 @@ namespace synthesize {
  * the buffers passed to the hot autodiff routines do not alias.
  */
 #if defined(__GNUC__) || defined(__clang__)
-#define SYNTHESIZE_RESTRICT __restrict__
+#define FUGACITY_RESTRICT __restrict__
 #elif defined(_MSC_VER)
-#define SYNTHESIZE_RESTRICT __restrict
+#define FUGACITY_RESTRICT __restrict
 #else
-#define SYNTHESIZE_RESTRICT
+#define FUGACITY_RESTRICT
 #endif
 
 /**
@@ -92,4 +92,4 @@ concept IdealEoS = std::derived_from<E, BaseIdealEoS> && EquationOfState<E>;
 template<class E>
 concept ResidualEoS = EquationOfState<E> && !IdealEoS<E>;
 
-} // namespace synthesize
+} // namespace fugacity

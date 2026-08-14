@@ -11,7 +11,7 @@
 #include <string_view>
 #include <utility>
 
-namespace synthesize_test {
+namespace fugacity_test {
 
 using multiprecision_float = boost::multiprecision::cpp_dec_float_50;
 
@@ -237,4 +237,4 @@ auto multiprecision_mixed_derivative(Function&& function, double first, double s
         multiprecision_float{first_upper}, multiprecision_float{second_lower}, multiprecision_float{second_upper});
 }
 
-} // namespace synthesize_test
+} // namespace fugacity_test

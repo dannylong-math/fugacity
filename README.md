@@ -1,11 +1,11 @@
-# Synthesize
+# Fugacity
 
-[![CI test](https://github.com/Miscibility/synthesize/actions/workflows/ci.yml/badge.svg)](https://github.com/Miscibility/synthesize/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/Miscibility/synthesize/graph/badge.svg)](https://codecov.io/gh/Miscibility/synthesize)
+[![CI test](https://github.com/dannylong-math/fugacity/actions/workflows/ci.yml/badge.svg)](https://github.com/dannylong-math/fugacity/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/dannylong-math/fugacity/graph/badge.svg)](https://codecov.io/gh/dannylong-math/fugacity)
 
 A C++ library implementing equations of state in an efficient way.
 
-Synthesize is a header-only library. Thermodynamic properties are derived from
+Fugacity is a header-only library. Thermodynamic properties are derived from
 the reduced molar Helmholtz energy and its derivatives, which are obtained by
 automatic differentiation with [Enzyme](https://enzyme.mit.edu). Because Enzyme
 is an LLVM/Clang plugin, the project **must be built with Clang**.

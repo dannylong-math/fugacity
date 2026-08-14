@@ -4,7 +4,7 @@
 #include <string_view>
 
 // name, value function, d/dT function, d/dc function, composition-gradient function
-#define SYNTHESIZE_TEST_PROPERTY_CATALOG(X)                                                                            \
+#define FUGACITY_TEST_PROPERTY_CATALOG(X)                                                                            \
     X(helmholtz, calc_helmholtz, calc_helmholtz_dT, calc_helmholtz_dc, calc_helmholtz_dx)                              \
     X(pressure, calc_pressure, calc_pressure_dT, calc_pressure_dc, calc_pressure_dx)                                   \
     X(internal_energy, calc_internal_energy, calc_internal_energy_dT, calc_internal_energy_dc,                         \
@@ -19,27 +19,27 @@
 
 // Same shape as the scalar catalogue, but each function also takes an
 // effective molar mass immediately after temperature.
-#define SYNTHESIZE_TEST_MOLAR_MASS_PROPERTY_CATALOG(X)                                                                 \
+#define FUGACITY_TEST_MOLAR_MASS_PROPERTY_CATALOG(X)                                                                 \
     X(sound_speed_squared, calc_sound_speed_squared, calc_sound_speed_squared_dT, calc_sound_speed_squared_dc,         \
       calc_sound_speed_squared_dx)
 
-namespace synthesize_test {
+namespace fugacity_test {
 
 struct property_descriptor {
     std::string_view name;
 };
 
-#define SYNTHESIZE_TEST_DESCRIPTOR(NAME, VALUE, DT, DC, DX) property_descriptor{#NAME},
-inline constexpr auto property_catalog = std::array{SYNTHESIZE_TEST_PROPERTY_CATALOG(SYNTHESIZE_TEST_DESCRIPTOR)};
-#undef SYNTHESIZE_TEST_DESCRIPTOR
+#define FUGACITY_TEST_DESCRIPTOR(NAME, VALUE, DT, DC, DX) property_descriptor{#NAME},
+inline constexpr auto property_catalog = std::array{FUGACITY_TEST_PROPERTY_CATALOG(FUGACITY_TEST_DESCRIPTOR)};
+#undef FUGACITY_TEST_DESCRIPTOR
 
 static_assert(property_catalog.size() == 10, "Update generated contract coverage when the public catalogue changes.");
 
-#define SYNTHESIZE_TEST_SPECIAL_DESCRIPTOR(NAME, VALUE, DT, DC, DX) property_descriptor{#NAME},
+#define FUGACITY_TEST_SPECIAL_DESCRIPTOR(NAME, VALUE, DT, DC, DX) property_descriptor{#NAME},
 inline constexpr auto molar_mass_property_catalog =
-    std::array{SYNTHESIZE_TEST_MOLAR_MASS_PROPERTY_CATALOG(SYNTHESIZE_TEST_SPECIAL_DESCRIPTOR)};
-#undef SYNTHESIZE_TEST_SPECIAL_DESCRIPTOR
+    std::array{FUGACITY_TEST_MOLAR_MASS_PROPERTY_CATALOG(FUGACITY_TEST_SPECIAL_DESCRIPTOR)};
+#undef FUGACITY_TEST_SPECIAL_DESCRIPTOR
 
 static_assert(molar_mass_property_catalog.size() == 1);
 
-} // namespace synthesize_test
+} // namespace fugacity_test

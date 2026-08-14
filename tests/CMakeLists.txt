@@ -7,7 +7,7 @@ FetchContent_Declare(ut
 FetchContent_MakeAvailable(ut)
 
 # The numerical derivative oracle uses Boost.Multiprecision in standalone mode.
-# Keeping it in the test target avoids making Boost part of Synthesize's public
+# Keeping it in the test target avoids making Boost part of Fugacity's public
 # interface or production dependency set.
 FetchContent_Declare(boost_config
     GIT_REPOSITORY https://github.com/boostorg/config.git

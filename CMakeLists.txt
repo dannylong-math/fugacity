@@ -14,13 +14,13 @@ cmake_minimum_required(VERSION 3.21)
 # but is validated to be Clang right after project().
 # ----------------------------------------------------------------------------
 if(NOT DEFINED CMAKE_CXX_COMPILER AND NOT DEFINED ENV{CXX})
-    find_program(SYNTHESIZE_CLANGXX NAMES clang++ clang++-22 clang++-21 clang++-20)
-    if(SYNTHESIZE_CLANGXX)
-        set(CMAKE_CXX_COMPILER "${SYNTHESIZE_CLANGXX}")
+    find_program(FUGACITY_CLANGXX NAMES clang++ clang++-22 clang++-21 clang++-20)
+    if(FUGACITY_CLANGXX)
+        set(CMAKE_CXX_COMPILER "${FUGACITY_CLANGXX}")
     endif()
 endif()
 
-project(Synthesize
+project(Fugacity
     VERSION 0.1.0
     DESCRIPTION "A C++ library implementing equations of state in an efficient way."
     LANGUAGES CXX
@@ -28,7 +28,7 @@ project(Synthesize
 
 if(NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     message(FATAL_ERROR
-        "Synthesize requires the Clang compiler because it depends on Enzyme, "
+        "Fugacity requires the Clang compiler because it depends on Enzyme, "
         "which is an LLVM/Clang plugin.\n"
         "Detected C++ compiler: '${CMAKE_CXX_COMPILER_ID}' "
         "(${CMAKE_CXX_COMPILER}).\n"

@@ -1,5 +1,5 @@
 //
-// Unit tests for synthesize::NoResidual, an identically zero residual model.
+// Unit tests for fugacity::NoResidual, an identically zero residual model.
 //
 // Universal identities, derivatives, wrappers, preconditions, ideal-gas laws,
 // deterministic sampling, and fixed/dynamic equivalence are registered through
@@ -7,9 +7,9 @@
 // zero-output and extent behavior.
 //
 #include "support/eos_test_suite.hpp"
-#include "synthesize/core/eos_pair.hpp"
-#include "synthesize/ideal_models/const_cp.hpp"
-#include "synthesize/residual_models/no_residual.hpp"
+#include "fugacity/core/eos_pair.hpp"
+#include "fugacity/ideal_models/const_cp.hpp"
+#include "fugacity/residual_models/no_residual.hpp"
 
 #include <array>
 #include <boost/ut.hpp>
@@ -19,15 +19,15 @@
 #include <vector>
 
 using namespace boost::ut;
-using namespace synthesize_test;
-using synthesize::NoResidual;
+using namespace fugacity_test;
+using fugacity::NoResidual;
 
 namespace {
 
-namespace ge = synthesize;
+namespace fug = fugacity;
 
-using FixedIdeal = ge::ConstantCp<2>;
-using DynamicIdeal = ge::ConstantCp<std::dynamic_extent>;
+using FixedIdeal = fug::ConstantCp<2>;
+using DynamicIdeal = fug::ConstantCp<std::dynamic_extent>;
 
 constexpr std::array<FixedIdeal::SpeciesInput, 2> ideal_inputs{{
     {.T_ref = 298.15, .p_ref = 1.0e5, .c_p = 29.1, .h_ref = 0.0, .s_ref = 191.0},
@@ -45,12 +45,12 @@ std::vector<DynamicIdeal::SpeciesInput> dynamic_ideal_inputs()
     return result;
 }
 
-auto make_fixed_eos() { return ge::EoS{FixedIdeal{ideal_inputs}, NoResidual<2>{}}; }
+auto make_fixed_eos() { return fug::EoS{FixedIdeal{ideal_inputs}, NoResidual<2>{}}; }
 
 auto make_dynamic_eos()
 {
     const auto inputs = dynamic_ideal_inputs();
-    return ge::EoS{DynamicIdeal{std::span<const DynamicIdeal::SpeciesInput>{inputs}},
+    return fug::EoS{DynamicIdeal{std::span<const DynamicIdeal::SpeciesInput>{inputs}},
                    NoResidual<std::dynamic_extent>{inputs.size()}};
 }
 

@@ -8,7 +8,7 @@
 #include <string>
 
 /**
- * @def SYNTHESIZE_ASSERT
+ * @def FUGACITY_ASSERT
  * @brief Check a precondition, throwing @c std::logic_error if it does not hold.
  *
  * Like the standard @c assert, this validates a programmer-side precondition and
@@ -27,20 +27,20 @@
  *             @c bool.
  */
 #ifdef NDEBUG
-#define SYNTHESIZE_ASSERT(cond) ((void)0)
+#define FUGACITY_ASSERT(cond) ((void)0)
 #else
-#define SYNTHESIZE_ASSERT(cond)                                                                                        \
+#define FUGACITY_ASSERT(cond)                                                                                        \
     ((cond) ? void(0)                                                                                                  \
-            : throw std::logic_error(std::string("SYNTHESIZE_ASSERT failed: " #cond " (" __FILE__ ":") +               \
+            : throw std::logic_error(std::string("FUGACITY_ASSERT failed: " #cond " (" __FILE__ ":") +               \
                                      std::to_string(__LINE__) + ")"))
 #endif
 
 /**
- * @def SYNTHESIZE_REQUIRE_POSITIVE_TEMPERATURE
+ * @def FUGACITY_REQUIRE_POSITIVE_TEMPERATURE
  * @brief Validate that a temperature is strictly positive, throwing
  *        @c std::domain_error otherwise.
  *
- * Unlike SYNTHESIZE_ASSERT this is an @b always-on runtime check (it is present
+ * Unlike FUGACITY_ASSERT this is an @b always-on runtime check (it is present
  * even in release builds): a non-positive absolute temperature is unphysical
  * input data, not a programmer-side logic error, so it is validated
  * unconditionally. The single floating-point comparison is branch-predictable
@@ -52,5 +52,5 @@
  *
  * @param T The temperature [K]; must be contextually comparable to @c 0.
  */
-#define SYNTHESIZE_REQUIRE_POSITIVE_TEMPERATURE(T)                                                                     \
-    ((T) > 0 ? void(0) : throw std::domain_error("synthesize: temperature must be positive (T > 0 K required)"))
+#define FUGACITY_REQUIRE_POSITIVE_TEMPERATURE(T)                                                                     \
+    ((T) > 0 ? void(0) : throw std::domain_error("fugacity: temperature must be positive (T > 0 K required)"))

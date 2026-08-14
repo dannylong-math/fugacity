@@ -13,7 +13,7 @@
 #include <string_view>
 #include <vector>
 
-namespace synthesize_test {
+namespace fugacity_test {
 
 struct eos_test_state {
     double c{};
@@ -109,4 +109,4 @@ inline std::vector<eos_test_state> sample_valid_states(const eos_valid_domain& d
     return result;
 }
 
-} // namespace synthesize_test
+} // namespace fugacity_test

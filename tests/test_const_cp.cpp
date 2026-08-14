@@ -1,5 +1,5 @@
 //
-// Unit tests for the constant-cp ideal-gas model (synthesize::ConstantCp).
+// Unit tests for the constant-cp ideal-gas model (fugacity::ConstantCp).
 //
 // Universal, ideal-gas, derivative, wrapper, precondition, deterministic-sweep,
 // and static/dynamic checks are registered through support/eos_test_suite.hpp.
@@ -16,11 +16,11 @@
 //
 #include "support/eos_test_suite.hpp"
 #include "support/numeric_checks.hpp"
-#include "synthesize/core/core_calculations.hpp"
-#include "synthesize/core/eos_pair.hpp"
-#include "synthesize/core/numbers.hpp"
-#include "synthesize/ideal_models/const_cp.hpp"
-#include "synthesize/residual_models/no_residual.hpp"
+#include "fugacity/core/core_calculations.hpp"
+#include "fugacity/core/eos_pair.hpp"
+#include "fugacity/core/numbers.hpp"
+#include "fugacity/ideal_models/const_cp.hpp"
+#include "fugacity/residual_models/no_residual.hpp"
 
 #include <array>
 #include <boost/ut.hpp>
@@ -30,18 +30,18 @@
 #include <vector>
 
 using namespace boost::ut;
-using namespace synthesize_test;
+using namespace fugacity_test;
 
 namespace {
 
-namespace ge = synthesize;
+namespace fug = fugacity;
 
-template<std::size_t N> using Input = typename ge::ConstantCp<N>::SpeciesInput;
+template<std::size_t N> using Input = typename fug::ConstantCp<N>::SpeciesInput;
 
 // Build a complete EoS: a constant-cp ideal contribution + a vanishing residual.
 template<std::size_t N> auto make_const_cp_eos(const std::array<Input<N>, N>& in)
 {
-    return ge::EoS<ge::ConstantCp<N>, ge::NoResidual<N>>{ge::ConstantCp<N>(in), ge::NoResidual<N>{}};
+    return fug::EoS<fug::ConstantCp<N>, fug::NoResidual<N>>{fug::ConstantCp<N>(in), fug::NoResidual<N>{}};
 }
 
 // A representative two-component parameter set. The two species deliberately use
@@ -60,9 +60,9 @@ constexpr std::array<Input<2>, 2> binary_inputs{{
      /*s_ref*/ .s_ref = 189.0},
 }};
 
-std::vector<ge::ConstantCp<>::SpeciesInput> dynamic_binary_inputs()
+std::vector<fug::ConstantCp<>::SpeciesInput> dynamic_binary_inputs()
 {
-    std::vector<ge::ConstantCp<>::SpeciesInput> result;
+    std::vector<fug::ConstantCp<>::SpeciesInput> result;
     result.reserve(binary_inputs.size());
     for (const auto& input : binary_inputs) {
         result.push_back(
@@ -74,8 +74,8 @@ std::vector<ge::ConstantCp<>::SpeciesInput> dynamic_binary_inputs()
 auto make_dynamic_const_cp_eos()
 {
     const auto inputs = dynamic_binary_inputs();
-    return ge::EoS{ge::ConstantCp<>{std::span<const ge::ConstantCp<>::SpeciesInput>{inputs}},
-                   ge::NoResidual<std::dynamic_extent>{inputs.size()}};
+    return fug::EoS{fug::ConstantCp<>{std::span<const fug::ConstantCp<>::SpeciesInput>{inputs}},
+                   fug::NoResidual<std::dynamic_extent>{inputs.size()}};
 }
 
 std::vector<eos_test_state> const_cp_contract_states()
@@ -108,7 +108,7 @@ constexpr std::array<Input<1>, 1> unary_inputs{
 int main()
 {
     suite<"const_cp"> const_cp = [] {
-        const double R = ge::ideal_gas_constant<double>;
+        const double R = fug::ideal_gas_constant<double>;
 
         auto dynamic_eos = make_dynamic_const_cp_eos();
         const auto fixture = eos_test_fixture{.contribution = dynamic_eos.ideal(),
@@ -131,9 +131,9 @@ int main()
             const std::array<double, 1> x{1.0};
             const std::span<const double, 1> xs{x};
 
-            check_rel("calc_cp       == c_p", ge::calc_cp(eos, c_ref, xs, T_ref), cp_in, 1e-9);
-            check_rel("calc_enthalpy == h_ref", ge::calc_enthalpy(eos, c_ref, xs, T_ref), h_ref, 1e-9);
-            check_rel("calc_entropy  == s_ref", ge::calc_entropy(eos, c_ref, xs, T_ref), s_ref, 1e-9);
+            check_rel("calc_cp       == c_p", fug::calc_cp(eos, c_ref, xs, T_ref), cp_in, 1e-9);
+            check_rel("calc_enthalpy == h_ref", fug::calc_enthalpy(eos, c_ref, xs, T_ref), h_ref, 1e-9);
+            check_rel("calc_entropy  == s_ref", fug::calc_entropy(eos, c_ref, xs, T_ref), s_ref, 1e-9);
         };
 
         "single-species off-reference caloric"_test = [&] {
@@ -146,9 +146,9 @@ int main()
                 for (const double c : {c_ref, 0.5 * c_ref, 3.0 * c_ref}) {
                     const double h_expected = h_ref + (cp_in * (T - T_ref));
                     const double s_expected = s_ref + ((cp_in - R) * std::log(T / T_ref)) - (R * std::log(c / c_ref));
-                    check_rel("calc_enthalpy(T)", ge::calc_enthalpy(eos, c, xs, T), h_expected, 1e-9);
-                    check_rel("calc_cp(T,c)", ge::calc_cp(eos, c, xs, T), cp_in, 1e-9);
-                    check_rel("calc_entropy(T,c)", ge::calc_entropy(eos, c, xs, T), s_expected, 1e-9);
+                    check_rel("calc_enthalpy(T)", fug::calc_enthalpy(eos, c, xs, T), h_expected, 1e-9);
+                    check_rel("calc_cp(T,c)", fug::calc_cp(eos, c, xs, T), cp_in, 1e-9);
+                    check_rel("calc_entropy(T,c)", fug::calc_entropy(eos, c, xs, T), s_expected, 1e-9);
                 }
             }
         };

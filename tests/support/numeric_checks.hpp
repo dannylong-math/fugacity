@@ -6,7 +6,7 @@
 #include <format>
 #include <string_view>
 
-namespace synthesize_test {
+namespace fugacity_test {
 
 // Relative-error expectation for model-specific reference-value checks. The
 // scale floor makes the check useful for values close to zero as well.
@@ -19,4 +19,4 @@ inline void check_rel(std::string_view name, double actual, double expected, dou
                                                     name, actual, expected, relative_error, reltol);
 }
 
-} // namespace synthesize_test
+} // namespace fugacity_test
