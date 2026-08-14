@@ -1,4 +1,7 @@
 build/
 build-*/
 .cache/
+.dependencies/
 compile_commands.json
+docs/api/generated/
+.vscode/

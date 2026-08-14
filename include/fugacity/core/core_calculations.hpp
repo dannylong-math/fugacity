@@ -1,24 +1,28 @@
 #pragma once
-/**
- * @file core_calculations.hpp
- * @brief Thermodynamic property calculations built on top of an EoS pair.
- *
- * Every property is derived from the reduced molar Helmholtz energy
- * @f$\alpha = a/(RT)@f$ and its derivatives. The derivatives are obtained by
- * automatic differentiation with [Enzyme](https://enzyme.mit.edu):
- * - forward mode for the @f$1/T@f$- and @f$c@f$-derivatives (see
- *   detail::calc_alpha / detail::calc_lambda), and
- * - reverse mode for the partial-molar derivatives w.r.t. each @f$\rho_i@f$
- *   (see detail::calc_dPsi_drhoi), used for chemical potentials and fugacities.
- *
- * Symbol / unit conventions used throughout:
- * - `c`     molar concentration (molar density) [mol/m^3]
- * - `x`     mole fractions [-]
- * - `T`     temperature [K]
- * - `invT`  inverse temperature @f$1/T@f$ [1/K]
- * - `rho_i` partial molar concentrations [mol/m^3]
- * - `R`     gas constant [J/(mol K)]
- */
+///
+/// File ``core_calculations.hpp``.
+/// Thermodynamic property calculations built on top of an EoS pair.
+///
+/// Every property is derived from the reduced molar Helmholtz energy
+///
+/// :math:`\alpha = a/(RT)` and its derivatives. The derivatives are obtained by
+/// automatic differentiation with `Enzyme <https://enzyme.mit.edu>`_:
+///
+/// - forward mode for the :math:`1/T`- and :math:`c`-derivatives (see
+///   detail::calc_alpha / detail::calc_lambda), and
+///
+/// - reverse mode for the partial-molar derivatives w.r.t. each :math:`\rho_i`
+///   (see detail::calc_dPsi_drhoi), used for chemical potentials and fugacities.
+///
+/// Symbol / unit conventions used throughout:
+///
+/// - ``c``     molar concentration (molar density) [mol/m^3]
+/// - ``x``     mole fractions [-]
+/// - ``T``     temperature [K]
+/// - ``invT``  inverse temperature :math:`1/T` [1/K]
+/// - ``rho_i`` partial molar concentrations [mol/m^3]
+/// - ``R``     gas constant [J/(mol K)]
+///
 #include "fugacity/core/assertions.hpp"
 #include "fugacity/core/concepts.hpp"
 #include "fugacity/core/eos_pair.hpp"
@@ -31,7 +35,6 @@
 #include <span>
 
 // NOLINTBEGIN
-/// @cond INTERNAL
 // Enzyme autodiff requires a few global definitions
 inline int enzyme_dup;
 inline int enzyme_dupnoneed;
@@ -41,25 +44,25 @@ inline int enzyme_const;
 template<typename return_type, typename... T> return_type __enzyme_fwddiff(void*, T...);
 
 template<typename return_type, typename... T> return_type __enzyme_autodiff(void*, T...);
-/// @endcond
 // NOLINTEND
 
 namespace fugacity {
 
 namespace detail {
-/**
- * @internal
- * @brief Compile-time integer power @f$\text{base}^N@f$ by exponentiation by
- *        squaring.
- *
- * @tparam Number Floating-point base type.
- * @tparam N      Integer exponent. May be negative (computes the reciprocal
- *                power) or zero (returns 1).
- * @param  base   The base. Units are arbitrary; the result carries `base`'s unit
- *                raised to the @p N.
- * @return @f$\text{base}^N@f$.
- * @pre    For @p N < 0, `base != 0`.
- */
+//
+// Internal implementation detail.
+// Compile-time integer power :math:`\text{base}^N` by exponentiation by
+//        squaring.
+//
+// :tparam Number: Floating-point base type.
+// :tparam N: Integer exponent. May be negative (computes the reciprocal
+//                power) or zero (returns 1).
+// :param base: The base. Units are arbitrary; the result carries ``base``'s unit
+//                raised to the ``N``.
+// :returns: :math:`\text{base}^N`.
+// :precondition: For ``N`` < 0, ``base != 0``.
+//
+// \ingroup core
 template<std::floating_point Number, int N> constexpr Number fast_pow(const Number base)
 {
     if constexpr (N == 0) {
@@ -81,26 +84,27 @@ template<std::floating_point Number, int N> constexpr Number fast_pow(const Numb
     }
 }
 
-/**
- * @internal
- * @brief Mixed derivative of the reduced molar Helmholtz energy
- *        @f$\alpha = a/(RT)@f$.
- *
- * Returns
- * @f$\dfrac{\partial^{\,i+j}\alpha}{\partial (1/T)^{i}\,\partial c^{j}}@f$,
- * evaluated by recursively applying Enzyme forward-mode differentiation: an
- * @f$1/T@f$-derivative while `i > j`, otherwise a `c`-derivative. The base case
- * (`i == j == 0`) is @f$\alpha = a/(RT)@f$ itself.
- *
- * @tparam i    Number of derivatives w.r.t. inverse temperature @f$1/T@f$.
- * @tparam j    Number of derivatives w.r.t. concentration `c`.
- * @param  eos  A single-contribution model (ideal or residual).
- * @param  c    Molar concentration [mol/m^3].
- * @param  x    Mole-fraction array [-].
- * @param  invT Inverse temperature @f$1/T@f$ [1/K].
- * @return The derivative; @f$\alpha@f$ is dimensionless, so the result has units
- *         @f$\mathrm{K}^{i}\,(\mathrm{m^3/mol})^{j}@f$.
- */
+//
+// Internal implementation detail.
+// Mixed derivative of the reduced molar Helmholtz energy
+//        :math:`\alpha = a/(RT)`.
+//
+// Returns
+// :math:`\dfrac{\partial^{\,i+j}\alpha}{\partial (1/T)^{i}\,\partial c^{j}}`,
+// evaluated by recursively applying Enzyme forward-mode differentiation: an
+// :math:`1/T`-derivative while ``i > j``, otherwise a ``c``-derivative. The base case
+// (``i == j == 0``) is :math:`\alpha = a/(RT)` itself.
+//
+// :tparam i: Number of derivatives w.r.t. inverse temperature :math:`1/T`.
+// :tparam j: Number of derivatives w.r.t. concentration ``c``.
+// :param eos: A single-contribution model (ideal or residual).
+// :param c: Molar concentration [mol/m^3].
+// :param x: Mole-fraction array [-].
+// :param invT: Inverse temperature :math:`1/T` [1/K].
+// :returns: The derivative; :math:`\alpha` is dimensionless, so the result has units
+//         :math:`\mathrm{K}^{i}\,(\mathrm{m^3/mol})^{j}`.
+//
+// \ingroup core
 template<int i, int j, EquationOfState EoS, std::floating_point Number>
 [[nodiscard]] Number calc_alpha(const EoS& eos, const Number c, const Number* x, const Number invT)
 {
@@ -126,24 +130,25 @@ template<int i, int j, EquationOfState EoS, std::floating_point Number>
     }
 }
 
-/**
- * @internal
- * @brief Dimensionless scaled derivative
- *        @f$\lambda_{i,j} = (1/T)^{i}\,c^{\,j}\,
- *        \dfrac{\partial^{\,i+j}\alpha}{\partial (1/T)^{i}\,\partial c^{j}}@f$.
- *
- * Multiplying detail::calc_alpha by @f$(1/T)^i c^j@f$ cancels the units of the
- * derivative, giving the dimensionless reduced derivatives that the property
- * formulas below are written in terms of.
- *
- * @tparam i    Number of @f$1/T@f$-derivatives.
- * @tparam j    Number of `c`-derivatives.
- * @param  eos  A single-contribution model (ideal or residual).
- * @param  c    Molar concentration [mol/m^3].
- * @param  x    Mole-fraction array [-].
- * @param  invT Inverse temperature @f$1/T@f$ [1/K].
- * @return @f$\lambda_{i,j}@f$ [-] (dimensionless).
- */
+//
+// Internal implementation detail.
+// Dimensionless scaled derivative
+// :math:`\lambda_{i,j} = (1/T)^{i}\,c^{\,j}\,
+// \dfrac{\partial^{\,i+j}\alpha}{\partial (1/T)^{i}\,\partial c^{j}}`.
+//
+// Multiplying detail::calc_alpha by :math:`(1/T)^i c^j` cancels the units of the
+// derivative, giving the dimensionless reduced derivatives that the property
+// formulas below are written in terms of.
+//
+// :tparam i: Number of :math:`1/T`-derivatives.
+// :tparam j: Number of ``c``-derivatives.
+// :param eos: A single-contribution model (ideal or residual).
+// :param c: Molar concentration [mol/m^3].
+// :param x: Mole-fraction array [-].
+// :param invT: Inverse temperature :math:`1/T` [1/K].
+// :returns: :math:`\lambda_{i,j}` [-] (dimensionless).
+//
+// \ingroup core
 template<int i, int j, EquationOfState EoS, std::floating_point Number>
 [[nodiscard]] Number calc_lambda(const EoS& eos, const Number c, const Number* x, const Number invT)
 {
@@ -156,41 +161,43 @@ template<int i, int j, EquationOfState EoS, std::floating_point Number>
     return fast_pow<Number, i>(invT) * fast_pow<Number, j>(c) * calc_alpha<i, j, EoS, Number>(eos, c, x, invT);
 }
 
-/**
- * @internal
- * @brief Total Helmholtz energy density @f$\Psi = \sum_i \Psi_i@f$ for one
- *        contribution.
- *
- * Thin wrapper over the model's `calc_helmholtz_density`, which accumulates the
- * sum directly into a scalar (no per-component buffer). This is the scalar that
- * detail::calc_dPsi_drhoi differentiates (reverse mode) to obtain chemical
- * potentials.
- *
- * @param  eos   A single-contribution model (ideal or residual).
- * @param  rho_i Partial molar concentrations [mol/m^3].
- * @param  T     Temperature [K].
- * @return Total Helmholtz energy density @f$\Psi@f$ [J/m^3].
- */
+//
+// Internal implementation detail.
+// Total Helmholtz energy density :math:`\Psi = \sum_i \Psi_i` for one
+//        contribution.
+//
+// Thin wrapper over the model's ``calc_helmholtz_density``, which accumulates the
+// sum directly into a scalar (no per-component buffer). This is the scalar that
+// detail::calc_dPsi_drhoi differentiates (reverse mode) to obtain chemical
+// potentials.
+//
+// :param eos: A single-contribution model (ideal or residual).
+// :param rho_i: Partial molar concentrations [mol/m^3].
+// :param T: Temperature [K].
+// :returns: Total Helmholtz energy density :math:`\Psi` [J/m^3].
+//
+// \ingroup core
 template<EquationOfState EoS, std::floating_point Number>
 [[nodiscard]] Number calc_Psi(const EoS& eos, const Number* FUGACITY_RESTRICT rho_i, const Number T)
 {
     return eos.calc_helmholtz_density(rho_i, T);
 }
 
-/**
- * @internal
- * @brief @p i-th temperature derivative of the Helmholtz energy density,
- *        @f$\partial^{i}\Psi/\partial T^{i}@f$.
- *
- * Computed by recursively applying Enzyme forward-mode differentiation w.r.t.
- * @p T; the base case (`i == 0`) is detail::calc_Psi.
- *
- * @tparam i      Number of temperature derivatives.
- * @param  eos    A single-contribution model (ideal or residual).
- * @param  rho_i  Partial molar concentrations [mol/m^3].
- * @param  T      Temperature [K].
- * @return @f$\partial^{i}\Psi/\partial T^{i}@f$ [J/(m^3 K^i)].
- */
+//
+// Internal implementation detail.
+// ``i-th`` temperature derivative of the Helmholtz energy density,
+//        :math:`\partial^{i}\Psi/\partial T^{i}`.
+//
+// Computed by recursively applying Enzyme forward-mode differentiation w.r.t.
+// ``T``; the base case (``i == 0``) is detail::calc_Psi.
+//
+// :tparam i: Number of temperature derivatives.
+// :param eos: A single-contribution model (ideal or residual).
+// :param rho_i: Partial molar concentrations [mol/m^3].
+// :param T: Temperature [K].
+// :returns: :math:`\partial^{i}\Psi/\partial T^{i}` [J/(m^3 K^i)].
+//
+// \ingroup core
 template<int i, EquationOfState EoS, std::floating_point Number>
 [[nodiscard]] Number calc_dPsi_dT(const EoS& eos, const Number* FUGACITY_RESTRICT rho_i, const Number T)
 {
@@ -206,24 +213,25 @@ template<int i, EquationOfState EoS, std::floating_point Number>
     }
 }
 
-/**
- * @internal
- * @brief Gradient of the Helmholtz energy density w.r.t. the partial molar
- *        concentrations, @f$\partial\Psi/\partial\rho_i@f$ (a chemical potential).
- *
- * Uses Enzyme reverse mode on detail::calc_Psi. Currently only the first
- * derivative (`i == 1`) is implemented; higher orders would require tensors.
- *
- * @warning Enzyme reverse mode **accumulates** into @p dPsi_drho. The caller must
- *          zero it beforehand; calling repeatedly with the same buffer sums the
- *          contributions (this is how the ideal and residual parts are combined).
- *
- * @tparam i        Derivative order; must be 1.
- * @param  eos      A single-contribution model (ideal or residual).
- * @param  rho_i    Partial molar concentrations [mol/m^3].
- * @param  T        Temperature [K].
- * @param  dPsi_drho Output gradient (length `eos.size()`), accumulated [J/mol].
- */
+//
+// Internal implementation detail.
+// Gradient of the Helmholtz energy density w.r.t. the partial molar
+//        concentrations, :math:`\partial\Psi/\partial\rho_i` (a chemical potential).
+//
+// Uses Enzyme reverse mode on detail::calc_Psi. Currently only the first
+// derivative (``i == 1``) is implemented; higher orders would require tensors.
+//
+// **Warning:** Enzyme reverse mode **accumulates** into ``dPsi_drho``. The caller must
+//          zero it beforehand; calling repeatedly with the same buffer sums the
+//          contributions (this is how the ideal and residual parts are combined).
+//
+// :tparam i: Derivative order; must be 1.
+// :param eos: A single-contribution model (ideal or residual).
+// :param rho_i: Partial molar concentrations [mol/m^3].
+// :param T: Temperature [K].
+// :param dPsi_drho: Output gradient (length ``eos.size()``), accumulated [J/mol].
+//
+// \ingroup core
 template<int i, EquationOfState EoS, std::floating_point Number>
 void calc_dPsi_drhoi(const EoS& eos, const Number* FUGACITY_RESTRICT rho_i, const Number T,
                      Number* FUGACITY_RESTRICT dPsi_drho)
@@ -250,15 +258,17 @@ void calc_dPsi_drhoi(const EoS& eos, const Number* FUGACITY_RESTRICT rho_i, cons
 }
 } // namespace detail
 
-/**
- * @brief Total molar Helmholtz energy @f$a = a^{\text{ideal}} + a^{\text{res}}@f$.
- * @param eos The equation of state.
- * @param c   Molar concentration [mol/m^3].
- * @param x   Mole fractions [-].
- * @param T   Temperature [K].
- * @return Molar Helmholtz energy [J/mol].
- * @pre `x.size() == eos.size()`
- */
+///
+/// Total molar Helmholtz energy :math:`a = a^{\text{ideal}} + a^{\text{res}}`.
+///
+/// :param eos: The equation of state.
+/// :param c: Molar concentration [mol/m^3].
+/// :param x: Mole fractions [-].
+/// :param T: Temperature [K].
+/// :returns: Molar Helmholtz energy [J/mol].
+/// :precondition: ``x.size() == eos.size()``
+///
+/// \ingroup core
 template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number, typename V>
 Number calc_helmholtz(const EoS<Ideal, Residual>& eos, const Number c, V& x, const Number T)
 {
@@ -328,16 +338,18 @@ void calc_helmholtz_dx(const EoS<Ideal, Residual>& eos, const Number c, const Nu
                             enzyme_dup, x, gradient, enzyme_const, T);
 }
 
-/**
- * @brief Pressure @f$p = cRT\,(1 + \lambda^{\text{res}}_{0,1})@f$.
- * @param eos The equation of state.
- * @param c   Molar concentration [mol/m^3].
- * @param x   Mole fractions [-].
- * @param T   Temperature [K].
- * @return Pressure [Pa].
- * @pre   `T > 0`.
- * @pre `x.size() == eos.size()`
- */
+///
+/// Pressure :math:`p = cRT\,(1 + \lambda^{\text{res}}_{0,1})`.
+///
+/// :param eos: The equation of state.
+/// :param c: Molar concentration [mol/m^3].
+/// :param x: Mole fractions [-].
+/// :param T: Temperature [K].
+/// :returns: Pressure [Pa].
+/// :precondition: ``T > 0``.
+/// :precondition: ``x.size() == eos.size()``
+///
+/// \ingroup core
 template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number, typename V>
 Number calc_pressure(const EoS<Ideal, Residual>& eos, const Number c, V& x, const Number T)
 {
@@ -413,16 +425,18 @@ void calc_pressure_dx(const EoS<Ideal, Residual>& eos, const Number c, const Num
                             enzyme_dup, x, gradient, enzyme_const, T);
 }
 
-/**
- * @brief Molar internal energy @f$u = a + Ts@f$.
- * @param eos The equation of state.
- * @param c   Molar concentration [mol/m^3].
- * @param x   Mole fractions [-].
- * @param T   Temperature [K].
- * @return Molar internal energy [J/mol].
- * @pre   `T > 0`.
- * @pre `x.size() == eos.size()`
- */
+///
+/// Molar internal energy :math:`u = a + Ts`.
+///
+/// :param eos: The equation of state.
+/// :param c: Molar concentration [mol/m^3].
+/// :param x: Mole fractions [-].
+/// :param T: Temperature [K].
+/// :returns: Molar internal energy [J/mol].
+/// :precondition: ``T > 0``.
+/// :precondition: ``x.size() == eos.size()``
+///
+/// \ingroup core
 template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number, typename V>
 Number calc_internal_energy(const EoS<Ideal, Residual>& eos, const Number c, V& x, const Number T)
 {
@@ -493,16 +507,18 @@ void calc_internal_energy_dx(const EoS<Ideal, Residual>& eos, const Number c, co
                             enzyme_dup, x, gradient, enzyme_const, T);
 }
 
-/**
- * @brief Molar enthalpy @f$h = u + p/c@f$.
- * @param eos The equation of state.
- * @param c   Molar concentration [mol/m^3].
- * @param x   Mole fractions [-].
- * @param T   Temperature [K].
- * @return Molar enthalpy [J/mol].
- * @pre   `T > 0`.
- * @pre `x.size() == eos.size()`
- */
+///
+/// Molar enthalpy :math:`h = u + p/c`.
+///
+/// :param eos: The equation of state.
+/// :param c: Molar concentration [mol/m^3].
+/// :param x: Mole fractions [-].
+/// :param T: Temperature [K].
+/// :returns: Molar enthalpy [J/mol].
+/// :precondition: ``T > 0``.
+/// :precondition: ``x.size() == eos.size()``
+///
+/// \ingroup core
 template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number, typename V>
 Number calc_enthalpy(const EoS<Ideal, Residual>& eos, const Number c, V& x, const Number T)
 {
@@ -575,16 +591,18 @@ void calc_enthalpy_dx(const EoS<Ideal, Residual>& eos, const Number c, const Num
                             enzyme_dup, x, gradient, enzyme_const, T);
 }
 
-/**
- * @brief Molar entropy @f$s = - (\partial a / \partial T)_v@f$.
- * @param eos The equation of state.
- * @param c   Molar concentration [mol/m^3].
- * @param x   Mole fractions [-].
- * @param T   Temperature [K].
- * @return Molar entropy [J/(mol K)].
- * @pre   `T > 0`.
- * @pre `x.size() == eos.size()`
- */
+///
+/// Molar entropy :math:`s = - (\partial a / \partial T)_v`.
+///
+/// :param eos: The equation of state.
+/// :param c: Molar concentration [mol/m^3].
+/// :param x: Mole fractions [-].
+/// :param T: Temperature [K].
+/// :returns: Molar entropy [J/(mol K)].
+/// :precondition: ``T > 0``.
+/// :precondition: ``x.size() == eos.size()``
+///
+/// \ingroup core
 template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number, typename V>
 Number calc_entropy(const EoS<Ideal, Residual>& eos, const Number c, V& x, const Number T)
 {
@@ -655,16 +673,18 @@ void calc_entropy_dx(const EoS<Ideal, Residual>& eos, const Number c, const Numb
                             enzyme_dup, x, gradient, enzyme_const, T);
 }
 
-/**
- * @brief Molar Gibbs energy @f$g = h - Ts@f$.
- * @param eos The equation of state.
- * @param c   Molar concentration [mol/m^3].
- * @param x   Mole fractions [-].
- * @param T   Temperature [K].
- * @return Molar Gibbs energy [J/mol].
- * @pre   `T > 0`.
- * @pre `x.size() == eos.size()`
- */
+///
+/// Molar Gibbs energy :math:`g = h - Ts`.
+///
+/// :param eos: The equation of state.
+/// :param c: Molar concentration [mol/m^3].
+/// :param x: Mole fractions [-].
+/// :param T: Temperature [K].
+/// :returns: Molar Gibbs energy [J/mol].
+/// :precondition: ``T > 0``.
+/// :precondition: ``x.size() == eos.size()``
+///
+/// \ingroup core
 template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number, typename V>
 Number calc_gibbs(const EoS<Ideal, Residual>& eos, const Number c, V& x, const Number T)
 {
@@ -736,17 +756,19 @@ void calc_gibbs_dx(const EoS<Ideal, Residual>& eos, const Number c, const Number
                             x, gradient, enzyme_const, T);
 }
 
-/**
- * @brief Partial derivative of pressure w.r.t. concentration,
- *        @f$(\partial p/\partial c)_{T,x}@f$.
- * @param eos The equation of state.
- * @param c   Molar concentration [mol/m^3].
- * @param x   Mole fractions [-].
- * @param T   Temperature [K].
- * @return @f$\partial p/\partial c@f$ [Pa m^3/mol] (= J/mol).
- * @pre   `T > 0`.
- * @pre `x.size() == eos.size()`
- */
+///
+/// Partial derivative of pressure w.r.t. concentration,
+/// :math:`(\partial p/\partial c)_{T,x}`.
+///
+/// :param eos: The equation of state.
+/// :param c: Molar concentration [mol/m^3].
+/// :param x: Mole fractions [-].
+/// :param T: Temperature [K].
+/// :returns: :math:`\partial p/\partial c` [Pa m^3/mol] (= J/mol).
+/// :precondition: ``T > 0``.
+/// :precondition: ``x.size() == eos.size()``
+///
+/// \ingroup core
 template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number, typename V>
 Number calc_dp_dc(const EoS<Ideal, Residual>& eos, const Number c, V& x, const Number T)
 {
@@ -817,17 +839,19 @@ void calc_dp_dc_dx(const EoS<Ideal, Residual>& eos, const Number c, const Number
                             x, gradient, enzyme_const, T);
 }
 
-/**
- * @brief Partial derivative of pressure w.r.t. temperature,
- *        @f$(\partial p/\partial T)_{c,x}@f$.
- * @param eos The equation of state.
- * @param c   Molar concentration [mol/m^3].
- * @param x   Mole fractions [-].
- * @param T   Temperature [K].
- * @return @f$\partial p/\partial T@f$ [Pa/K].
- * @pre   `T > 0`.
- * @pre `x.size() == eos.size()`
- */
+///
+/// Partial derivative of pressure w.r.t. temperature,
+/// :math:`(\partial p/\partial T)_{c,x}`.
+///
+/// :param eos: The equation of state.
+/// :param c: Molar concentration [mol/m^3].
+/// :param x: Mole fractions [-].
+/// :param T: Temperature [K].
+/// :returns: :math:`\partial p/\partial T` [Pa/K].
+/// :precondition: ``T > 0``.
+/// :precondition: ``x.size() == eos.size()``
+///
+/// \ingroup core
 template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number, typename V>
 Number calc_dp_dT(const EoS<Ideal, Residual>& eos, const Number c, V& x, const Number T)
 {
@@ -898,16 +922,18 @@ void calc_dp_dT_dx(const EoS<Ideal, Residual>& eos, const Number c, const Number
                             x, gradient, enzyme_const, T);
 }
 
-/**
- * @brief Molar isochoric heat capacity @f$c_v = (\partial u/\partial T)_{c}@f$.
- * @param eos The equation of state.
- * @param c   Molar concentration [mol/m^3].
- * @param x   Mole fractions [-].
- * @param T   Temperature [K].
- * @return Molar @f$c_v@f$ [J/(mol K)].
- * @pre   `T > 0`.
- * @pre `x.size() == eos.size()`
- */
+///
+/// Molar isochoric heat capacity :math:`c_v = (\partial u/\partial T)_{c}`.
+///
+/// :param eos: The equation of state.
+/// :param c: Molar concentration [mol/m^3].
+/// :param x: Mole fractions [-].
+/// :param T: Temperature [K].
+/// :returns: Molar :math:`c_v` [J/(mol K)].
+/// :precondition: ``T > 0``.
+/// :precondition: ``x.size() == eos.size()``
+///
+/// \ingroup core
 template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number, typename V>
 Number calc_cv(const EoS<Ideal, Residual>& eos, const Number c, V& x, const Number T)
 {
@@ -977,16 +1003,18 @@ void calc_cv_dx(const EoS<Ideal, Residual>& eos, const Number c, const Number* x
                             gradient, enzyme_const, T);
 }
 
-/**
- * @brief Molar isobaric heat capacity @f$c_p@f$.
- * @param eos The equation of state.
- * @param c   Molar concentration [mol/m^3].
- * @param x   Mole fractions [-].
- * @param T   Temperature [K].
- * @return Molar @f$c_p@f$ [J/(mol K)].
- * @pre   `T > 0`.
- * @pre `x.size() == eos.size()`
- */
+///
+/// Molar isobaric heat capacity :math:`c_p`.
+///
+/// :param eos: The equation of state.
+/// :param c: Molar concentration [mol/m^3].
+/// :param x: Mole fractions [-].
+/// :param T: Temperature [K].
+/// :returns: Molar :math:`c_p` [J/(mol K)].
+/// :precondition: ``T > 0``.
+/// :precondition: ``x.size() == eos.size()``
+///
+/// \ingroup core
 template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number, typename V>
 Number calc_cp(const EoS<Ideal, Residual>& eos, const Number c, V& x, const Number T)
 {
@@ -1061,17 +1089,19 @@ void calc_cp_dx(const EoS<Ideal, Residual>& eos, const Number c, const Number* x
 
 // FIXME: the effective_molar_mass parameter should be turned into a function that can compute the molar mass
 //        This mainly affects taking derivatives correctly, so it is low priority
-/**
- * @brief Squared speed of sound @f$w^2 = c_p\,(\partial p/\partial c)/(M\,c_v)@f$.
- * @param eos The equation of state.
- * @param c   Molar concentration [mol/m^3].
- * @param x   Mole fractions [-].
- * @param T   Temperature [K].
- * @param effective_molar_mass Mixture molar mass @f$M@f$ [kg/mol].
- * @return Squared speed of sound [m^2/s^2].
- * @pre   `T > 0`.
- * @pre `x.size() == eos.size()`
- */
+///
+/// Squared speed of sound :math:`w^2 = c_p\,(\partial p/\partial c)/(M\,c_v)`.
+///
+/// :param eos: The equation of state.
+/// :param c: Molar concentration [mol/m^3].
+/// :param x: Mole fractions [-].
+/// :param T: Temperature [K].
+/// :param effective_molar_mass: Mixture molar mass :math:`M` [kg/mol].
+/// :returns: Squared speed of sound [m^2/s^2].
+/// :precondition: ``T > 0``.
+/// :precondition: ``x.size() == eos.size()``
+///
+/// \ingroup core
 template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number, typename V>
 Number calc_sound_speed_squared(const EoS<Ideal, Residual>& eos, const Number c, V& x, const Number T,
                                 const Number effective_molar_mass)
@@ -1153,16 +1183,18 @@ void calc_sound_speed_squared_dx(const EoS<Ideal, Residual>& eos, const Number c
 }
 
 // TODO: add derivatives of vector-valued functions
-/**
- * @brief Chemical potentials @f$\mu_i = \partial A/\partial n_i@f$ of all
- *        components (ideal + residual).
- * @param eos The equation of state.
- * @param rho_i Partial molar concentrations [mol/m^3].
- * @param T   Temperature [K].
- * @param[out] chemical_potential Output chemical potentials [J/mol]. Overwritten (zeroed then filled).
- * @pre `rho_i.size() == eos.size()`
- * @pre `chemical_potential.size() == eos.size()`
- */
+///
+/// Chemical potentials :math:`\mu_i = \partial A/\partial n_i` of all
+/// components (ideal + residual).
+///
+/// :param eos: The equation of state.
+/// :param rho_i: Partial molar concentrations [mol/m^3].
+/// :param T: Temperature [K].
+/// :param chemical_potential: Output chemical potentials [J/mol]. Overwritten (zeroed then filled).
+/// :precondition: ``rho_i.size() == eos.size()``
+/// :precondition: ``chemical_potential.size() == eos.size()``
+///
+/// \ingroup core
 template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number, std::size_t N>
 void calc_chemical_potential(const EoS<Ideal, Residual>& eos, std::span<const Number, N> rho_i, const Number T,
                              std::span<Number, N> chemical_potential)
@@ -1176,17 +1208,19 @@ void calc_chemical_potential(const EoS<Ideal, Residual>& eos, std::span<const Nu
     detail::calc_dPsi_drhoi<1>(eos.residual(), rho_i.data(), T, chemical_potential.data());
 }
 
-/**
- * @brief Natural log of the fugacity coefficients,
- *        @f$\ln\varphi_i = \mu_i^{\text{res}}/(RT) - \ln Z@f$.
- * @param eos The equation of state.
- * @param c   Molar concentration [mol/m^3].
- * @param x   Mole fractions [-].
- * @param T   Temperature [K].
- * @param rho_i Partial molar concentrations [mol/m^3] (should equal `x*c`).
- * @param[out] log_fug_coeff Output @f$\ln\varphi_i@f$ [-] (length `eos.size()`).
- *             Overwritten (zeroed then filled).
- */
+///
+/// Natural log of the fugacity coefficients,
+/// :math:`\ln\varphi_i = \mu_i^{\text{res}}/(RT) - \ln Z`.
+///
+/// :param eos: The equation of state.
+/// :param c: Molar concentration [mol/m^3].
+/// :param x: Mole fractions [-].
+/// :param T: Temperature [K].
+/// :param rho_i: Partial molar concentrations [mol/m^3] (should equal ``x*c``).
+/// :param log_fug_coeff: Output :math:`\ln\varphi_i` [-] (length ``eos.size()``).
+///             Overwritten (zeroed then filled).
+///
+/// \ingroup core
 template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number, std::size_t N>
 void calc_log_fugacity_coeff(const EoS<Ideal, Residual>& eos, const Number c, std::span<const Number, N> x,
                              const Number T, const std::span<const Number, N> rho_i, std::span<Number, N> log_fug_coeff)
@@ -1206,14 +1240,16 @@ void calc_log_fugacity_coeff(const EoS<Ideal, Residual>& eos, const Number c, st
     }
 }
 
-/**
- * @brief Fugacities @f$f_i = \rho_i RT\,\exp(\mu_i^{\text{res}}/(RT))@f$.
- * @param eos The equation of state.
- * @param rho_i Partial molar concentrations [mol/m^3] (length `eos.size()`).
- * @param T   Temperature [K].
- * @param[out] fugacity Output fugacities [Pa] (length `eos.size()`).
- *             Overwritten (zeroed then filled).
- */
+///
+/// Fugacities :math:`f_i = \rho_i RT\,\exp(\mu_i^{\text{res}}/(RT))`.
+///
+/// :param eos: The equation of state.
+/// :param rho_i: Partial molar concentrations [mol/m^3] (length ``eos.size()``).
+/// :param T: Temperature [K].
+/// :param fugacity: Output fugacities [Pa] (length ``eos.size()``).
+///             Overwritten (zeroed then filled).
+///
+/// \ingroup core
 template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number, std::size_t N>
 void calc_fugacity(const EoS<Ideal, Residual>& eos, std::span<const Number, N> rho_i, const Number T,
                    std::span<Number, N> fugacity)

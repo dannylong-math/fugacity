@@ -1,5 +1,9 @@
 cmake_minimum_required(VERSION 3.21)
 
+# This mode lets documentation builds avoid the Clang/Enzyme toolchain needed
+# by the library and its tests.
+option(FUGACITY_DOCUMENTATION_ONLY "Configure only the documentation target" OFF)
+
 # ----------------------------------------------------------------------------
 # Compiler requirement: Clang
 #
@@ -13,20 +17,28 @@ cmake_minimum_required(VERSION 3.21)
 # -DCMAKE_CXX_COMPILER=... or the CXX environment variable) is still honoured,
 # but is validated to be Clang right after project().
 # ----------------------------------------------------------------------------
-if(NOT DEFINED CMAKE_CXX_COMPILER AND NOT DEFINED ENV{CXX})
+if(NOT FUGACITY_DOCUMENTATION_ONLY AND NOT DEFINED CMAKE_CXX_COMPILER AND NOT DEFINED ENV{CXX})
     find_program(FUGACITY_CLANGXX NAMES clang++ clang++-22 clang++-21 clang++-20)
     if(FUGACITY_CLANGXX)
         set(CMAKE_CXX_COMPILER "${FUGACITY_CLANGXX}")
     endif()
 endif()
 
-project(Fugacity
-    VERSION 0.1.0
-    DESCRIPTION "A C++ library implementing equations of state in an efficient way."
-    LANGUAGES CXX
-)
+if(FUGACITY_DOCUMENTATION_ONLY)
+    project(Fugacity
+        VERSION 0.1.0
+        DESCRIPTION "A C++ library implementing equations of state in an efficient way."
+        LANGUAGES NONE
+    )
+else()
+    project(Fugacity
+        VERSION 0.1.0
+        DESCRIPTION "A C++ library implementing equations of state in an efficient way."
+        LANGUAGES CXX
+    )
+endif()
 
-if(NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+if(NOT FUGACITY_DOCUMENTATION_ONLY AND NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     message(FATAL_ERROR
         "Fugacity requires the Clang compiler because it depends on Enzyme, "
         "which is an LLVM/Clang plugin.\n"
@@ -47,7 +59,9 @@ endif()
 # which adds `-fplugin=ClangEnzyme-<ver>.so` to the compile line. Linking it to
 # our interface library propagates the plugin flag to every consumer (tests).
 # ----------------------------------------------------------------------------
-find_package(Enzyme REQUIRED CONFIG)
+if(NOT FUGACITY_DOCUMENTATION_ONLY)
+    find_package(Enzyme REQUIRED CONFIG)
+endif()
 
 # Prevent in-source builds
 if(CMAKE_SOURCE_DIR STREQUAL CMAKE_BINARY_DIR)
@@ -57,19 +71,22 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_BINARY_DIR)
     )
 endif()
 
-set(CMAKE_CXX_STANDARD 23)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
+option(FUGACITY_BUILD_DOCUMENTATION "Add the Sphinx documentation target" OFF)
 
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+if(NOT FUGACITY_DOCUMENTATION_ONLY)
+    set(CMAKE_CXX_STANDARD 23)
+    set(CMAKE_CXX_STANDARD_REQUIRED ON)
+    set(CMAKE_CXX_EXTENSIONS OFF)
 
-# Symlink compile_commands.json into the source root for clangd
-file(REMOVE "${CMAKE_SOURCE_DIR}/compile_commands.json")
-execute_process(
-    COMMAND "${CMAKE_COMMAND}" -E create_symlink
-        "${CMAKE_BINARY_DIR}/compile_commands.json"
-        "${CMAKE_SOURCE_DIR}/compile_commands.json"
-)
+    set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+    # Symlink compile_commands.json into the source root for clangd
+    file(REMOVE "${CMAKE_SOURCE_DIR}/compile_commands.json")
+    execute_process(
+        COMMAND "${CMAKE_COMMAND}" -E create_symlink
+            "${CMAKE_BINARY_DIR}/compile_commands.json"
+            "${CMAKE_SOURCE_DIR}/compile_commands.json"
+    )
 
 # Warnings — linked only to our targets so FetchContent deps are unaffected
 add_library(${PROJECT_NAME}_warnings INTERFACE)
@@ -157,4 +174,10 @@ endif()
 option(BUILD_BENCHMARKS "Build the ideal-model benchmarks (requires Google Benchmark)" OFF)
 if(BUILD_BENCHMARKS)
     add_subdirectory(benchmarks)
+endif()
+
+endif()
+
+if(FUGACITY_BUILD_DOCUMENTATION OR FUGACITY_DOCUMENTATION_ONLY)
+    add_subdirectory(docs)
 endif()

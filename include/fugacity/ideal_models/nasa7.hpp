@@ -1,9 +1,9 @@
 #pragma once
-/**
- * @file nasa7.hpp
- * @brief Ideal-gas model using the 7-coefficient NASA polynomial
- *        parameterization of the per-species standard-state thermodynamics.
- */
+///
+/// File ``nasa7.hpp``.
+/// Ideal-gas model using the 7-coefficient NASA polynomial
+///        parameterization of the per-species standard-state thermodynamics.
+///
 
 #include "fugacity/core/concepts.hpp"
 #include "fugacity/core/eos_base.hpp"
@@ -21,71 +21,79 @@
 
 namespace fugacity {
 
-/**
- * @brief Ideal-gas equation of state parameterized by the NASA-7 polynomials.
- *
- * Each species' standard-state heat capacity, enthalpy, and entropy follow the
- * 7-coefficient NASA polynomial form
- * @f[
- *   c_p(T)/R = a_0 + a_1 T + a_2 T^2 + a_3 T^3 + a_4 T^4,
- * @f]
- * with @f$a_5@f$ and @f$a_6@f$ setting the enthalpy and entropy references.
- * The mixture's ideal Helmholtz energy is the sum of the per-species
- * contributions plus the ideal entropy of mixing.
- *
- * Construct the model from one SpeciesInput per species (coefficients plus a
- * reference state, which may differ per species), pair it with a residual
- * model in an EoS, and evaluate properties through the free functions in
- * core_calculations.hpp:
- *
- * @code{.cpp}
- * using namespace fugacity;
- *
- * // N2, low-temperature (200-1000 K) NASA-7 coefficients.
- * Nasa7<1> ideal(std::array{Nasa7<1>::SpeciesInput{
- *     .a0 = 3.53100528, .a1 = -1.23660988e-4, .a2 = -5.02999433e-7,
- *     .a3 = 2.43530612e-9, .a4 = -1.40881235e-12, .a5 = -1046.97628,
- *     .a6 = 2.96747038, .T_ref = 298.15, .p_ref = 1.0e5}});
- * EoS eos{ideal, NoResidual<1>{}};
- *
- * const std::array<double, 1> x{1.0}; // mole fractions
- * const double c = 40.0;              // molar concentration [mol/m^3]
- * const double T = 350.0;             // temperature [K]
- * const double cp = calc_cp(eos, c, std::span<const double, 1>{x}, T);
- * @endcode
- *
- * Use the @c std::dynamic_extent default (e.g. `Nasa7<>`) when the number of
- * species is only known at run time:
- *
- * @code{.cpp}
- * std::vector<Nasa7<>::SpeciesInput> inputs = load_species(...);
- * Nasa7<> ideal{std::span<const Nasa7<>::SpeciesInput>{inputs}};
- * @endcode
- *
- * @tparam N Component count, or @c std::dynamic_extent for a runtime size.
- */
+///
+/// Ideal-gas equation of state parameterized by the NASA-7 polynomials.
+///
+/// Each species' standard-state heat capacity, enthalpy, and entropy follow the
+/// 7-coefficient NASA polynomial form
+///
+/// .. math::
+///
+///      c_p(T)/R = a_0 + a_1 T + a_2 T^2 + a_3 T^3 + a_4 T^4,
+///
+/// with :math:`a_5` and :math:`a_6` setting the enthalpy and entropy references.
+/// The mixture's ideal Helmholtz energy is the sum of the per-species
+/// contributions plus the ideal entropy of mixing.
+///
+/// Construct the model from one SpeciesInput per species (coefficients plus a
+/// reference state, which may differ per species), pair it with a residual
+/// model in an EoS, and evaluate properties through the free functions in
+/// core_calculations.hpp:
+///
+/// .. code-block:: cpp
+///
+///    using namespace fugacity;
+///
+///    // N2, low-temperature (200-1000 K) NASA-7 coefficients.
+///    Nasa7<1> ideal(std::array{Nasa7<1>::SpeciesInput{
+///        .a0 = 3.53100528, .a1 = -1.23660988e-4, .a2 = -5.02999433e-7,
+///        .a3 = 2.43530612e-9, .a4 = -1.40881235e-12, .a5 = -1046.97628,
+///        .a6 = 2.96747038, .T_ref = 298.15, .p_ref = 1.0e5}});
+///    EoS eos{ideal, NoResidual<1>{}};
+///
+///    const std::array<double, 1> x{1.0}; // mole fractions
+///    const double c = 40.0;              // molar concentration [mol/m^3]
+///    const double T = 350.0;             // temperature [K]
+///    const double cp = calc_cp(eos, c, std::span<const double, 1>{x}, T);
+///
+///
+/// Use the ``std::dynamic_extent`` default (e.g. ``Nasa7<>``) when the number of
+/// species is only known at run time:
+///
+/// .. code-block:: cpp
+///
+///    std::vector<Nasa7<>::SpeciesInput> inputs = load_species(...);
+///    Nasa7<> ideal{std::span<const Nasa7<>::SpeciesInput>{inputs}};
+///
+///
+///
+/// :tparam N: Component count, or ``std::dynamic_extent`` for a runtime size.
+///
+/// \ingroup ideal-models
 template<std::size_t N = std::dynamic_extent> class Nasa7 : public BaseEoS<N>, public BaseIdealEoS {
 public:
-    /// @brief Natural per-species NASA-7 coefficients and reference state.
+    /// Natural per-species NASA-7 coefficients and reference state.
     struct SpeciesInput {
-        double a0;    ///< NASA-7 coefficient @f$a_0@f$.
-        double a1;    ///< NASA-7 coefficient @f$a_1@f$.
-        double a2;    ///< NASA-7 coefficient @f$a_2@f$.
-        double a3;    ///< NASA-7 coefficient @f$a_3@f$.
-        double a4;    ///< NASA-7 coefficient @f$a_4@f$.
-        double a5;    ///< NASA-7 coefficient @f$a_5@f$ (enthalpy reference).
-        double a6;    ///< NASA-7 coefficient @f$a_6@f$ (entropy reference).
-        double T_ref; ///< Reference temperature @f$T_\mathrm{ref}@f$ [K].
-        double p_ref; ///< Reference pressure @f$p_\mathrm{ref}@f$ [Pa].
+        double a0;    ///< NASA-7 coefficient :math:`a_0`.
+        double a1;    ///< NASA-7 coefficient :math:`a_1`.
+        double a2;    ///< NASA-7 coefficient :math:`a_2`.
+        double a3;    ///< NASA-7 coefficient :math:`a_3`.
+        double a4;    ///< NASA-7 coefficient :math:`a_4`.
+        double a5;    ///< NASA-7 coefficient :math:`a_5` (enthalpy reference).
+        double a6;    ///< NASA-7 coefficient :math:`a_6` (entropy reference).
+        double T_ref; ///< Reference temperature :math:`T_\mathrm{ref}` [K].
+        double p_ref; ///< Reference pressure :math:`p_\mathrm{ref}` [Pa].
     };
 
-    /**
-     * @brief Construct a compile-time-sized model from per-species inputs.
-     *
-     * Only available when the component count @p N is known at compile time.
-     *
-     * @param inputs One SpeciesInput per species.
-     */
+    ///
+    /// Construct a compile-time-sized model from per-species inputs.
+    ///
+    /// Only available when the component count ``N`` is known at compile time.
+    ///
+    ///
+    /// :param inputs: One SpeciesInput per species.
+    /// \id fixed-size
+    ///
     explicit Nasa7(const std::array<SpeciesInput, N>& inputs)
         requires(N != std::dynamic_extent)
     {
@@ -94,14 +102,16 @@ public:
         }
     }
 
-    /**
-     * @brief Construct a runtime-sized model from per-species inputs.
-     *
-     * Only available when @p N is @c std::dynamic_extent; `size()` becomes
-     * `inputs.size()`.
-     *
-     * @param inputs One SpeciesInput per species.
-     */
+    ///
+    /// Construct a runtime-sized model from per-species inputs.
+    ///
+    /// Only available when ``N`` is ``std::dynamic_extent``; ``size()`` becomes
+    /// ``inputs.size()``.
+    ///
+    ///
+    /// :param inputs: One SpeciesInput per species.
+    /// \id runtime-size
+    ///
     explicit Nasa7(std::span<const SpeciesInput> inputs)
         requires(N == std::dynamic_extent)
         : BaseEoS<N>(inputs.size())
@@ -113,13 +123,14 @@ public:
         }
     }
 
-    /**
-     * @brief Total molar Helmholtz energy @f$a = \sum_i a_i@f$.
-     * @param c Molar concentration [mol/m^3].
-     * @param x Mole-fraction array [-].
-     * @param T Temperature [K].
-     * @return Molar Helmholtz energy [J/mol].
-     */
+    ///
+    /// Total molar Helmholtz energy :math:`a = \sum_i a_i`.
+    ///
+    /// :param c: Molar concentration [mol/m^3].
+    /// :param x: Mole-fraction array [-].
+    /// :param T: Temperature [K].
+    /// :returns: Molar Helmholtz energy [J/mol].
+    ///
     template<std::floating_point Number> [[nodiscard]] Number calc_helmholtz(Number c, const Number* x, Number T) const
     {
         const Number R = ideal_gas_constant<Number>;
@@ -143,12 +154,13 @@ public:
         return a;
     }
 
-    /**
-     * @brief Total Helmholtz energy density @f$\Psi = \sum_i \Psi_i@f$.
-     * @param rho_i Partial molar concentrations [mol/m^3].
-     * @param T     Temperature [K].
-     * @return Helmholtz energy density [J/m^3].
-     */
+    ///
+    /// Total Helmholtz energy density :math:`\Psi = \sum_i \Psi_i`.
+    ///
+    /// :param rho_i: Partial molar concentrations [mol/m^3].
+    /// :param T: Temperature [K].
+    /// :returns: Helmholtz energy density [J/m^3].
+    ///
     template<std::floating_point Number>
     [[nodiscard]] Number calc_helmholtz_density(const Number* rho_i, Number T) const
     {
@@ -176,12 +188,13 @@ public:
         return psi;
     }
 
-    /**
-     * @brief Per-component Helmholtz energy density, @f$\text{out}[i] = \Psi_i@f$.
-     * @param rho_i Partial molar concentrations [mol/m^3].
-     * @param T     Temperature [K].
-     * @param[out] out Per-component Helmholtz energy density [J/m^3]; length `size()`.
-     */
+    ///
+    /// Per-component Helmholtz energy density, :math:`\text{out}[i] = \Psi_i`.
+    ///
+    /// :param rho_i: Partial molar concentrations [mol/m^3].
+    /// :param T: Temperature [K].
+    /// :param out: Per-component Helmholtz energy density [J/m^3]; length ``size()``.
+    ///
     template<std::floating_point Number> void calc_partial_helmholtz(const Number* rho_i, Number T, Number* out) const
     {
         const Number R = ideal_gas_constant<Number>;
