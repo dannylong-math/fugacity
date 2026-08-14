@@ -132,7 +132,7 @@ public:
             const double ln_T_ref = data_[(col_ln_T_ref * n) + i];
             const double h_ref = data_[(col_h_ref * n) + i];
             const double s_ref = data_[(col_s_ref * n) + i];
-            a += (Number{2} * R * T * xlnx<0>(x[i])) +
+            a += (R * T * xlnx<0>(x[i])) +
                  (x[i] * (h_ref + (c_p * (T - T_ref)) - (T * s_ref) + (c_p * T * ln_T_ref) + RTlnC - (T * R_ln_c_ref) +
                           ((R - c_p) * TlnT) - (R * T * ln_T_ref) - (R * T)));
         }
@@ -152,13 +152,7 @@ public:
     {
         const Number R = ideal_gas_constant<Number>;
         const std::size_t n = this->size();
-        // c = sum_i rho_i, then the hoisted pre-calculations.
-        Number c{0};
-        for (std::size_t i = 0; i < n; ++i) {
-            c += rho_i[i];
-        }
         const Number TlnT = T * std::log(T);
-        const Number RTlnC = R * T * std::log(c);
 
         Number psi{0};
         for (std::size_t i = 0; i < n; ++i) {
@@ -168,9 +162,9 @@ public:
             const double ln_T_ref = data_[(col_ln_T_ref * n) + i];
             const double h_ref = data_[(col_h_ref * n) + i];
             const double s_ref = data_[(col_s_ref * n) + i];
-            psi += (Number{2} * R * T * xlnx(rho_i[i])) +
-                   (rho_i[i] * (h_ref + (c_p * (T - T_ref)) - (T * s_ref) + (c_p * T * ln_T_ref) - RTlnC -
-                                (T * R_ln_c_ref) + ((R - c_p) * TlnT) - (R * T * ln_T_ref) - (R * T)));
+            psi += (R * T * xlnx(rho_i[i])) +
+                   (rho_i[i] * (h_ref + (c_p * (T - T_ref)) - (T * s_ref) + (c_p * T * ln_T_ref) - (T * R_ln_c_ref) +
+                                ((R - c_p) * TlnT) - (R * T * ln_T_ref) - (R * T)));
         }
         return psi;
     }
@@ -186,12 +180,7 @@ public:
     {
         const Number R = ideal_gas_constant<Number>;
         const std::size_t n = this->size();
-        Number c{0};
-        for (std::size_t i = 0; i < n; ++i) {
-            c += rho_i[i];
-        }
         const Number TlnT = T * std::log(T);
-        const Number RTlnC = R * T * std::log(c);
 
         for (std::size_t i = 0; i < n; ++i) {
             const double T_ref = data_[(col_T_ref * n) + i];
@@ -200,9 +189,9 @@ public:
             const double ln_T_ref = data_[(col_ln_T_ref * n) + i];
             const double h_ref = data_[(col_h_ref * n) + i];
             const double s_ref = data_[(col_s_ref * n) + i];
-            out[i] = (Number{2} * R * T * xlnx(rho_i[i])) +
-                     (rho_i[i] * (h_ref + (c_p * (T - T_ref)) - (T * s_ref) + (c_p * T * ln_T_ref) - RTlnC -
-                                  (T * R_ln_c_ref) + ((R - c_p) * TlnT) - (R * T * ln_T_ref) - (R * T)));
+            out[i] = (R * T * xlnx(rho_i[i])) +
+                     (rho_i[i] * (h_ref + (c_p * (T - T_ref)) - (T * s_ref) + (c_p * T * ln_T_ref) - (T * R_ln_c_ref) +
+                                  ((R - c_p) * TlnT) - (R * T * ln_T_ref) - (R * T)));
         }
     }
 
