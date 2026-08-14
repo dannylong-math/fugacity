@@ -56,6 +56,15 @@
         "CMAKE_BUILD_TYPE": "Release",
         "CMAKE_CXX_FLAGS_RELEASE": "-O3 -march=native -DNDEBUG -fno-math-errno -fno-trapping-math -fno-signed-zeros -fassociative-math -freciprocal-math"
       }
+    },
+    {
+      "name": "docs",
+      "displayName": "Documentation",
+      "inherits": "base",
+      "cacheVariables": {
+        "FUGACITY_DOCUMENTATION_ONLY": "ON",
+        "FUGACITY_BUILD_DOCUMENTATION": "ON"
+      }
     }
   ],
   "buildPresets": [
@@ -63,7 +72,8 @@
     { "name": "debug-tidy",  "configurePreset": "debug-tidy"  },
     { "name": "coverage",    "configurePreset": "coverage"    },
     { "name": "release",     "configurePreset": "release"     },
-    { "name": "release-max", "configurePreset": "release-max" }
+    { "name": "release-max", "configurePreset": "release-max" },
+    { "name": "docs",        "configurePreset": "docs", "targets": ["docs"] }
   ],
   "testPresets": [
     { "name": "debug",       "configurePreset": "debug",       "output": { "outputOnFailure": true } },
