@@ -1,12 +1,8 @@
 //
 // Unit tests for the constant-cp ideal-gas model (synthesize::ConstantCp).
 //
-// Most of the heavy lifting is delegated to the reusable, model-agnostic helpers
-// in derivative_test_harness.hpp:
-//   - check_helmholtz_consistency       (Psi == c*a, Psi == sum_i Psi_i)
-//   - check_ideal_gas_pressure          (p == c R T)
-//   - check_euler_pressure              (sum_i rho_i mu_i - Psi == calc_pressure)
-//   - run_derivative_consistency_tests  (every property vs. finite differences)
+// Universal, ideal-gas, derivative, wrapper, precondition, deterministic-sweep,
+// and static/dynamic checks are registered through support/eos_test_suite.hpp.
 // What remains here is genuinely ConstantCp-specific: the per-species kernel
 // algebra and the caloric properties checked against the *physical* reference
 // data (h_ref, s_ref, c_p), which the generic helpers cannot know.
@@ -19,6 +15,7 @@
 // At the reference state (T = T_ref, c = c_ref): h = h_ref and s = s_ref.
 //
 #include "derivative_test_harness.hpp"
+#include "support/eos_test_suite.hpp"
 #include "synthesize/core/core_calculations.hpp"
 #include "synthesize/core/eos_pair.hpp"
 #include "synthesize/core/numbers.hpp"
@@ -30,6 +27,7 @@
 #include <cmath>
 #include <cstddef>
 #include <span>
+#include <vector>
 
 using namespace boost::ut;
 using namespace synthesize_test;
@@ -50,9 +48,41 @@ template<std::size_t N> auto make_const_cp_eos(const std::array<Input<N>, N>& in
 // *different* reference temperatures and pressures to exercise per-species
 // reference handling.
 constexpr std::array<Input<2>, 2> binary_inputs{{
-    {/*T_ref*/ 300.0, /*p_ref*/ 1.0e5, /*c_p*/ 29.1, /*h_ref*/ 1500.0, /*s_ref*/ 191.0},
-    {/*T_ref*/ 320.0, /*p_ref*/ 9.0e4, /*c_p*/ 33.6, /*h_ref*/ -2200.0, /*s_ref*/ 189.0},
+    {/*T_ref*/ .T_ref=300.0, /*p_ref*/ .p_ref=1.0e5, /*c_p*/ .c_p=29.1, /*h_ref*/ .h_ref=1500.0, /*s_ref*/ .s_ref=191.0},
+    {/*T_ref*/ .T_ref=320.0, /*p_ref*/ .p_ref=9.0e4, /*c_p*/ .c_p=33.6, /*h_ref*/ .h_ref=-2200.0, /*s_ref*/ .s_ref=189.0},
 }};
+
+std::vector<ge::ConstantCp<>::SpeciesInput> dynamic_binary_inputs()
+{
+    std::vector<ge::ConstantCp<>::SpeciesInput> result;
+    result.reserve(binary_inputs.size());
+    for (const auto& input : binary_inputs) {
+        result.push_back({.T_ref=input.T_ref, .p_ref=input.p_ref, .c_p=input.c_p, .h_ref=input.h_ref, .s_ref=input.s_ref});
+    }
+    return result;
+}
+
+auto make_dynamic_const_cp_eos()
+{
+    const auto inputs = dynamic_binary_inputs();
+    return ge::EoS{ge::ConstantCp<>{std::span<const ge::ConstantCp<>::SpeciesInput>{inputs}},
+                   ge::NoResidual<std::dynamic_extent>{inputs.size()}};
+}
+
+std::vector<eos_test_state> const_cp_contract_states()
+{
+    return {{.c = 40.0, .x = {0.5, 0.5}, .T = 280.0, .effective_molar_mass = 0.031, .label = "low-density"},
+            {.c = 100.0, .x = {0.4, 0.6}, .T = 330.0, .effective_molar_mass = 0.031, .label = "representative"},
+            {.c = 250.0, .x = {0.7, 0.3}, .T = 425.0, .effective_molar_mass = 0.031, .label = "warm"}};
+}
+
+constexpr eos_valid_domain const_cp_valid_domain{.c_min = 20.0,
+                                                 .c_max = 260.0,
+                                                 .T_min = 250.0,
+                                                 .T_max = 600.0,
+                                                 .minimum_mole_fraction = 0.01,
+                                                 .seed = 0xC0FFEE,
+                                                 .random_samples = 50};
 
 // Single-species reference data for the caloric checks.
 constexpr double T_ref = 300.0;
@@ -61,7 +91,7 @@ constexpr double cp_in = 29.1;
 constexpr double h_ref = -1234.0;
 constexpr double s_ref = 205.0;
 
-constexpr std::array<Input<1>, 1> unary_inputs{{{T_ref, p_ref, cp_in, h_ref, s_ref}}};
+constexpr std::array<Input<1>, 1> unary_inputs{{{.T_ref=T_ref, .p_ref=p_ref, .c_p=cp_in, .h_ref=h_ref, .s_ref=s_ref}}};
 
 } // namespace
 
@@ -70,44 +100,15 @@ int main()
     suite<"const_cp"> const_cp = [] {
         const double R = ge::ideal_gas_constant<double>;
 
-        // ===================================================================
-        // Generic structural consistency (delegated to the shared helper):
-        //   Psi == c*a   and   Psi == sum_i Psi_i.
-        // ===================================================================
-        "helmholtz consistency (generic)"_test = [&] {
-            const ge::ConstantCp<2> model(binary_inputs);
-            for (const double T : {280.0, 340.0, 410.0}) {
-                check_helmholtz_consistency<2>(model, {40.0, 70.0}, T);
-                check_helmholtz_consistency<2>(model, {5.0, 95.0}, T);
-                check_helmholtz_consistency<2>(model, {120.0, 30.0}, T);
-            }
-        };
-
-        // ===================================================================
-        // Ideal-gas pressure p = c R T (delegated to the shared helper).
-        // ===================================================================
-        "ideal-gas pressure == c R T"_test = [&] {
-            auto eos = make_const_cp_eos<2>(binary_inputs);
-            for (const double c : {20.0, 80.0, 200.0}) {
-                for (const double T : {270.0, 330.0, 410.0}) {
-                    check_ideal_gas_pressure<2>(eos, c, {0.35, 0.65}, T);
-                }
-            }
-        };
-
-        // ===================================================================
-        // Pressure via the Euler relation, sum_i rho_i mu_i - Psi == p
-        // (delegated to the shared helper). Exercises the multi-component
-        // reverse-mode chemical potentials.
-        // ===================================================================
-        "pressure via Euler relation (mixture)"_test = [&] {
-            auto eos = make_const_cp_eos<2>(binary_inputs);
-            for (const double c : {30.0, 90.0, 175.0}) {
-                for (const double T : {285.0, 360.0}) {
-                    check_euler_pressure<2>(eos, {0.4 * c, 0.6 * c}, T);
-                }
-            }
-        };
+        auto dynamic_eos = make_dynamic_const_cp_eos();
+        const auto fixture = eos_test_fixture{.contribution = dynamic_eos.ideal(),
+                                              .eos = dynamic_eos,
+                                              .states = const_cp_contract_states(),
+                                              .domain = const_cp_valid_domain};
+        register_eos_contract_tests(fixture);
+        register_ideal_gas_contract_tests(fixture);
+        register_static_dynamic_equivalence_tests(make_const_cp_eos<2>(binary_inputs), make_dynamic_const_cp_eos(),
+                                                  const_cp_contract_states());
 
         // ===================================================================
         // ConstantCp-specific caloric properties vs the PHYSICAL reference data
@@ -140,27 +141,6 @@ int main()
                     check_rel("calc_entropy(T,c)", ge::calc_entropy(eos, c, xs, T), s_expected, 1e-9);
                 }
             }
-        };
-
-        // ===================================================================
-        // Full derivative-consistency sweep: every property in
-        // core_calculations.hpp checked against 4th-order finite differences of
-        // the model's own Helmholtz energy (delegated to the shared harness).
-        // Covers both single-component and mixture states, in debug AND release.
-        // ===================================================================
-        "derivative consistency vs finite differences"_test = [&] {
-            auto unary = make_const_cp_eos<1>(unary_inputs);
-            run_derivative_consistency_tests<1>(unary, 120.0, {1.0}, 310.0);
-            run_derivative_consistency_tests<1>(unary, 200.0, {1.0}, 360.0);
-
-            auto binary = make_const_cp_eos<2>(binary_inputs);
-            run_derivative_consistency_tests<2>(binary, 100.0, {0.4, 0.6}, 300.0);
-            run_derivative_consistency_tests<2>(binary, 250.0, {0.7, 0.3}, 350.0);
-            run_derivative_consistency_tests<2>(binary, 40.0, {0.5, 0.5}, 280.0);
-
-            // Pointer-core vs container-wrapper agreement for every free function.
-            run_free_function_consistency_tests<1>(unary);
-            run_free_function_consistency_tests<2>(binary);
         };
     };
 
