@@ -1,9 +1,10 @@
 //
 // Unit tests for the van der Waals residual model (synthesize::VanDerWaals).
 //
-// Structure mirrors test_nasa7.cpp: the model-agnostic structural and
-// derivative checks are delegated to derivative_test_harness.hpp, and what
-// remains here is vdW-specific:
+// Universal identities, derivatives, wrappers, preconditions, dilute-limit
+// behavior, deterministic sampling, and fixed/dynamic equivalence are
+// registered through support/eos_test_suite.hpp. What remains here is
+// vdW-specific:
 //   - the residual Helmholtz energy against an independent long-double
 //     reference built directly from the spec formulas
 //       a0_ii = 27 (R T_c)^2 / (64 P_c),   b_ii = R T_c / (8 P_c),
@@ -13,7 +14,8 @@
 //   - the critical-point identities p(T_c, c_c) = P_c and dp/dc = 0 at
 //     c_c = 1 / (3 b), which pin down the a0/b parameter construction.
 //
-#include "derivative_test_harness.hpp"
+#include "support/eos_test_suite.hpp"
+#include "support/numeric_checks.hpp"
 #include "synthesize/core/core_calculations.hpp"
 #include "synthesize/core/eos_pair.hpp"
 #include "synthesize/core/numbers.hpp"
@@ -62,6 +64,67 @@ template<std::size_t N> auto make_ideal()
     return ge::ConstantCp<N>(in);
 }
 
+template<std::size_t N> auto make_dynamic_ideal()
+{
+    std::vector<ge::ConstantCp<>::SpeciesInput> inputs(N);
+    for (std::size_t i = 0; i < N; ++i) {
+        inputs[i] = {.T_ref = 298.15,
+                     .p_ref = 1.0e5,
+                     .c_p = 29.1 + (2.0 * static_cast<double>(i)),
+                     .h_ref = 1000.0 * static_cast<double>(i),
+                     .s_ref = 150.0 + (10.0 * static_cast<double>(i))};
+    }
+    return ge::ConstantCp<>{std::span<const ge::ConstantCp<>::SpeciesInput>{inputs}};
+}
+
+auto make_fixed_unary_eos() { return ge::EoS{make_ideal<1>(), ge::VanDerWaals<1>{unary_inputs}}; }
+
+auto make_dynamic_unary_eos()
+{
+    using Residual = ge::VanDerWaals<std::dynamic_extent>;
+    const std::vector<Residual::SpeciesInput> inputs{{.T_c = n2.T_c, .P_c = n2.P_c}};
+    return ge::EoS{make_dynamic_ideal<1>(), Residual{std::span<const Residual::SpeciesInput>{inputs}}};
+}
+
+auto make_fixed_binary_eos() { return ge::EoS{make_ideal<2>(), ge::VanDerWaals<2>{binary_inputs, binary_kij}}; }
+
+auto make_dynamic_binary_eos()
+{
+    using Residual = ge::VanDerWaals<std::dynamic_extent>;
+    const std::vector<Residual::SpeciesInput> inputs{{.T_c = n2.T_c, .P_c = n2.P_c}, {.T_c = co2.T_c, .P_c = co2.P_c}};
+    const std::vector<double> kij(binary_kij.begin(), binary_kij.end());
+    return ge::EoS{make_dynamic_ideal<2>(),
+                   Residual{std::span<const Residual::SpeciesInput>{inputs}, std::span<const double>{kij}}};
+}
+
+std::vector<eos_test_state> unary_contract_states()
+{
+    return {{.c = 100.0, .x = {1.0}, .T = 300.0, .effective_molar_mass = 0.028, .label = "gas"},
+            {.c = 8000.0, .x = {1.0}, .T = 320.0, .effective_molar_mass = 0.028, .label = "dense"}};
+}
+
+std::vector<eos_test_state> binary_contract_states()
+{
+    return {{.c = 150.0, .x = {0.3, 0.7}, .T = 310.0, .effective_molar_mass = 0.036, .label = "gas"},
+            {.c = 5000.0, .x = {0.6, 0.4}, .T = 350.0, .effective_molar_mass = 0.033, .label = "dense"}};
+}
+
+constexpr eos_valid_domain unary_valid_domain{.c_min = 1e-8,
+                                              .c_max = 9000.0,
+                                              .T_min = 220.0,
+                                              .T_max = 500.0,
+                                              .minimum_mole_fraction = 0.01,
+                                              .seed = 0xC0FFEE,
+                                              .random_samples = 50};
+
+constexpr eos_valid_domain binary_valid_domain{.c_min = 1e-8,
+                                               .c_max = 9000.0,
+                                               .T_min = 240.0,
+                                               .T_max = 500.0,
+                                               .minimum_mole_fraction = 0.01,
+                                               .seed = 0xC0FFEE,
+                                               .random_samples = 50};
+
 // --- Independent long-double reference, straight from the spec -------------
 constexpr long double Rld = ge::ideal_gas_constant<long double>;
 
@@ -94,7 +157,31 @@ long double ref_helmholtz(const std::array<Input<N>, N>& in, const std::array<do
 
 int main()
 {
+    suite<"van_der_waals_unary_contracts"> unary_contracts = [] {
+        auto dynamic_eos = make_dynamic_unary_eos();
+        const auto fixture = eos_test_fixture{.contribution = dynamic_eos.residual(),
+                                              .eos = dynamic_eos,
+                                              .states = unary_contract_states(),
+                                              .domain = unary_valid_domain};
+        register_eos_contract_tests(fixture);
+        register_residual_contract_tests(
+            fixture, {.dilute_concentration = 1e-8, .dilute_tolerance = {.abs = 1e-6, .rel = 1e-6}});
+        register_static_dynamic_equivalence_tests(make_fixed_unary_eos(), make_dynamic_unary_eos(),
+                                                  unary_contract_states());
+    };
+
     suite<"van_der_waals"> vdw_suite = [] {
+        auto dynamic_eos = make_dynamic_binary_eos();
+        const auto fixture = eos_test_fixture{.contribution = dynamic_eos.residual(),
+                                              .eos = dynamic_eos,
+                                              .states = binary_contract_states(),
+                                              .domain = binary_valid_domain};
+        register_eos_contract_tests(fixture);
+        register_residual_contract_tests(
+            fixture, {.dilute_concentration = 1e-8, .dilute_tolerance = {.abs = 1e-6, .rel = 1e-6}});
+        register_static_dynamic_equivalence_tests(make_fixed_binary_eos(), make_dynamic_binary_eos(),
+                                                  binary_contract_states());
+
         // ===================================================================
         // Pure species: a_r against the closed-form reference over a sweep of
         // states. Pins down a0_ii, b_ii, and the psi_1/psi_2 assembly.
@@ -192,6 +279,7 @@ int main()
         "dynamic empty kij equals zero matrix"_test = [] {
             using DynInput = ge::VanDerWaals<>::SpeciesInput;
             std::vector<DynInput> in_dyn;
+            in_dyn.reserve(binary_inputs.size());
             for (const auto& in : binary_inputs) {
                 in_dyn.push_back({.T_c = in.T_c, .P_c = in.P_c});
             }
@@ -216,6 +304,7 @@ int main()
         "wrong-sized kij throws"_test = [] {
             using DynInput = ge::VanDerWaals<>::SpeciesInput;
             std::vector<DynInput> in_dyn;
+            in_dyn.reserve(binary_inputs.size());
             for (const auto& in : binary_inputs) {
                 in_dyn.push_back({.T_c = in.T_c, .P_c = in.P_c});
             }
@@ -226,41 +315,6 @@ int main()
             }));
         };
 #endif
-
-        // ===================================================================
-        // Static and dynamic instances built from the same data must agree.
-        // ===================================================================
-        "static and dynamic instances agree"_test = [] {
-            const ge::VanDerWaals<2> stat(binary_inputs, binary_kij);
-            using DynInput = ge::VanDerWaals<>::SpeciesInput;
-            std::vector<DynInput> in_dyn;
-            for (const auto& in : binary_inputs) {
-                in_dyn.push_back({.T_c = in.T_c, .P_c = in.P_c});
-            }
-            const std::vector<double> kij_dyn(binary_kij.begin(), binary_kij.end());
-            const ge::VanDerWaals<> dyn{std::span<const DynInput>{in_dyn}, std::span<const double>{kij_dyn}};
-            expect(dyn.size() == 2_ul);
-            const std::array<double, 2> x{0.25, 0.75};
-            for (const double c : {75.0, 6000.0}) {
-                for (const double T : {220.0, 380.0}) {
-                    check_rel("static == dynamic", dyn.calc_helmholtz(c, x.data(), T),
-                              stat.calc_helmholtz(c, x.data(), T), 1e-15);
-                }
-            }
-        };
-
-        // ===================================================================
-        // Generic structural consistency: Psi == c*a and Psi == sum_i Psi_i
-        // (delegated to the shared helper).
-        // ===================================================================
-        "helmholtz consistency (generic)"_test = [] {
-            const ge::VanDerWaals<2> model(binary_inputs, binary_kij);
-            for (const double T : {240.0, 310.0, 420.0}) {
-                check_helmholtz_consistency<2>(model, {40.0, 70.0}, T);
-                check_helmholtz_consistency<2>(model, {1500.0, 3500.0}, T);
-                check_helmholtz_consistency<2>(model, {8000.0, 1000.0}, T);
-            }
-        };
 
         // ===================================================================
         // Pressure-explicit form of vdW for a pure species:
@@ -300,35 +354,6 @@ int main()
             // individual terms it cancels from are O(R*T_c).
             expect(std::abs(dpdc) <= 1e-6 * ge::ideal_gas_constant<double> * n2.T_c)
                 << "dp/dc at critical point: " << dpdc;
-        };
-
-        // ===================================================================
-        // Pressure via the Euler relation (mixture, reverse-mode chemical
-        // potentials) and the full derivative-consistency harness.
-        // ===================================================================
-        "pressure via Euler relation (mixture)"_test = [] {
-            const ge::EoS eos{make_ideal<2>(), ge::VanDerWaals<2>(binary_inputs, binary_kij)};
-            for (const double c : {30.0, 900.0, 7000.0}) {
-                for (const double T : {260.0, 360.0}) {
-                    check_euler_pressure<2>(eos, {0.4 * c, 0.6 * c}, T);
-                }
-            }
-        };
-
-        "derivative consistency (pure, gas and dense)"_test = [] {
-            const ge::EoS eos{make_ideal<1>(), ge::VanDerWaals<1>(unary_inputs)};
-            run_derivative_consistency_tests<1>(eos, 100.0, {1.0}, 300.0, 0.028);
-            run_derivative_consistency_tests<1>(eos, 8000.0, {1.0}, 320.0, 0.028);
-            // Pointer-core vs container-wrapper agreement for every free function.
-            run_free_function_consistency_tests<1>(eos);
-        };
-
-        "derivative consistency (binary mixture)"_test = [] {
-            const ge::EoS eos{make_ideal<2>(), ge::VanDerWaals<2>(binary_inputs, binary_kij)};
-            run_derivative_consistency_tests<2>(eos, 150.0, {0.3, 0.7}, 310.0, 0.036);
-            run_derivative_consistency_tests<2>(eos, 5000.0, {0.6, 0.4}, 350.0, 0.033);
-            // Pointer-core vs container-wrapper agreement for every free function.
-            run_free_function_consistency_tests<2>(eos);
         };
     };
 

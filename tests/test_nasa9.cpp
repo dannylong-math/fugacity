@@ -1,12 +1,8 @@
 //
 // Unit tests for the NASA-9 polynomial ideal-gas model (synthesize::Nasa9).
 //
-// As in test_nasa7.cpp, the model-agnostic structural and derivative checks
-// are delegated to the reusable helpers in derivative_test_harness.hpp:
-//   - check_helmholtz_consistency       (Psi == c*a, Psi == sum_i Psi_i)
-//   - check_ideal_gas_pressure          (p == c R T)
-//   - check_euler_pressure              (sum_i rho_i mu_i - Psi == calc_pressure)
-//   - run_derivative_consistency_tests  (every property vs. finite differences)
+// Universal, ideal-gas, derivative, wrapper, precondition, deterministic-sweep,
+// and static/dynamic checks are registered through support/eos_test_suite.hpp.
 // What remains here is genuinely NASA9-specific: the caloric properties checked
 // against the *physical* NASA-9 relations, and the reduction to NASA-7.
 //
@@ -29,7 +25,8 @@
 // coefficients (a2..a8). The last suite checks the two models agree kernel by
 // kernel in that case.
 //
-#include "derivative_test_harness.hpp"
+#include "support/eos_test_suite.hpp"
+#include "support/numeric_checks.hpp"
 #include "synthesize/core/core_calculations.hpp"
 #include "synthesize/core/eos_pair.hpp"
 #include "synthesize/core/numbers.hpp"
@@ -42,6 +39,7 @@
 #include <cmath>
 #include <cstddef>
 #include <span>
+#include <vector>
 
 using namespace boost::ut;
 using namespace synthesize_test;
@@ -85,6 +83,48 @@ constexpr std::array<Input<2>, 2> binary_inputs{{
      .T_ref = 320.0,
      .p_ref = 9.0e4},
 }};
+
+std::vector<ge::Nasa9<>::SpeciesInput> dynamic_binary_inputs()
+{
+    std::vector<ge::Nasa9<>::SpeciesInput> result;
+    result.reserve(binary_inputs.size());
+    for (const auto& input : binary_inputs) {
+        result.push_back({.a0 = input.a0,
+                          .a1 = input.a1,
+                          .a2 = input.a2,
+                          .a3 = input.a3,
+                          .a4 = input.a4,
+                          .a5 = input.a5,
+                          .a6 = input.a6,
+                          .a7 = input.a7,
+                          .a8 = input.a8,
+                          .T_ref = input.T_ref,
+                          .p_ref = input.p_ref});
+    }
+    return result;
+}
+
+auto make_dynamic_nasa9_eos()
+{
+    const auto inputs = dynamic_binary_inputs();
+    return ge::EoS{ge::Nasa9<>{std::span<const ge::Nasa9<>::SpeciesInput>{inputs}},
+                   ge::NoResidual<std::dynamic_extent>{inputs.size()}};
+}
+
+std::vector<eos_test_state> nasa9_contract_states()
+{
+    return {{.c = 40.0, .x = {0.5, 0.5}, .T = 280.0, .effective_molar_mass = 0.029, .label = "low-density"},
+            {.c = 100.0, .x = {0.4, 0.6}, .T = 300.0, .effective_molar_mass = 0.029, .label = "representative"},
+            {.c = 250.0, .x = {0.7, 0.3}, .T = 410.0, .effective_molar_mass = 0.029, .label = "warm"}};
+}
+
+constexpr eos_valid_domain nasa9_valid_domain{.c_min = 20.0,
+                                              .c_max = 260.0,
+                                              .T_min = 250.0,
+                                              .T_max = 600.0,
+                                              .minimum_mole_fraction = 0.01,
+                                              .seed = 0xC0FFEE,
+                                              .random_samples = 50};
 
 // Single-species reference data (N2) for the caloric checks.
 constexpr double T_ref = 300.0;
@@ -150,44 +190,15 @@ int main()
     suite<"nasa9"> nasa9 = [] {
         const double R = ge::ideal_gas_constant<double>;
 
-        // ===================================================================
-        // Generic structural consistency (delegated to the shared helper):
-        //   Psi == c*a   and   Psi == sum_i Psi_i.
-        // ===================================================================
-        "helmholtz consistency (generic)"_test = [&] {
-            const ge::Nasa9<2> model(binary_inputs);
-            for (const double T : {280.0, 340.0, 410.0}) {
-                check_helmholtz_consistency<2>(model, {40.0, 70.0}, T);
-                check_helmholtz_consistency<2>(model, {5.0, 95.0}, T);
-                check_helmholtz_consistency<2>(model, {120.0, 30.0}, T);
-            }
-        };
-
-        // ===================================================================
-        // Ideal-gas pressure p = c R T (delegated to the shared helper).
-        // ===================================================================
-        "ideal-gas pressure == c R T"_test = [&] {
-            auto eos = make_nasa9_eos<2>(binary_inputs);
-            for (const double c : {20.0, 80.0, 200.0}) {
-                for (const double T : {270.0, 330.0, 410.0}) {
-                    check_ideal_gas_pressure<2>(eos, c, {0.35, 0.65}, T);
-                }
-            }
-        };
-
-        // ===================================================================
-        // Pressure via the Euler relation, sum_i rho_i mu_i - Psi == p
-        // (delegated to the shared helper). Exercises the multi-component
-        // reverse-mode chemical potentials.
-        // ===================================================================
-        "pressure via Euler relation (mixture)"_test = [&] {
-            auto eos = make_nasa9_eos<2>(binary_inputs);
-            for (const double c : {30.0, 90.0, 175.0}) {
-                for (const double T : {285.0, 360.0}) {
-                    check_euler_pressure<2>(eos, {0.4 * c, 0.6 * c}, T);
-                }
-            }
-        };
+        auto dynamic_eos = make_dynamic_nasa9_eos();
+        const auto fixture = eos_test_fixture{.contribution = dynamic_eos.ideal(),
+                                              .eos = dynamic_eos,
+                                              .states = nasa9_contract_states(),
+                                              .domain = nasa9_valid_domain};
+        register_eos_contract_tests(fixture);
+        register_ideal_gas_contract_tests(fixture);
+        register_static_dynamic_equivalence_tests(make_nasa9_eos<2>(binary_inputs), make_dynamic_nasa9_eos(),
+                                                  nasa9_contract_states());
 
         // ===================================================================
         // NASA9-specific caloric properties vs the closed-form NASA-9 relations
@@ -233,27 +244,6 @@ int main()
                     check_rel("calc_entropy(T,c)", ge::calc_entropy(eos, c, xs, T), s_expected, 1e-9);
                 }
             }
-        };
-
-        // ===================================================================
-        // Full derivative-consistency sweep: every property in
-        // core_calculations.hpp checked against 4th-order finite differences of
-        // the model's own Helmholtz energy (delegated to the shared harness).
-        // Covers both single-component and mixture states.
-        // ===================================================================
-        "derivative consistency vs finite differences"_test = [&] {
-            auto unary = make_nasa9_eos<1>(unary_inputs);
-            run_derivative_consistency_tests<1>(unary, 120.0, {1.0}, 310.0);
-            run_derivative_consistency_tests<1>(unary, 200.0, {1.0}, 360.0);
-
-            auto binary = make_nasa9_eos<2>(binary_inputs);
-            run_derivative_consistency_tests<2>(binary, 100.0, {0.4, 0.6}, 300.0);
-            run_derivative_consistency_tests<2>(binary, 250.0, {0.7, 0.3}, 350.0);
-            run_derivative_consistency_tests<2>(binary, 40.0, {0.5, 0.5}, 280.0);
-
-            // Pointer-core vs container-wrapper agreement for every free function.
-            run_free_function_consistency_tests<1>(unary);
-            run_free_function_consistency_tests<2>(binary);
         };
 
         // ===================================================================

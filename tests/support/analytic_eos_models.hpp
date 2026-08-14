@@ -1,6 +1,6 @@
 #pragma once
 //
-// Analytic equation-of-state models used by the test-suite.
+// Analytic equation-of-state fixtures used by tests of the core calculation layer.
 //
 // These are deliberately simple, fully analytic models whose thermodynamics can
 // be derived by hand. They are *not* meant to be physically accurate; they only

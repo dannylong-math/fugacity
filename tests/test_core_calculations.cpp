@@ -1,11 +1,13 @@
-#include "derivative_test_harness.hpp"
-#include "eos_test_models.hpp"
+#include "support/analytic_eos_models.hpp"
+#include "support/eos_test_suite.hpp"
+#include "support/numeric_checks.hpp"
 #include "synthesize/core/core_calculations.hpp"
 
 #include <array>
 #include <boost/ut.hpp>
 #include <cmath>
 #include <span>
+#include <vector>
 
 using namespace boost::ut;
 using namespace synthesize_test;
@@ -33,6 +35,22 @@ struct BinaryAnalytic {
 
 int main()
 {
+    suite<"core_calculations_unary_contracts"> unary_contracts = [] {
+        const auto eos = make_unary_model();
+        const std::vector<eos_test_state> states{
+            {.c = 120.0, .x = {1.0}, .T = 310.0, .effective_molar_mass = 0.02, .label = "representative"},
+            {.c = 200.0, .x = {1.0}, .T = 360.0, .effective_molar_mass = 0.02, .label = "warm"}};
+        const eos_valid_domain domain{.c_min = 50.0,
+                                      .c_max = 300.0,
+                                      .T_min = 280.0,
+                                      .T_max = 400.0,
+                                      .minimum_mole_fraction = 0.01,
+                                      .seed = 0xC0FFEE,
+                                      .random_samples = 50};
+        register_eos_contract_tests(
+            eos_test_fixture{.contribution = eos.residual(), .eos = eos, .states = states, .domain = domain});
+    };
+
     // NOTE: boost::ut requires the suite lambda to be captureless (it is
     // converted to a function pointer), so shared state lives inside it.
     suite<"core_calculations"> core = [] {
@@ -40,32 +58,20 @@ int main()
         auto binary = make_binary_model();
         auto unary = make_unary_model();
 
-        // -------------------------------------------------------------------
-        // Generic finite-difference derivative-consistency harness.
-        // -------------------------------------------------------------------
-        "binary derivative consistency"_test = [&] {
-            run_derivative_consistency_tests<2>(binary, 100.0, {0.4, 0.6}, 300.0);
-            run_derivative_consistency_tests<2>(binary, 250.0, {0.7, 0.3}, 350.0);
-            run_derivative_consistency_tests<2>(binary, 50.0, {0.5, 0.5}, 280.0);
-            run_derivative_consistency_tests<2>(binary, 300.0, {0.2, 0.8}, 400.0);
-            // Pointer-core vs container-wrapper agreement for every free function.
-            run_free_function_consistency_tests<2>(binary);
-        };
-
-        "unary derivative consistency"_test = [&] {
-            run_derivative_consistency_tests<1>(unary, 120.0, {1.0}, 310.0);
-            run_derivative_consistency_tests<1>(unary, 200.0, {1.0}, 360.0);
-            // Pointer-core vs container-wrapper agreement for every free function.
-            run_free_function_consistency_tests<1>(unary);
-        };
-
-        // -------------------------------------------------------------------
-        // Input-validation preconditions: every free function rejects a
-        // mismatched-size mole-fraction container (std::logic_error, debug only)
-        // and a non-positive temperature (std::domain_error, always on).
-        // -------------------------------------------------------------------
-        "precondition checks (binary)"_test = [&] { run_precondition_tests<2>(binary, 100.0, {0.4, 0.6}, 300.0); };
-        "precondition checks (unary)"_test = [&] { run_precondition_tests<1>(unary, 120.0, {1.0}, 310.0); };
+        const std::vector<eos_test_state> contract_states{
+            {.c = 100.0, .x = {0.4, 0.6}, .T = 300.0, .effective_molar_mass = 0.02, .label = "representative"},
+            {.c = 250.0, .x = {0.7, 0.3}, .T = 350.0, .effective_molar_mass = 0.02, .label = "dense"},
+            {.c = 50.0, .x = {0.5, 0.5}, .T = 280.0, .effective_molar_mass = 0.02, .label = "cool"},
+            {.c = 300.0, .x = {0.2, 0.8}, .T = 400.0, .effective_molar_mass = 0.02, .label = "warm"}};
+        const eos_valid_domain contract_domain{.c_min = 1e-3,
+                                               .c_max = 350.0,
+                                               .T_min = 260.0,
+                                               .T_max = 420.0,
+                                               .minimum_mole_fraction = 0.01,
+                                               .seed = 0xC0FFEE,
+                                               .random_samples = 50};
+        register_eos_contract_tests(eos_test_fixture{
+            .contribution = binary.residual(), .eos = binary, .states = contract_states, .domain = contract_domain});
 
         // -------------------------------------------------------------------
         // Independent closed-form checks (virial EoS).
