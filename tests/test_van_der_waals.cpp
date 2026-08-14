@@ -1,5 +1,5 @@
 //
-// Unit tests for the van der Waals residual model (synthesize::VanDerWaals).
+// Unit tests for the van der Waals residual model (fugacity::VanDerWaals).
 //
 // Universal identities, derivatives, wrappers, preconditions, dilute-limit
 // behavior, deterministic sampling, and fixed/dynamic equivalence are
@@ -16,11 +16,11 @@
 //
 #include "support/eos_test_suite.hpp"
 #include "support/numeric_checks.hpp"
-#include "synthesize/core/core_calculations.hpp"
-#include "synthesize/core/eos_pair.hpp"
-#include "synthesize/core/numbers.hpp"
-#include "synthesize/ideal_models/const_cp.hpp"
-#include "synthesize/residual_models/van_der_waals.hpp"
+#include "fugacity/core/core_calculations.hpp"
+#include "fugacity/core/eos_pair.hpp"
+#include "fugacity/core/numbers.hpp"
+#include "fugacity/ideal_models/const_cp.hpp"
+#include "fugacity/residual_models/van_der_waals.hpp"
 
 #include <array>
 #include <boost/ut.hpp>
@@ -31,13 +31,13 @@
 #include <vector>
 
 using namespace boost::ut;
-using namespace synthesize_test;
+using namespace fugacity_test;
 
 namespace {
 
-namespace ge = synthesize;
+namespace fug = fugacity;
 
-template<std::size_t N> using Input = typename ge::VanDerWaals<N>::SpeciesInput;
+template<std::size_t N> using Input = typename fug::VanDerWaals<N>::SpeciesInput;
 
 // N2 and CO2 critical data.
 constexpr Input<2> n2{.T_c = 126.192, .P_c = 3.3958e6};
@@ -53,7 +53,7 @@ constexpr std::array<double, 4> binary_kij{0.0, 0.10, 0.04, 0.0};
 // A ConstantCp ideal part so the residual can be paired into a full EoS.
 template<std::size_t N> auto make_ideal()
 {
-    std::array<typename ge::ConstantCp<N>::SpeciesInput, N> in{};
+    std::array<typename fug::ConstantCp<N>::SpeciesInput, N> in{};
     for (std::size_t i = 0; i < N; ++i) {
         in[i] = {.T_ref = 298.15,
                  .p_ref = 1.0e5,
@@ -61,12 +61,12 @@ template<std::size_t N> auto make_ideal()
                  .h_ref = 1000.0 * static_cast<double>(i),
                  .s_ref = 150.0 + (10.0 * static_cast<double>(i))};
     }
-    return ge::ConstantCp<N>(in);
+    return fug::ConstantCp<N>(in);
 }
 
 template<std::size_t N> auto make_dynamic_ideal()
 {
-    std::vector<ge::ConstantCp<>::SpeciesInput> inputs(N);
+    std::vector<fug::ConstantCp<>::SpeciesInput> inputs(N);
     for (std::size_t i = 0; i < N; ++i) {
         inputs[i] = {.T_ref = 298.15,
                      .p_ref = 1.0e5,
@@ -74,26 +74,26 @@ template<std::size_t N> auto make_dynamic_ideal()
                      .h_ref = 1000.0 * static_cast<double>(i),
                      .s_ref = 150.0 + (10.0 * static_cast<double>(i))};
     }
-    return ge::ConstantCp<>{std::span<const ge::ConstantCp<>::SpeciesInput>{inputs}};
+    return fug::ConstantCp<>{std::span<const fug::ConstantCp<>::SpeciesInput>{inputs}};
 }
 
-auto make_fixed_unary_eos() { return ge::EoS{make_ideal<1>(), ge::VanDerWaals<1>{unary_inputs}}; }
+auto make_fixed_unary_eos() { return fug::EoS{make_ideal<1>(), fug::VanDerWaals<1>{unary_inputs}}; }
 
 auto make_dynamic_unary_eos()
 {
-    using Residual = ge::VanDerWaals<std::dynamic_extent>;
+    using Residual = fug::VanDerWaals<std::dynamic_extent>;
     const std::vector<Residual::SpeciesInput> inputs{{.T_c = n2.T_c, .P_c = n2.P_c}};
-    return ge::EoS{make_dynamic_ideal<1>(), Residual{std::span<const Residual::SpeciesInput>{inputs}}};
+    return fug::EoS{make_dynamic_ideal<1>(), Residual{std::span<const Residual::SpeciesInput>{inputs}}};
 }
 
-auto make_fixed_binary_eos() { return ge::EoS{make_ideal<2>(), ge::VanDerWaals<2>{binary_inputs, binary_kij}}; }
+auto make_fixed_binary_eos() { return fug::EoS{make_ideal<2>(), fug::VanDerWaals<2>{binary_inputs, binary_kij}}; }
 
 auto make_dynamic_binary_eos()
 {
-    using Residual = ge::VanDerWaals<std::dynamic_extent>;
+    using Residual = fug::VanDerWaals<std::dynamic_extent>;
     const std::vector<Residual::SpeciesInput> inputs{{.T_c = n2.T_c, .P_c = n2.P_c}, {.T_c = co2.T_c, .P_c = co2.P_c}};
     const std::vector<double> kij(binary_kij.begin(), binary_kij.end());
-    return ge::EoS{make_dynamic_ideal<2>(),
+    return fug::EoS{make_dynamic_ideal<2>(),
                    Residual{std::span<const Residual::SpeciesInput>{inputs}, std::span<const double>{kij}}};
 }
 
@@ -126,7 +126,7 @@ constexpr eos_valid_domain binary_valid_domain{.c_min = 1e-8,
                                                .random_samples = 50};
 
 // --- Independent long-double reference, straight from the spec -------------
-constexpr long double Rld = ge::ideal_gas_constant<long double>;
+constexpr long double Rld = fug::ideal_gas_constant<long double>;
 
 long double vdw_a0(const long double T_c, const long double P_c)
 {
@@ -187,7 +187,7 @@ int main()
         // states. Pins down a0_ii, b_ii, and the psi_1/psi_2 assembly.
         // ===================================================================
         "pure species residual helmholtz matches closed form"_test = [] {
-            const ge::VanDerWaals<1> model(unary_inputs);
+            const fug::VanDerWaals<1> model(unary_inputs);
             for (const double c : {1.0, 100.0, 5000.0, 15000.0}) {
                 for (const double T : {120.0, 300.0, 500.0}) {
                     const long double ref = ref_helmholtz<1>(unary_inputs, {0.0}, c, {1.0}, T);
@@ -204,7 +204,7 @@ int main()
         // is exact.
         // ===================================================================
         "binary mixture with asymmetric kij matches closed form"_test = [] {
-            const ge::VanDerWaals<2> model(binary_inputs, binary_kij);
+            const fug::VanDerWaals<2> model(binary_inputs, binary_kij);
             for (const double c : {50.0, 2000.0, 9000.0}) {
                 for (const double T : {250.0, 320.0, 450.0}) {
                     for (const std::array<double, 2> x : {std::array{0.3, 0.7}, std::array{0.85, 0.15}}) {
@@ -228,9 +228,9 @@ int main()
                 double c;      // [mol/m^3]
                 double alphar; // a_r / (R T) [-]
             };
-            const double R = ge::ideal_gas_constant<double>;
+            const double R = fug::ideal_gas_constant<double>;
 
-            const ge::VanDerWaals<1> pure(unary_inputs); // N2
+            const fug::VanDerWaals<1> pure(unary_inputs); // N2
             constexpr std::array<Ref, 4> pure_refs{{
                 {.T = 500.0, .c = 1.0, .alphar = 5.7246696369883375e-06},
                 {.T = 300.0, .c = 100.0, .alphar = -0.0016133301849820926},
@@ -244,7 +244,7 @@ int main()
             }
 
             // teqp's vdWEOS mixes with sqrt(a_i a_j) and no k_ij.
-            const ge::VanDerWaals<2> binary(binary_inputs); // N2 + CO2, kij = 0
+            const fug::VanDerWaals<2> binary(binary_inputs); // N2 + CO2, kij = 0
             constexpr std::array<Ref, 3> binary_refs{{
                 {.T = 300.0, .c = 100.0, .alphar = -0.0063338824515883491},
                 {.T = 250.0, .c = 2000.0, .alphar = -0.16509357279216791},
@@ -261,8 +261,8 @@ int main()
         // Omitting kij must equal passing an all-zero matrix.
         // ===================================================================
         "kij defaults to zero"_test = [] {
-            const ge::VanDerWaals<2> defaulted(binary_inputs);
-            const ge::VanDerWaals<2> zeros(binary_inputs, std::array<double, 4>{});
+            const fug::VanDerWaals<2> defaulted(binary_inputs);
+            const fug::VanDerWaals<2> zeros(binary_inputs, std::array<double, 4>{});
             const std::array<double, 2> x{0.4, 0.6};
             for (const double c : {100.0, 4000.0}) {
                 check_rel("a_r (kij default)", defaulted.calc_helmholtz(c, x.data(), 300.0),
@@ -277,15 +277,15 @@ int main()
         // result must equal passing an explicit all-zero matrix.
         // ===================================================================
         "dynamic empty kij equals zero matrix"_test = [] {
-            using DynInput = ge::VanDerWaals<>::SpeciesInput;
+            using DynInput = fug::VanDerWaals<>::SpeciesInput;
             std::vector<DynInput> in_dyn;
             in_dyn.reserve(binary_inputs.size());
             for (const auto& in : binary_inputs) {
                 in_dyn.push_back({.T_c = in.T_c, .P_c = in.P_c});
             }
-            const ge::VanDerWaals<> empty_kij{std::span<const DynInput>{in_dyn}}; // kij defaulted to empty span
+            const fug::VanDerWaals<> empty_kij{std::span<const DynInput>{in_dyn}}; // kij defaulted to empty span
             const std::vector<double> zeros_dyn(4, 0.0);
-            const ge::VanDerWaals<> zero_kij{std::span<const DynInput>{in_dyn}, std::span<const double>{zeros_dyn}};
+            const fug::VanDerWaals<> zero_kij{std::span<const DynInput>{in_dyn}, std::span<const double>{zeros_dyn}};
             const std::array<double, 2> x{0.4, 0.6};
             for (const double c : {100.0, 4000.0}) {
                 for (const double T : {250.0, 400.0}) {
@@ -298,11 +298,11 @@ int main()
 #ifndef NDEBUG
         // ===================================================================
         // A non-empty kij whose size is not n*n violates the constructor
-        // precondition (SYNTHESIZE_ASSERT), which throws std::logic_error in a
+        // precondition (FUGACITY_ASSERT), which throws std::logic_error in a
         // debug build.
         // ===================================================================
         "wrong-sized kij throws"_test = [] {
-            using DynInput = ge::VanDerWaals<>::SpeciesInput;
+            using DynInput = fug::VanDerWaals<>::SpeciesInput;
             std::vector<DynInput> in_dyn;
             in_dyn.reserve(binary_inputs.size());
             for (const auto& in : binary_inputs) {
@@ -310,7 +310,7 @@ int main()
             }
             const std::vector<double> kij_bad(3, 0.0); // size 3, not 2*2 = 4
             expect(throws<std::logic_error>([&] {
-                const ge::VanDerWaals<> bad{std::span<const DynInput>{in_dyn}, std::span<const double>{kij_bad}};
+                const fug::VanDerWaals<> bad{std::span<const DynInput>{in_dyn}, std::span<const double>{kij_bad}};
                 (void)bad;
             }));
         };
@@ -323,8 +323,8 @@ int main()
         // agreement here verifies the a_r assembly against the textbook EoS.
         // ===================================================================
         "pure species pressure matches pressure-explicit form"_test = [] {
-            const ge::EoS eos{make_ideal<1>(), ge::VanDerWaals<1>(unary_inputs)};
-            const double R = ge::ideal_gas_constant<double>;
+            const fug::EoS eos{make_ideal<1>(), fug::VanDerWaals<1>(unary_inputs)};
+            const double R = fug::ideal_gas_constant<double>;
             const double a = static_cast<double>(vdw_a0(n2.T_c, n2.P_c));
             const double b = static_cast<double>(vdw_b(n2.T_c, n2.P_c));
             const std::array<double, 1> x{1.0};
@@ -332,7 +332,7 @@ int main()
             for (const double c : {1.0, 100.0, 5000.0, 15000.0}) {
                 for (const double T : {120.0, 300.0, 500.0}) {
                     const double p_ref = (c * R * T / (1.0 - (b * c))) - (a * c * c);
-                    check_rel("p == cRT/(1-bc) - a c^2", ge::calc_pressure(eos, c, xs, T), p_ref, 1e-9);
+                    check_rel("p == cRT/(1-bc) - a c^2", fug::calc_pressure(eos, c, xs, T), p_ref, 1e-9);
                 }
             }
         };
@@ -343,16 +343,16 @@ int main()
         // This is the strongest check that a0 and b were formed correctly.
         // ===================================================================
         "pure species reproduces its critical point"_test = [] {
-            const ge::EoS eos{make_ideal<1>(), ge::VanDerWaals<1>(unary_inputs)};
+            const fug::EoS eos{make_ideal<1>(), fug::VanDerWaals<1>(unary_inputs)};
             const double b = static_cast<double>(vdw_b(n2.T_c, n2.P_c));
             const double c_c = 1.0 / (3.0 * b);
             const std::array<double, 1> x{1.0};
             const std::span<const double, 1> xs{x};
-            check_rel("p(T_c, c_c) == P_c", ge::calc_pressure(eos, c_c, xs, n2.T_c), n2.P_c, 1e-9);
-            const double dpdc = ge::calc_dp_dc(eos, c_c, xs, n2.T_c);
+            check_rel("p(T_c, c_c) == P_c", fug::calc_pressure(eos, c_c, xs, n2.T_c), n2.P_c, 1e-9);
+            const double dpdc = fug::calc_dp_dc(eos, c_c, xs, n2.T_c);
             // dp/dc vanishes at the critical point; scale by R*T_c since the
             // individual terms it cancels from are O(R*T_c).
-            expect(std::abs(dpdc) <= 1e-6 * ge::ideal_gas_constant<double> * n2.T_c)
+            expect(std::abs(dpdc) <= 1e-6 * fug::ideal_gas_constant<double> * n2.T_c)
                 << "dp/dc at critical point: " << dpdc;
         };
     };

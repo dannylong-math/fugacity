@@ -6,7 +6,7 @@
 #include <utility>
 #include <vector>
 
-namespace synthesize_test {
+namespace fugacity_test {
 
 template<class Contribution, class EoSPair> struct eos_test_fixture {
     Contribution contribution;
@@ -99,4 +99,4 @@ void register_static_dynamic_equivalence_tests(StaticEoS fixed, DynamicEoS dynam
     };
 }
 
-} // namespace synthesize_test
+} // namespace fugacity_test

@@ -5,9 +5,9 @@
  * @brief Couples an ideal and a residual model into a single equation of state.
  */
 
-#include "synthesize/core/assertions.hpp"
-#include "synthesize/core/concepts.hpp"
-namespace synthesize {
+#include "fugacity/core/assertions.hpp"
+#include "fugacity/core/concepts.hpp"
+namespace fugacity {
 
 /**
  * @brief A complete equation of state, formed by pairing an ideal contribution
@@ -18,8 +18,8 @@ namespace synthesize {
  * energy is the sum of the ideal and residual parts, and the property routines
  * combine the two contributions as the relevant thermodynamics dictates.
  *
- * @tparam Ideal    A model satisfying synthesize::IdealEoS.
- * @tparam Residual A model satisfying synthesize::ResidualEoS.
+ * @tparam Ideal    A model satisfying fugacity::IdealEoS.
+ * @tparam Residual A model satisfying fugacity::ResidualEoS.
  */
 template<IdealEoS Ideal, ResidualEoS Residual> class EoS {
 public:
@@ -32,20 +32,20 @@ public:
      * @param residual The residual contribution.
      * @pre  `ideal.size() == residual.size()`: both models must describe the same
      *       number of components. In a debug build a mismatch throws
-     *       @c std::logic_error (via SYNTHESIZE_ASSERT); in a release build the
+     *       @c std::logic_error (via FUGACITY_ASSERT); in a release build the
      *       check is elided, so the @c noexcept specification is preserved.
      */
     EoS(Ideal ideal, Residual residual)
 #ifdef NDEBUG
         // In release the precondition check is elided, so the constructor can
-        // only throw if a move constructor does. In debug SYNTHESIZE_ASSERT may
+        // only throw if a move constructor does. In debug FUGACITY_ASSERT may
         // throw std::logic_error, so the constructor is left potentially-throwing.
         noexcept(std::is_nothrow_move_constructible_v<Ideal> && std::is_nothrow_move_constructible_v<Residual>)
 #endif
         :
         ideal_{std::move(ideal)}, residual_{std::move(residual)}
     {
-        SYNTHESIZE_ASSERT(ideal_.size() == residual_.size());
+        FUGACITY_ASSERT(ideal_.size() == residual_.size());
     }
 
     /// @brief Access the ideal contribution.
@@ -62,4 +62,4 @@ private:
     Ideal ideal_;       ///< The ideal contribution.
     Residual residual_; ///< The residual contribution.
 };
-} // namespace synthesize
+} // namespace fugacity

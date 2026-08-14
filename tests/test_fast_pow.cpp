@@ -1,4 +1,4 @@
-#include "synthesize/core/core_calculations.hpp"
+#include "fugacity/core/core_calculations.hpp"
 
 #include <boost/ut.hpp>
 #include <cmath>
@@ -8,12 +8,12 @@
 
 using namespace boost::ut;
 
-// Exercises the compile-time integer power helper synthesize::detail::fast_pow.
+// Exercises the compile-time integer power helper fugacity::detail::fast_pow.
 // The previous implementation had a dead `N % 2 == 2` branch; these checks pin
 // down correct results for even, odd, zero, one, and negative exponents.
 int main()
 {
-    using synthesize::detail::fast_pow;
+    using fugacity::detail::fast_pow;
 
     suite<"fast_pow"> s = [] {
         "matches std::pow for several exponents"_test = []<typename Number> {
@@ -52,7 +52,7 @@ int main()
 
 #ifndef NDEBUG
         // A negative exponent forms the reciprocal, so a zero base is a
-        // precondition violation. SYNTHESIZE_ASSERT rejects it with
+        // precondition violation. FUGACITY_ASSERT rejects it with
         // std::logic_error in a debug build (elided in release).
         "negative exponent with zero base throws"_test = [] {
             expect(throws<std::logic_error>([] { (void)fast_pow<double, -1>(0.0); }));

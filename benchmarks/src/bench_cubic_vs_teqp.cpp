@@ -11,21 +11,21 @@
 // which teqp exposes as TDXDerivatives::get_Arxy<i, j> (get_Ar00, get_Ar10,
 // get_Ar01, get_Ar02, ...) and this library as detail::calc_lambda<i, j>
 // applied to the residual model. Both sides use the same species data and the
-// same state, so the rows labelled .../Synthesize and .../teqp time the same
+// same state, so the rows labelled .../Fugacity and .../teqp time the same
 // mathematical quantity.
 //
 // Layout: van der Waals first, then Peng-Robinson. Within each model family
 // the species count N sweeps {1, 5, 10, 50, 100, 500, 1000}; for each N every
-// derivative is benchmarked as the pair (Synthesize row, then teqp row).
+// derivative is benchmarked as the pair (Fugacity row, then teqp row).
 //
 // This library's models are used in their runtime-sized (dynamic-extent)
 // form, matching teqp's runtime-sized models; the parameter matrices then
 // live on the heap, which the N = 1000 case requires (an N x N double matrix
 // is 8 MB). kij = 0 on both sides.
 //
-#include "synthesize/core/core_calculations.hpp"
-#include "synthesize/residual_models/peng_robinson.hpp"
-#include "synthesize/residual_models/van_der_waals.hpp"
+#include "fugacity/core/core_calculations.hpp"
+#include "fugacity/residual_models/peng_robinson.hpp"
+#include "fugacity/residual_models/van_der_waals.hpp"
 
 #include "teqp/derivs.hpp"
 #include "teqp/models/cubics.hpp"
@@ -41,7 +41,7 @@
 #include <valarray>
 #include <vector>
 
-namespace ge = synthesize;
+namespace fug = fugacity;
 
 namespace {
 
@@ -67,26 +67,26 @@ std::vector<Crit> make_crit(std::size_t n)
     return crit;
 }
 
-ge::VanDerWaals<> make_mine_vdw(const std::vector<Crit>& crit)
+fug::VanDerWaals<> make_mine_vdw(const std::vector<Crit>& crit)
 {
-    using SI = ge::VanDerWaals<>::SpeciesInput;
+    using SI = fug::VanDerWaals<>::SpeciesInput;
     std::vector<SI> in;
     in.reserve(crit.size());
     for (const Crit& c : crit) {
         in.push_back({.T_c = c.T_c, .P_c = c.P_c});
     }
-    return ge::VanDerWaals<>(std::span<const SI>{in});
+    return fug::VanDerWaals<>(std::span<const SI>{in});
 }
 
-ge::PengRobinson<> make_mine_pr(const std::vector<Crit>& crit)
+fug::PengRobinson<> make_mine_pr(const std::vector<Crit>& crit)
 {
-    using SI = ge::PengRobinson<>::SpeciesInput;
+    using SI = fug::PengRobinson<>::SpeciesInput;
     std::vector<SI> in;
     in.reserve(crit.size());
     for (const Crit& c : crit) {
         in.push_back({.T_c = c.T_c, .P_c = c.P_c, .omega = c.omega});
     }
-    return ge::PengRobinson<>(std::span<const SI>{in});
+    return fug::PengRobinson<>(std::span<const SI>{in});
 }
 
 teqp::vdWEOS<double> make_teqp_vdw(const std::vector<Crit>& crit)
@@ -150,12 +150,12 @@ template<class Mine, class Teqp> struct Bench {
 // ---------------------------------------------------------------------------
 template<int iT, int iD, class B> void register_pair(const std::string& name, const std::shared_ptr<B>& b)
 {
-    benchmark::RegisterBenchmark(name + "/Synthesize", [b](benchmark::State& st) {
+    benchmark::RegisterBenchmark(name + "/Fugacity", [b](benchmark::State& st) {
         for (auto _ : st) {
             benchmark::DoNotOptimize(b->c);
             benchmark::DoNotOptimize(b->T);
             const double invT = 1.0 / b->T;
-            auto v = ge::detail::calc_lambda<iT, iD>(b->mine, b->c, b->x.data(), invT);
+            auto v = fug::detail::calc_lambda<iT, iD>(b->mine, b->c, b->x.data(), invT);
             benchmark::DoNotOptimize(v);
         }
     });
@@ -191,7 +191,7 @@ constexpr std::array<std::size_t, 7> kSizes{1, 5, 10, 50, 100, 500, 1000};
 void register_vdw(std::size_t n)
 {
     const std::vector<Crit> crit = make_crit(n);
-    using B = Bench<ge::VanDerWaals<>, teqp::vdWEOS<double>>;
+    using B = Bench<fug::VanDerWaals<>, teqp::vdWEOS<double>>;
     auto b = std::make_shared<B>(make_mine_vdw(crit), make_teqp_vdw(crit), n);
     register_all_derivs("vdW/N" + std::to_string(n), b);
 }
@@ -199,7 +199,7 @@ void register_vdw(std::size_t n)
 void register_pr(std::size_t n)
 {
     const std::vector<Crit> crit = make_crit(n);
-    using B = Bench<ge::PengRobinson<>, decltype(make_teqp_pr(crit))>;
+    using B = Bench<fug::PengRobinson<>, decltype(make_teqp_pr(crit))>;
     auto b = std::make_shared<B>(make_mine_pr(crit), make_teqp_pr(crit), n);
     register_all_derivs("PR/N" + std::to_string(n), b);
 }

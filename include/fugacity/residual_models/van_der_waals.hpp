@@ -4,10 +4,10 @@
  * @brief Residual (departure) model for the van der Waals equation of state.
  */
 
-#include "synthesize/core/assertions.hpp"
-#include "synthesize/core/concepts.hpp"
-#include "synthesize/core/eos_base.hpp"
-#include "synthesize/core/numbers.hpp"
+#include "fugacity/core/assertions.hpp"
+#include "fugacity/core/concepts.hpp"
+#include "fugacity/core/eos_base.hpp"
+#include "fugacity/core/numbers.hpp"
 
 #include <array>
 #include <cmath>
@@ -17,7 +17,7 @@
 #include <type_traits>
 #include <vector>
 
-namespace synthesize {
+namespace fugacity {
 
 /**
  * @brief Residual Helmholtz contribution of the van der Waals equation of state.
@@ -27,7 +27,7 @@ namespace synthesize {
  *   a_r = -R T \ln(1 - b_m c) - a_m c,
  * @f]
  * the @f$\Delta_1 = \Delta_2 = 0@f$ specialization of the generalized cubic
- * form (where @f$\psi_2@f$ degenerates to @f$c@f$; see synthesize::BaseCubic for
+ * form (where @f$\psi_2@f$ degenerates to @f$c@f$; see fugacity::BaseCubic for
  * the general case). The mixture parameters follow the one-fluid rules
  * @f[
  *   a_m = \sum_i \sum_j x_i x_j\, (1 - k_{ij}) \sqrt{a_{0,ii}\, a_{0,jj}},
@@ -46,11 +46,11 @@ namespace synthesize {
  * coefficients can affect @f$a_m@f$, so an asymmetric input matrix is
  * symmetrized internally without loss.
  *
- * Pair the model with an ideal contribution in a synthesize::EoS and evaluate
+ * Pair the model with an ideal contribution in a fugacity::EoS and evaluate
  * properties through the free functions in core_calculations.hpp:
  *
  * @code{.cpp}
- * using namespace synthesize;
+ * using namespace fugacity;
  *
  * // N2 and CO2 from their critical points, with one interaction coefficient.
  * VanDerWaals<2> residual(
@@ -205,7 +205,7 @@ private:
     {
         constexpr double R = ideal_gas_constant<double>;
         const std::size_t n = inputs.size();
-        SYNTHESIZE_ASSERT(kij.empty() || kij.size() == n * n);
+        FUGACITY_ASSERT(kij.empty() || kij.size() == n * n);
 
         for (std::size_t i = 0; i < n; ++i) {
             b_[i] = R * inputs[i].T_c / (8.0 * inputs[i].P_c);
@@ -231,4 +231,4 @@ private:
 static_assert(ResidualEoS<VanDerWaals<2>>, "VanDerWaals must satisfy the ResidualEoS concept.");
 static_assert(ResidualEoS<VanDerWaals<std::dynamic_extent>>, "VanDerWaals must satisfy the ResidualEoS concept.");
 
-} // namespace synthesize
+} // namespace fugacity

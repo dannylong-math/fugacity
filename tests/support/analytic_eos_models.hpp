@@ -18,16 +18,16 @@
 //   The two are consistent:  Psi(rho,T) = c * a(c, x, T)  with c = sum rho_i,
 //   x_i = rho_i / c.
 //
-#include "synthesize/core/eos_base.hpp"
-#include "synthesize/core/eos_pair.hpp"
-#include "synthesize/core/numbers.hpp"
+#include "fugacity/core/eos_base.hpp"
+#include "fugacity/core/eos_pair.hpp"
+#include "fugacity/core/numbers.hpp"
 
 #include <array>
 #include <cmath>
 #include <concepts>
 #include <cstddef>
 
-namespace synthesize_test {
+namespace fugacity_test {
 
 // ---------------------------------------------------------------------------
 // Ideal-gas model
@@ -42,7 +42,7 @@ namespace synthesize_test {
 //
 //   Psi_id_i(rho, T) = R T rho_i [ ln rho_i + phi_i(T) ]
 // ---------------------------------------------------------------------------
-template<std::size_t N> class IdealGasTestModel : public synthesize::BaseIdealEoS, public synthesize::BaseEoS<N> {
+template<std::size_t N> class IdealGasTestModel : public fugacity::BaseIdealEoS, public fugacity::BaseEoS<N> {
 public:
     std::array<double, N> h{}; // dimensionless ideal-reference enthalpy-like constants
     std::array<double, N> g{}; // dimensionless ideal-reference heat-capacity-like constants
@@ -50,11 +50,11 @@ public:
     constexpr IdealGasTestModel() = default;
     constexpr IdealGasTestModel(std::array<double, N> h_in, std::array<double, N> g_in) : h{h_in}, g{g_in} {}
 
-    using synthesize::BaseEoS<N>::size;
+    using fugacity::BaseEoS<N>::size;
 
     template<std::floating_point Number> [[nodiscard]] Number calc_helmholtz(Number c, const Number* x, Number T) const
     {
-        const Number R = synthesize::ideal_gas_constant<Number>;
+        const Number R = fugacity::ideal_gas_constant<Number>;
         Number mix{0};
         for (std::size_t i = 0; i < N; ++i) {
             const Number phi = Number(h[i]) - (Number(g[i]) * std::log(T));
@@ -65,7 +65,7 @@ public:
 
     template<std::floating_point Number> void calc_partial_helmholtz(const Number* rho, Number T, Number* out) const
     {
-        const Number R = synthesize::ideal_gas_constant<Number>;
+        const Number R = fugacity::ideal_gas_constant<Number>;
         for (std::size_t i = 0; i < N; ++i) {
             const Number phi = Number(h[i]) - (Number(g[i]) * std::log(T));
             out[i] = R * T * rho[i] * (std::log(rho[i]) + phi);
@@ -74,7 +74,7 @@ public:
 
     template<std::floating_point Number> [[nodiscard]] Number calc_helmholtz_density(const Number* rho, Number T) const
     {
-        const Number R = synthesize::ideal_gas_constant<Number>;
+        const Number R = fugacity::ideal_gas_constant<Number>;
         Number psi{0};
         for (std::size_t i = 0; i < N; ++i) {
             const Number phi = Number(h[i]) - (Number(g[i]) * std::log(T));
@@ -101,7 +101,7 @@ public:
 // split per component (any split summing to Psi_res is valid for mu_i):
 //   Psi_res_i = R T [ rho_i S1 + (1/2) rho_i c S2 ]
 // ---------------------------------------------------------------------------
-template<std::size_t N> class VirialResidualTestModel : public synthesize::BaseEoS<N> {
+template<std::size_t N> class VirialResidualTestModel : public fugacity::BaseEoS<N> {
 public:
     std::array<double, N> b{};     // [m^3 / mol]
     std::array<double, N> beta{};  // [K m^3 / mol]
@@ -114,11 +114,11 @@ public:
     {
     }
 
-    using synthesize::BaseEoS<N>::size;
+    using fugacity::BaseEoS<N>::size;
 
     template<std::floating_point Number> [[nodiscard]] Number calc_helmholtz(Number c, const Number* x, Number T) const
     {
-        const Number R = synthesize::ideal_gas_constant<Number>;
+        const Number R = fugacity::ideal_gas_constant<Number>;
         Number B{0};
         Number C{0};
         for (std::size_t i = 0; i < N; ++i) {
@@ -130,7 +130,7 @@ public:
 
     template<std::floating_point Number> void calc_partial_helmholtz(const Number* rho, Number T, Number* out) const
     {
-        const Number R = synthesize::ideal_gas_constant<Number>;
+        const Number R = fugacity::ideal_gas_constant<Number>;
         Number c{0};
         Number S1{0};
         Number S2{0};
@@ -146,7 +146,7 @@ public:
 
     template<std::floating_point Number> [[nodiscard]] Number calc_helmholtz_density(const Number* rho, Number T) const
     {
-        const Number R = synthesize::ideal_gas_constant<Number>;
+        const Number R = fugacity::ideal_gas_constant<Number>;
         Number c{0};
         Number S1{0};
         Number S2{0};
@@ -166,14 +166,14 @@ inline auto make_binary_model()
 {
     IdealGasTestModel<2> ideal{{2.5, 3.1}, {1.5, 2.0}};
     VirialResidualTestModel<2> residual{{1.0e-3, 1.5e-3}, {1.0e-1, 8.0e-2}, {2.0e-6, 1.0e-6}};
-    return synthesize::EoS<IdealGasTestModel<2>, VirialResidualTestModel<2>>{ideal, residual};
+    return fugacity::EoS<IdealGasTestModel<2>, VirialResidualTestModel<2>>{ideal, residual};
 }
 
 inline auto make_unary_model()
 {
     IdealGasTestModel<1> ideal{{2.5}, {1.5}};
     VirialResidualTestModel<1> residual{{1.0e-3}, {1.0e-1}, {2.0e-6}};
-    return synthesize::EoS<IdealGasTestModel<1>, VirialResidualTestModel<1>>{ideal, residual};
+    return fugacity::EoS<IdealGasTestModel<1>, VirialResidualTestModel<1>>{ideal, residual};
 }
 
-} // namespace synthesize_test
+} // namespace fugacity_test

@@ -5,11 +5,11 @@
  *        parameterization of the per-species standard-state thermodynamics.
  */
 
-#include "synthesize/core/concepts.hpp"
-#include "synthesize/core/eos_base.hpp"
-#include "synthesize/core/horner.hpp"
-#include "synthesize/core/numbers.hpp"
-#include "synthesize/core/xlnx.hpp"
+#include "fugacity/core/concepts.hpp"
+#include "fugacity/core/eos_base.hpp"
+#include "fugacity/core/horner.hpp"
+#include "fugacity/core/numbers.hpp"
+#include "fugacity/core/xlnx.hpp"
 
 #include <array>
 #include <cmath>
@@ -19,7 +19,7 @@
 #include <type_traits>
 #include <vector>
 
-namespace synthesize {
+namespace fugacity {
 
 /**
  * @brief Ideal-gas equation of state parameterized by the NASA-7 polynomials.
@@ -39,7 +39,7 @@ namespace synthesize {
  * core_calculations.hpp:
  *
  * @code{.cpp}
- * using namespace synthesize;
+ * using namespace fugacity;
  *
  * // N2, low-temperature (200-1000 K) NASA-7 coefficients.
  * Nasa7<1> ideal(std::array{Nasa7<1>::SpeciesInput{
@@ -251,4 +251,4 @@ private:
 
 static_assert(IdealEoS<Nasa7<2>>, "Nasa7 must satisfy the IdealEoS concept.");
 static_assert(IdealEoS<Nasa7<std::dynamic_extent>>, "Nasa7 must satisfy the IdealEoS concept.");
-} // namespace synthesize
+} // namespace fugacity

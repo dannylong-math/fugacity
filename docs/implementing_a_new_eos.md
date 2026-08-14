@@ -1,15 +1,15 @@
 # Implementing a new equation of state
 
-This guide explains how to add a new equation-of-state (EoS) model to EoSLab so
+This guide explains how to add a new equation-of-state (EoS) model to Fugacity so
 that it works with the thermodynamic property routines in
-[`core_calculations.hpp`](../include/eoslab/core/core_calculations.hpp).
+[`core_calculations.hpp`](../include/fugacity/core/core_calculations.hpp).
 
 ## 1. The big picture
 
 A complete equation of state in this library is a **pair**: one *ideal*
 contribution and one *residual* (departure) contribution, joined by
-`glis::eos::EoS<Ideal, Residual>` (see
-[`eos_pair.hpp`](../include/eoslab/core/eos_pair.hpp)).
+`fugacity::EoS<Ideal, Residual>` (see
+[`eos_pair.hpp`](../include/fugacity/core/eos_pair.hpp)).
 
 $$
 \text{total Helmholtz energy} = a_\text{total} = a_\text{ideal} + a_\text{residual}
@@ -34,12 +34,12 @@ only implement the Helmholtz energy, and the library differentiates it.
 | `x`     | mole fractions                            | – (sum to 1) |
 | `T`     | temperature                               | K            |
 | `rho_i` | partial molar concentrations              | mol/m³       |
-| `R`     | gas constant (`glis::eos::ideal_gas_constant`) | J/(mol·K) |
+| `R`     | gas constant (`fugacity::ideal_gas_constant`) | J/(mol·K) |
 
 ## 2. The interface every model must provide
 
-A model must satisfy the `glis::eos::EquationOfState` concept
-([`concepts.hpp`](../include/eoslab/core/concepts.hpp)), i.e. expose these **const**
+A model must satisfy the `fugacity::EquationOfState` concept
+([`concepts.hpp`](../include/fugacity/core/concepts.hpp)), i.e. expose these **const**
 members. Template them on the floating-point type — the library instantiates
 them with `double` and the test-suite also uses `long double`.
 
@@ -94,14 +94,14 @@ models that do not fit either base.
 | neither                                                                   | the concept directly (§3c) |
 
 Both CRTP bases inherit Structure-of-Arrays per-species parameter storage
-([`parameter_storage.hpp`](../include/eoslab/core/parameter_storage.hpp)) and
+([`parameter_storage.hpp`](../include/fugacity/core/parameter_storage.hpp)) and
 provide `calc_helmholtz`, `calc_helmholtz_density`, `calc_partial_helmholtz`, and
 `size()`. You supply only a parameter struct and the per-species math.
 
 ### 3a. A multi-fluid model (the common case)
 
-See [`MultiFluidBase`](../include/eoslab/core/multifluid_base.hpp) and the worked
-example [`const_cp.hpp`](../include/eoslab/ideal_models/const_cp.hpp).
+See [`MultiFluidBase`](../include/fugacity/core/multifluid_base.hpp) and the worked
+example [`const_cp.hpp`](../include/fugacity/ideal_models/const_cp.hpp).
 
 1. Define a **parameter struct**: a flat, trivially-copyable, all-`double`
    aggregate holding one species' parameters. Its member count is discovered
@@ -120,29 +120,29 @@ example [`const_cp.hpp`](../include/eoslab/ideal_models/const_cp.hpp).
    each returning a `Number`-templated struct, and add a trailing
    `const Pre<Number>&` argument to the two kernels. The base detects these
    automatically; omit them (and the extra argument) if you don't need them.
-5. **Mark the kernels and `perform_pre_calculations` `GLIS_EOS_ALWAYS_INLINE`**
+5. **Mark the kernels and `perform_pre_calculations` `FUGACITY_ALWAYS_INLINE`**
    (see §5 — this is required for correct autodiff, not just performance).
 
 ```cpp
-#include "eoslab/core/attributes.hpp"
-#include "eoslab/core/multifluid_base.hpp"
+#include "fugacity/core/attributes.hpp"
+#include "fugacity/core/multifluid_base.hpp"
 
 struct MyParams { double a; double b; };   // one species' parameters
 
 template<std::size_t N>
-class MyIdeal : public glis::eos::MultiFluidBase<MyIdeal<N>, MyParams, N>,
-                public glis::eos::BaseIdealEoS {
+class MyIdeal : public fugacity::MultiFluidBase<MyIdeal<N>, MyParams, N>,
+                public fugacity::BaseIdealEoS {
 public:
-    using Base = glis::eos::MultiFluidBase<MyIdeal<N>, MyParams, N>;
+    using Base = fugacity::MultiFluidBase<MyIdeal<N>, MyParams, N>;
     using Base::Base;   // inherit the constructors (see "Construction" below)
 
     template<std::floating_point Number>
-    [[nodiscard]] GLIS_EOS_ALWAYS_INLINE
+    [[nodiscard]] FUGACITY_ALWAYS_INLINE
     Number calc_helmholtz_i(Number c, const Number* x, Number T, std::size_t i,
                             const MyParams& p) const { /* ... */ }
 
     template<std::floating_point Number>
-    [[nodiscard]] GLIS_EOS_ALWAYS_INLINE
+    [[nodiscard]] FUGACITY_ALWAYS_INLINE
     Number calc_helmholtz_density_i(const Number* rho_i, Number T, std::size_t i,
                                     const MyParams& p) const { /* ... */ }
 };
@@ -154,11 +154,11 @@ or `std::span<const ParamStruct>` (`std::dynamic_extent`). If your users think i
 *natural* inputs that differ from what you want to store, give the model its own
 constructor that converts them and forwards the stored struct to the base — see
 `ConstantCp::SpeciesInput` and its `to_param_array` /`to_param_vector` helpers in
-[`const_cp.hpp`](../include/eoslab/ideal_models/const_cp.hpp).
+[`const_cp.hpp`](../include/fugacity/ideal_models/const_cp.hpp).
 
 ### 3b. A one-fluid model
 
-See [`OneFluidBase`](../include/eoslab/core/onefluid_base.hpp). A one-fluid model
+See [`OneFluidBase`](../include/fugacity/core/onefluid_base.hpp). A one-fluid model
 collapses the mixture to a pseudo-pure fluid: a **mixing rule** averages the
 per-species parameters as functions of composition, then a single **bulk**
 expression is evaluated with those averaged parameters. Derive from
@@ -171,18 +171,18 @@ expression is evaluated with those averaged parameters. Derive from
 - the bulk kernels `calc_helmholtz_bulk(c, x, T, const Avg<Number>&)` and
   `calc_helmholtz_density_bulk(rho_i, T, const Avg<Number>&)`.
 
-As in §3a, **mark the mixing rule and bulk kernels `GLIS_EOS_ALWAYS_INLINE`**.
+As in §3a, **mark the mixing rule and bulk kernels `FUGACITY_ALWAYS_INLINE`**.
 
 ### 3c. From scratch
 
 If neither base fits, implement the four concept members from §2 directly and
-derive from `glis::eos::BaseEoS<N>` for the component-count plumbing (`size()`,
+derive from `fugacity::BaseEoS<N>` for the component-count plumbing (`size()`,
 `for_each_component`). Use a concrete `N` for a compile-time component count, or
 `std::dynamic_extent` for a runtime one. See
-[`no_residual.hpp`](../include/eoslab/residual_models/no_residual.hpp) and the two
+[`no_residual.hpp`](../include/fugacity/residual_models/no_residual.hpp) and the two
 worked models in [`tests/eos_test_models.hpp`](../tests/eos_test_models.hpp).
 These are the differentiated entry points, so they do **not** need
-`GLIS_EOS_ALWAYS_INLINE` themselves; but mark any helper they call that takes or
+`FUGACITY_ALWAYS_INLINE` themselves; but mark any helper they call that takes or
 returns a parameter / pre-calculation aggregate (see §5).
 
 ## 4. Ideal vs. residual
@@ -196,7 +196,7 @@ concept IdealEoS = std::derived_from<E, BaseIdealEoS> && EquationOfState<E>;
 
 An ideal model must:
 
-1. **Derive publicly from `glis::eos::BaseIdealEoS`** (the tag that marks it as
+1. **Derive publicly from `fugacity::BaseIdealEoS`** (the tag that marks it as
    ideal), and
 2. satisfy `EquationOfState`.
 
@@ -208,7 +208,7 @@ $$
 \left(\frac{\partial a_\text{ideal}}{\partial c}\right)_{T,\vec x} = \frac{RT}{c} \iff a_\text{ideal} = RT \ln c + f(T,\vec x)
 $$
 
-EoSLab makes this assumption internally to simplify calculations. The reference
+Fugacity makes this assumption internally to simplify calculations. The reference
 for the derivative calculations we implemented may be found
 [here](https://doi.org/10.1021/acs.iecr.2c00237).
 
@@ -224,7 +224,7 @@ A residual model must satisfy `EquationOfState` and **must not** derive from
 compile time. Its `calc_helmholtz` returns the *residual* molar Helmholtz energy
 (the departure from ideal-gas behaviour), with `alpha_res -> 0` as `c -> 0`.
 
-## 5. `GLIS_EOS_ALWAYS_INLINE` and correct autodiff
+## 5. `FUGACITY_ALWAYS_INLINE` and correct autodiff
 
 This is **not** merely a performance hint. Enzyme differentiates LLVM IR and
 relies on inlining + scalarization having already flattened the expression. It
@@ -238,8 +238,8 @@ inline them away and works.
 The fix is to force every function *called from within* the differentiated entry
 points to inline, so those aggregates never cross a call boundary and `mem2reg`
 can promote them to registers before Enzyme runs. Mark with
-`GLIS_EOS_ALWAYS_INLINE` (from
-[`attributes.hpp`](../include/eoslab/core/attributes.hpp)):
+`FUGACITY_ALWAYS_INLINE` (from
+[`attributes.hpp`](../include/fugacity/core/attributes.hpp)):
 
 - **multi-fluid:** your per-species kernels and `perform_pre_calculations`;
 - **one-fluid:** your mixing rule and bulk kernels;
@@ -255,7 +255,7 @@ they make need to be flattened into them. The macro expands to
 `[[clang::always_inline]]` on Clang and to nothing elsewhere.
 
 > If you ever see derivative-based properties that pass in `release` but fail in
-> `debug`, a missing `GLIS_EOS_ALWAYS_INLINE` on a kernel or pre-calculation is
+> `debug`, a missing `FUGACITY_ALWAYS_INLINE` on a kernel or pre-calculation is
 > the first thing to check.
 
 ## 6. Add a `static_assert` (recommended)
@@ -265,11 +265,11 @@ turns a subtle interface mistake (wrong signature, missing `const`, forgetting
 to derive from `BaseIdealEoS`, …) into an immediate, readable compile error:
 
 ```cpp
-#include "eoslab/core/concepts.hpp"
+#include "fugacity/core/concepts.hpp"
 
-static_assert(glis::eos::IdealEoS<MyIdeal<2>>,
+static_assert(fugacity::IdealEoS<MyIdeal<2>>,
               "MyIdeal must satisfy the IdealEoS concept");
-static_assert(glis::eos::IdealEoS<MyIdeal<std::dynamic_extent>>,
+static_assert(fugacity::IdealEoS<MyIdeal<std::dynamic_extent>>,
               "MyIdeal must satisfy the IdealEoS concept");
 ```
 
@@ -280,13 +280,13 @@ and [`tests/test_concepts.cpp`](../tests/test_concepts.cpp) for concept assertio
 ## 7. Use it
 
 ```cpp
-#include "eoslab/core/core_calculations.hpp"
+#include "fugacity/core/core_calculations.hpp"
 
-glis::eos::EoS eos{MyIdeal<2>{...}, MyResidual<2>{...}};
+fugacity::EoS eos{MyIdeal<2>{...}, MyResidual<2>{...}};
 
 std::array<double, 2> x{0.4, 0.6};
 std::span<const double, 2> xs{x};
-double p = glis::eos::calc_pressure(eos, /*c=*/100.0, xs, /*T=*/300.0);
+double p = fugacity::calc_pressure(eos, /*c=*/100.0, xs, /*T=*/300.0);
 ```
 
 ## 8. Test it
@@ -297,12 +297,12 @@ auto-detected and registered by CMake) and compose them:
 
 ```cpp
 #include "derivative_test_harness.hpp"
-using namespace eoslab_test;
+using namespace fugacity_test;
 
 // 1. Every derivative-based property vs a 4th-order finite-difference reference
 //    (computed in long double). Run several states, single-component AND mixture.
 "my model derivative consistency"_test = [] {
-    auto eos = glis::eos::EoS{MyIdeal<2>{...}, glis::eos::NoResidual<2>{}};
+    auto eos = fugacity::EoS{MyIdeal<2>{...}, fugacity::NoResidual<2>{}};
     run_derivative_consistency_tests<2>(eos, /*c=*/100.0, {0.4, 0.6}, /*T=*/300.0);
 };
 
@@ -314,13 +314,13 @@ using namespace eoslab_test;
 
 // 3. Ideal-gas pressure p == c R T (ideal models paired with NoResidual).
 "my ideal gas pressure"_test = [] {
-    auto eos = glis::eos::EoS{MyIdeal<2>{...}, glis::eos::NoResidual<2>{}};
+    auto eos = fugacity::EoS{MyIdeal<2>{...}, fugacity::NoResidual<2>{}};
     check_ideal_gas_pressure<2>(eos, /*c=*/80.0, {0.35, 0.65}, /*T=*/330.0);
 };
 
 // 4. Euler relation: sum_i rho_i mu_i - Psi == calc_pressure (any EoS).
 "my model euler pressure"_test = [] {
-    auto eos = glis::eos::EoS{MyIdeal<2>{...}, MyResidual<2>{...}};
+    auto eos = fugacity::EoS{MyIdeal<2>{...}, MyResidual<2>{...}};
     check_euler_pressure<2>(eos, /*rho=*/{36.0, 54.0}, /*T=*/360.0);
 };
 ```
@@ -336,17 +336,17 @@ against the reference data) and the closed-form checks in
 [`tests/test_core_calculations.cpp`](../tests/test_core_calculations.cpp).
 
 **Run the suite in `debug` as well as `release`** — the `-O1` debug build is what
-surfaces a missing `GLIS_EOS_ALWAYS_INLINE` (§5).
+surfaces a missing `FUGACITY_ALWAYS_INLINE` (§5).
 
 ## 9. Build / Enzyme requirements
 
-EoSLab depends on Enzyme, which is a Clang/LLVM plugin. Therefore:
+Fugacity depends on Enzyme, which is a Clang/LLVM plugin. Therefore:
 
 - **Clang is required** (CMake enforces this and defaults to `clang++`).
 - **Optimization is required.** Enzyme runs inside the optimization pipeline and
   produces wrong derivatives at `-O0`. The `debug` preset uses `-O1 -g`;
   `release` uses `-O3`. Note that `-O1` alone is *not* sufficient for correct
-  derivatives through the CRTP bases — the `GLIS_EOS_ALWAYS_INLINE` on the kernels
+  derivatives through the CRTP bases — the `FUGACITY_ALWAYS_INLINE` on the kernels
   / pre-calculations (§5) is what makes it correct there. Do not remove it.
 - **UndefinedBehaviorSanitizer is incompatible** with Enzyme (its
   `__ubsan_handle_*` runtime calls cannot be differentiated). Only
