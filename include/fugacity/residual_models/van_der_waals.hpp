@@ -1,8 +1,8 @@
 #pragma once
-/**
- * @file van_der_waals.hpp
- * @brief Residual (departure) model for the van der Waals equation of state.
- */
+///
+/// File ``van_der_waals.hpp``.
+/// Residual (departure) model for the van der Waals equation of state.
+///
 
 #include "fugacity/core/assertions.hpp"
 #include "fugacity/core/concepts.hpp"
@@ -19,92 +19,105 @@
 
 namespace fugacity {
 
-/**
- * @brief Residual Helmholtz contribution of the van der Waals equation of state.
- *
- * The molar residual Helmholtz energy is
- * @f[
- *   a_r = -R T \ln(1 - b_m c) - a_m c,
- * @f]
- * the @f$\Delta_1 = \Delta_2 = 0@f$ specialization of the generalized cubic
- * form (where @f$\psi_2@f$ degenerates to @f$c@f$; see fugacity::BaseCubic for
- * the general case). The mixture parameters follow the one-fluid rules
- * @f[
- *   a_m = \sum_i \sum_j x_i x_j\, (1 - k_{ij}) \sqrt{a_{0,ii}\, a_{0,jj}},
- *   \qquad
- *   b_m = \sum_i x_i b_{ii},
- * @f]
- * with the pure-species parameters built from the critical point:
- * @f[
- *   a_{0,ii} = \frac{27 (R T_c)^2}{64 P_c}, \qquad b_{ii} = \frac{R T_c}{8 P_c}.
- * @f]
- * Since the vdW attractive term is temperature independent (@f$m_{ii}=0@f$),
- * the entire pair matrix is precomputed at construction and evaluation reduces
- * to the double sum plus one logarithm.
- *
- * Only the symmetric part @f$(k_{ij}+k_{ji})/2@f$ of the binary-interaction
- * coefficients can affect @f$a_m@f$, so an asymmetric input matrix is
- * symmetrized internally without loss.
- *
- * Pair the model with an ideal contribution in a fugacity::EoS and evaluate
- * properties through the free functions in core_calculations.hpp:
- *
- * @code{.cpp}
- * using namespace fugacity;
- *
- * // N2 and CO2 from their critical points, with one interaction coefficient.
- * VanDerWaals<2> residual(
- *     std::array{VanDerWaals<2>::SpeciesInput{.T_c = 126.192, .P_c = 3.3958e6},
- *                VanDerWaals<2>::SpeciesInput{.T_c = 304.1282, .P_c = 7.3773e6}},
- *     std::array{0.0, 0.05,
- *                0.05, 0.0});
- * EoS eos{some_ideal_model, residual};
- *
- * const std::array<double, 2> x{0.4, 0.6}; // mole fractions
- * const double p = calc_pressure(eos, 500.0, std::span<const double, 2>{x}, 300.0);
- * @endcode
- *
- * Use the @c std::dynamic_extent default (e.g. `VanDerWaals<>`) when the number
- * of species is only known at run time.
- *
- * @tparam N Component count, or @c std::dynamic_extent for a runtime size.
- */
+///
+/// Residual Helmholtz contribution of the van der Waals equation of state.
+///
+/// The molar residual Helmholtz energy is
+///
+/// .. math::
+///
+///      a_r = -R T \ln(1 - b_m c) - a_m c,
+///
+/// the :math:`\Delta_1 = \Delta_2 = 0` specialization of the generalized cubic
+/// form (where :math:`\psi_2` degenerates to :math:`c`; see fugacity::BaseCubic for
+/// the general case). The mixture parameters follow the one-fluid rules
+///
+/// .. math::
+///
+///      a_m = \sum_i \sum_j x_i x_j\, (1 - k_{ij}) \sqrt{a_{0,ii}\, a_{0,jj}},
+///      \qquad
+///      b_m = \sum_i x_i b_{ii},
+///
+/// with the pure-species parameters built from the critical point:
+///
+/// .. math::
+///
+///      a_{0,ii} = \frac{27 (R T_c)^2}{64 P_c}, \qquad b_{ii} = \frac{R T_c}{8 P_c}.
+///
+/// Since the vdW attractive term is temperature independent (:math:`m_{ii}=0`),
+/// the entire pair matrix is precomputed at construction and evaluation reduces
+/// to the double sum plus one logarithm.
+///
+/// Only the symmetric part :math:`(k_{ij}+k_{ji})/2` of the binary-interaction
+/// coefficients can affect :math:`a_m`, so an asymmetric input matrix is
+/// symmetrized internally without loss.
+///
+/// Pair the model with an ideal contribution in a fugacity::EoS and evaluate
+/// properties through the free functions in core_calculations.hpp:
+///
+/// .. code-block:: cpp
+///
+///    using namespace fugacity;
+///
+///    // N2 and CO2 from their critical points, with one interaction coefficient.
+///    VanDerWaals<2> residual(
+///        std::array{VanDerWaals<2>::SpeciesInput{.T_c = 126.192, .P_c = 3.3958e6},
+///                   VanDerWaals<2>::SpeciesInput{.T_c = 304.1282, .P_c = 7.3773e6}},
+///        std::array{0.0, 0.05,
+///                   0.05, 0.0});
+///    EoS eos{some_ideal_model, residual};
+///
+///    const std::array<double, 2> x{0.4, 0.6}; // mole fractions
+///    const double p = calc_pressure(eos, 500.0, std::span<const double, 2>{x}, 300.0);
+///
+///
+/// Use the ``std::dynamic_extent`` default (e.g. ``VanDerWaals<>``) when the number
+/// of species is only known at run time.
+///
+///
+/// :tparam N: Component count, or ``std::dynamic_extent`` for a runtime size.
+///
+/// \ingroup residual-models
 template<std::size_t N = std::dynamic_extent> class VanDerWaals : public BaseEoS<N> {
 public:
-    /// @brief Natural per-species input: the critical point.
+    /// Natural per-species input: the critical point.
     struct SpeciesInput {
-        double T_c; ///< Critical temperature @f$T_c@f$ [K].
-        double P_c; ///< Critical pressure @f$P_c@f$ [Pa].
+        double T_c; ///< Critical temperature :math:`T_c` [K].
+        double P_c; ///< Critical pressure :math:`P_c` [Pa].
     };
 
-    /**
-     * @brief Construct a compile-time-sized model from per-species critical data.
-     *
-     * Only available when the component count @p N is known at compile time.
-     *
-     * @param inputs One SpeciesInput per species.
-     * @param kij    Full row-major @f$N \times N@f$ binary-interaction matrix
-     *               @f$k_{ij}@f$ [-] (entry @c kij[i*N + j]); the diagonal must
-     *               be zero. Defaults to all zeros. May be asymmetric; only the
-     *               symmetric part affects the model.
-     */
+    ///
+    /// Construct a compile-time-sized model from per-species critical data.
+    ///
+    /// Only available when the component count ``N`` is known at compile time.
+    ///
+    ///
+    /// :param inputs: One SpeciesInput per species.
+    /// :param kij: Full row-major :math:`N \times N` binary-interaction matrix
+    ///               :math:`k_{ij}` [-] (entry ``kij[i*N + j]``); the diagonal must
+    ///               be zero. Defaults to all zeros. May be asymmetric; only the
+    ///               symmetric part affects the model.
+    /// \id fixed-size
+    ///
     explicit VanDerWaals(const std::array<SpeciesInput, N>& inputs, const std::array<double, N * N>& kij = {})
         requires(N != std::dynamic_extent)
     {
         init(inputs, kij);
     }
 
-    /**
-     * @brief Construct a runtime-sized model from per-species critical data.
-     *
-     * Only available when @p N is @c std::dynamic_extent; `size()` becomes
-     * `inputs.size()`.
-     *
-     * @param inputs One SpeciesInput per species.
-     * @param kij    Full row-major @f$n \times n@f$ binary-interaction matrix
-     *               @f$k_{ij}@f$ [-], or an empty span for all zeros (the
-     *               default). Size checked via @c assert.
-     */
+    ///
+    /// Construct a runtime-sized model from per-species critical data.
+    ///
+    /// Only available when ``N`` is ``std::dynamic_extent``; ``size()`` becomes
+    /// ``inputs.size()``.
+    ///
+    ///
+    /// :param inputs: One SpeciesInput per species.
+    /// :param kij: Full row-major :math:`n \times n` binary-interaction matrix
+    ///               :math:`k_{ij}` [-], or an empty span for all zeros (the
+    ///               default). Size checked via ``assert``.
+    /// \id runtime-size
+    ///
     explicit VanDerWaals(std::span<const SpeciesInput> inputs, std::span<const double> kij = {})
         requires(N == std::dynamic_extent)
         : BaseEoS<N>(inputs.size())
@@ -114,13 +127,14 @@ public:
         init(inputs, kij);
     }
 
-    /**
-     * @brief Molar residual Helmholtz energy @f$a_r = -RT\ln(1-b_m c) - a_m c@f$.
-     * @param c Molar concentration [mol/m^3]. Must satisfy @f$b_m c < 1@f$.
-     * @param x Mole-fraction array [-].
-     * @param T Temperature [K].
-     * @return Molar residual Helmholtz energy [J/mol].
-     */
+    ///
+    /// Molar residual Helmholtz energy :math:`a_r = -RT\ln(1-b_m c) - a_m c`.
+    ///
+    /// :param c: Molar concentration [mol/m^3]. Must satisfy :math:`b_m c < 1`.
+    /// :param x: Mole-fraction array [-].
+    /// :param T: Temperature [K].
+    /// :returns: Molar residual Helmholtz energy [J/mol].
+    ///
     template<std::floating_point Number> [[nodiscard]] Number calc_helmholtz(Number c, const Number* x, Number T) const
     {
         const Number R = ideal_gas_constant<Number>;
@@ -139,17 +153,19 @@ public:
         return (-R * T * std::log(Number{1} - (bm * c))) - (am * c);
     }
 
-    /**
-     * @brief Total residual Helmholtz energy density @f$\Psi = c\,a_r@f$.
-     *
-     * Evaluated directly in partial concentrations as
-     * @f$\Psi = -RTc\ln(1 - \sum_i \rho_i b_{ii}) - \sum_{ij}\rho_i\rho_j a_{ij}@f$,
-     * which avoids forming mole fractions.
-     *
-     * @param rho_i Partial molar concentrations [mol/m^3].
-     * @param T     Temperature [K].
-     * @return Residual Helmholtz energy density [J/m^3].
-     */
+    ///
+    /// Total residual Helmholtz energy density :math:`\Psi = c\,a_r`.
+    ///
+    /// Evaluated directly in partial concentrations as
+    ///
+    /// :math:`\Psi = -RTc\ln(1 - \sum_i \rho_i b_{ii}) - \sum_{ij}\rho_i\rho_j a_{ij}`,
+    /// which avoids forming mole fractions.
+    ///
+    ///
+    /// :param rho_i: Partial molar concentrations [mol/m^3].
+    /// :param T: Temperature [K].
+    /// :returns: Residual Helmholtz energy density [J/m^3].
+    ///
     template<std::floating_point Number>
     [[nodiscard]] Number calc_helmholtz_density(const Number* rho_i, Number T) const
     {
@@ -170,17 +186,18 @@ public:
         return (-R * T * c * std::log(Number{1} - bc)) - ac;
     }
 
-    /**
-     * @brief Per-component residual Helmholtz energy density.
-     *
-     * The residual does not decompose naturally per component, so the
-     * mole-fraction-weighted convention @f$\Psi_i = (\rho_i / c)\,\Psi@f$ is
-     * used; it satisfies @f$\sum_i \Psi_i = \Psi@f$ by construction.
-     *
-     * @param rho_i Partial molar concentrations [mol/m^3].
-     * @param T     Temperature [K].
-     * @param[out] out Per-component Helmholtz energy density [J/m^3]; length `size()`.
-     */
+    ///
+    /// Per-component residual Helmholtz energy density.
+    ///
+    /// The residual does not decompose naturally per component, so the
+    /// mole-fraction-weighted convention :math:`\Psi_i = (\rho_i / c)\,\Psi` is
+    /// used; it satisfies :math:`\sum_i \Psi_i = \Psi` by construction.
+    ///
+    ///
+    /// :param rho_i: Partial molar concentrations [mol/m^3].
+    /// :param T: Temperature [K].
+    /// :param out: Per-component Helmholtz energy density [J/m^3]; length ``size()``.
+    ///
     template<std::floating_point Number> void calc_partial_helmholtz(const Number* rho_i, Number T, Number* out) const
     {
         const std::size_t n = this->size();

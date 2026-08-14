@@ -1,9 +1,9 @@
 #pragma once
-/**
- * @file const_cp.hpp
- * @brief Ideal-gas model in which every pure species has a constant isobaric
- *        molar heat capacity @f$c_p@f$.
- */
+///
+/// File ``const_cp.hpp``.
+/// Ideal-gas model in which every pure species has a constant isobaric
+///        molar heat capacity :math:`c_p`.
+///
 
 #include "fugacity/core/concepts.hpp"
 #include "fugacity/core/eos_base.hpp"
@@ -20,71 +20,78 @@
 
 namespace fugacity {
 
-/**
- * @brief Ideal-gas equation of state with a constant isobaric molar heat
- *        capacity per species.
- *
- * With @f$c_p@f$ constant the molar enthalpy and entropy of each pure species
- * are closed-form functions of temperature, referenced to a per-species
- * @f$(T_\mathrm{ref}, p_\mathrm{ref})@f$ state. The mixture's ideal Helmholtz
- * energy is the sum of those per-species contributions plus the ideal entropy
- * of mixing.
- *
- * Construct the model from one SpeciesInput per species (each species may use
- * its own reference state), pair it with a residual model in an EoS, and
- * evaluate properties through the free functions in core_calculations.hpp:
- *
- * @code{.cpp}
- * using namespace fugacity;
- *
- * ConstantCp<2> ideal(std::array{
- *     ConstantCp<2>::SpeciesInput{
- *         .T_ref = 298.15, .p_ref = 1.0e5, .c_p = 29.1, .h_ref = 0.0, .s_ref = 191.6},
- *     ConstantCp<2>::SpeciesInput{
- *         .T_ref = 298.15, .p_ref = 1.0e5, .c_p = 33.6, .h_ref = 0.0, .s_ref = 205.2},
- * });
- * EoS eos{ideal, NoResidual<2>{}};
- *
- * const std::array<double, 2> x{0.5, 0.5}; // mole fractions
- * const double c = 40.0;                   // molar concentration [mol/m^3]
- * const double T = 350.0;                  // temperature [K]
- * const double h = calc_enthalpy(eos, c, std::span<const double, 2>{x}, T);
- * @endcode
- *
- * Use the @c std::dynamic_extent default (e.g. `ConstantCp<>`) when the number
- * of species is only known at run time:
- *
- * @code{.cpp}
- * std::vector<ConstantCp<>::SpeciesInput> inputs = load_species(...);
- * ConstantCp<> ideal{std::span<const ConstantCp<>::SpeciesInput>{inputs}};
- * @endcode
- *
- * @tparam N Component count, or @c std::dynamic_extent for a runtime size.
- */
+///
+/// Ideal-gas equation of state with a constant isobaric molar heat
+///        capacity per species.
+///
+/// With :math:`c_p` constant the molar enthalpy and entropy of each pure species
+/// are closed-form functions of temperature, referenced to a per-species
+///
+/// :math:`(T_\mathrm{ref}, p_\mathrm{ref})` state. The mixture's ideal Helmholtz
+/// energy is the sum of those per-species contributions plus the ideal entropy
+/// of mixing.
+///
+/// Construct the model from one SpeciesInput per species (each species may use
+/// its own reference state), pair it with a residual model in an EoS, and
+/// evaluate properties through the free functions in core_calculations.hpp:
+///
+/// .. code-block:: cpp
+///
+///    using namespace fugacity;
+///
+///    ConstantCp<2> ideal(std::array{
+///        ConstantCp<2>::SpeciesInput{
+///            .T_ref = 298.15, .p_ref = 1.0e5, .c_p = 29.1, .h_ref = 0.0, .s_ref = 191.6},
+///        ConstantCp<2>::SpeciesInput{
+///            .T_ref = 298.15, .p_ref = 1.0e5, .c_p = 33.6, .h_ref = 0.0, .s_ref = 205.2},
+///    });
+///    EoS eos{ideal, NoResidual<2>{}};
+///
+///    const std::array<double, 2> x{0.5, 0.5}; // mole fractions
+///    const double c = 40.0;                   // molar concentration [mol/m^3]
+///    const double T = 350.0;                  // temperature [K]
+///    const double h = calc_enthalpy(eos, c, std::span<const double, 2>{x}, T);
+///
+///
+/// Use the ``std::dynamic_extent`` default (e.g. ``ConstantCp<>``) when the number
+/// of species is only known at run time:
+///
+/// .. code-block:: cpp
+///
+///    std::vector<ConstantCp<>::SpeciesInput> inputs = load_species(...);
+///    ConstantCp<> ideal{std::span<const ConstantCp<>::SpeciesInput>{inputs}};
+///
+///
+///
+/// :tparam N: Component count, or ``std::dynamic_extent`` for a runtime size.
+///
+/// \ingroup ideal-models
 template<std::size_t N = std::dynamic_extent> class ConstantCp : public BaseEoS<N>, public BaseIdealEoS {
 public:
-    /**
-     * @brief Natural per-species reference data supplied by the user.
-     *
-     * The constructor turns these into the derived parameters the model stores.
-     * The reference molar concentration is *not* supplied directly; it is
-     * computed as @f$c_\mathrm{ref} = p_\mathrm{ref} / (R\,T_\mathrm{ref})@f$.
-     */
+    ///
+    /// Natural per-species reference data supplied by the user.
+    ///
+    /// The constructor turns these into the derived parameters the model stores.
+    /// The reference molar concentration is *not* supplied directly; it is
+    /// computed as :math:`c_\mathrm{ref} = p_\mathrm{ref} / (R\,T_\mathrm{ref})`.
+    ///
     struct SpeciesInput {
-        double T_ref; ///< Reference temperature @f$T_\mathrm{ref}@f$ [K].
-        double p_ref; ///< Reference pressure @f$p_\mathrm{ref}@f$ [Pa].
-        double c_p;   ///< Isobaric molar heat capacity @f$c_p@f$ [J/(mol K)].
-        double h_ref; ///< Reference molar enthalpy @f$h_\mathrm{ref}@f$ [J/mol].
-        double s_ref; ///< Reference molar entropy @f$s_\mathrm{ref}@f$ [J/(mol K)].
+        double T_ref; ///< Reference temperature :math:`T_\mathrm{ref}` [K].
+        double p_ref; ///< Reference pressure :math:`p_\mathrm{ref}` [Pa].
+        double c_p;   ///< Isobaric molar heat capacity :math:`c_p` [J/(mol K)].
+        double h_ref; ///< Reference molar enthalpy :math:`h_\mathrm{ref}` [J/mol].
+        double s_ref; ///< Reference molar entropy :math:`s_\mathrm{ref}` [J/(mol K)].
     };
 
-    /**
-     * @brief Construct a compile-time-sized model from per-species reference data.
-     *
-     * Only available when the component count @p N is known at compile time.
-     *
-     * @param inputs One SpeciesInput per species.
-     */
+    ///
+    /// Construct a compile-time-sized model from per-species reference data.
+    ///
+    /// Only available when the component count ``N`` is known at compile time.
+    ///
+    ///
+    /// :param inputs: One SpeciesInput per species.
+    /// \id fixed-size
+    ///
     explicit ConstantCp(const std::array<SpeciesInput, N>& inputs)
         requires(N != std::dynamic_extent)
     {
@@ -93,14 +100,16 @@ public:
         }
     }
 
-    /**
-     * @brief Construct a runtime-sized model from per-species reference data.
-     *
-     * Only available when @p N is @c std::dynamic_extent; `size()` becomes
-     * `inputs.size()`.
-     *
-     * @param inputs One SpeciesInput per species.
-     */
+    ///
+    /// Construct a runtime-sized model from per-species reference data.
+    ///
+    /// Only available when ``N`` is ``std::dynamic_extent``; ``size()`` becomes
+    /// ``inputs.size()``.
+    ///
+    ///
+    /// :param inputs: One SpeciesInput per species.
+    /// \id runtime-size
+    ///
     explicit ConstantCp(std::span<const SpeciesInput> inputs)
         requires(N == std::dynamic_extent)
         : BaseEoS<N>(inputs.size())
@@ -112,13 +121,14 @@ public:
         }
     }
 
-    /**
-     * @brief Total molar Helmholtz energy @f$a = \sum_i a_i@f$.
-     * @param c Molar concentration [mol/m^3].
-     * @param x Mole-fraction array [-].
-     * @param T Temperature [K].
-     * @return Molar Helmholtz energy [J/mol].
-     */
+    ///
+    /// Total molar Helmholtz energy :math:`a = \sum_i a_i`.
+    ///
+    /// :param c: Molar concentration [mol/m^3].
+    /// :param x: Mole-fraction array [-].
+    /// :param T: Temperature [K].
+    /// :returns: Molar Helmholtz energy [J/mol].
+    ///
     template<std::floating_point Number> [[nodiscard]] Number calc_helmholtz(Number c, const Number* x, Number T) const
     {
         const Number R = ideal_gas_constant<Number>;
@@ -142,12 +152,13 @@ public:
         return a;
     }
 
-    /**
-     * @brief Total Helmholtz energy density @f$\Psi = \sum_i \Psi_i@f$.
-     * @param rho_i Partial molar concentrations [mol/m^3].
-     * @param T     Temperature [K].
-     * @return Helmholtz energy density [J/m^3].
-     */
+    ///
+    /// Total Helmholtz energy density :math:`\Psi = \sum_i \Psi_i`.
+    ///
+    /// :param rho_i: Partial molar concentrations [mol/m^3].
+    /// :param T: Temperature [K].
+    /// :returns: Helmholtz energy density [J/m^3].
+    ///
     template<std::floating_point Number>
     [[nodiscard]] Number calc_helmholtz_density(const Number* rho_i, Number T) const
     {
@@ -176,12 +187,13 @@ public:
         return psi;
     }
 
-    /**
-     * @brief Per-component Helmholtz energy density, @f$\text{out}[i] = \Psi_i@f$.
-     * @param rho_i Partial molar concentrations [mol/m^3].
-     * @param T     Temperature [K].
-     * @param[out] out Per-component Helmholtz energy density [J/m^3]; length `size()`.
-     */
+    ///
+    /// Per-component Helmholtz energy density, :math:`\text{out}[i] = \Psi_i`.
+    ///
+    /// :param rho_i: Partial molar concentrations [mol/m^3].
+    /// :param T: Temperature [K].
+    /// :param out: Per-component Helmholtz energy density [J/m^3]; length ``size()``.
+    ///
     template<std::floating_point Number> void calc_partial_helmholtz(const Number* rho_i, Number T, Number* out) const
     {
         const Number R = ideal_gas_constant<Number>;

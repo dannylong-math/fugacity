@@ -1,21 +1,22 @@
 #pragma once
 
-/**
- * @file fugacity.hpp
- * @brief Umbrella header for Fugacity; including it pulls in the public API.
- *
- * This is the single header in the root @c include/fugacity directory. It
- * aggregates the core machinery (the EoS pair, concepts, and thermodynamic
- * property calculations) together with the bundled models so that a translation
- * unit can access the whole library with one include:
- *
- * @code
- * #include "fugacity/fugacity.hpp"
- * @endcode
- *
- * Individual components remain available under their respective subdirectories
- * (@c core/, @c ideal_models/, @c residual_models/) for finer-grained includes.
- */
+///
+/// File ``fugacity.hpp``.
+/// Umbrella header for Fugacity; including it pulls in the public API.
+///
+/// This is the single header in the root ``include/fugacity`` directory. It
+/// aggregates the core machinery (the EoS pair, concepts, and thermodynamic
+/// property calculations) together with the bundled models so that a translation
+/// unit can access the whole library with one include:
+///
+/// .. code-block:: cpp
+///
+///    #include "fugacity/fugacity.hpp"
+///
+///
+/// Individual components remain available under their respective subdirectories
+/// (``core/``, ``ideal_models/``, ``residual_models/``) for finer-grained includes.
+///
 
 #include "fugacity/core/core_calculations.hpp"
 #include "fugacity/core/xlnx.hpp"
