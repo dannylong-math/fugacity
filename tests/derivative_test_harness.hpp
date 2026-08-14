@@ -30,6 +30,7 @@
 #include <boost/ut.hpp>
 #include <cmath>
 #include <cstddef>
+#include <cstdint>
 #include <format>
 #include <numeric>
 #include <random>
@@ -63,11 +64,10 @@ inline void check_rel(std::string_view name, double actual, double expected, dou
 // results can disagree in the last digit or two. 1e-9 still catches any real
 // delegation/logic mistake while tolerating that last-bit rounding.
 template<std::size_t N, class Model, std::floating_point Number = double>
-void run_free_function_consistency_tests(const Model& model, Number rtol = 1e-9)
+void run_free_function_consistency_tests(const Model& model, Number rtol = 1e-9, std::uint32_t seed = 0xC0FFEE)
 {
     using namespace boost::ut;
-    std::random_device rd;
-    std::mt19937 gen(rd());
+    std::mt19937 gen(seed);
     std::uniform_real_distribution<Number> T_dist(1., 5000.);
     std::uniform_real_distribution<Number> rho_dist(0.0001, 100.);
 
