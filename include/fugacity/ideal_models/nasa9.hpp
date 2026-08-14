@@ -1,8 +1,6 @@
 #pragma once
 ///
-/// File ``nasa9.hpp``.
-/// Ideal-gas model using the 9-coefficient NASA polynomial
-///        parameterization of the per-species standard-state thermodynamics.
+/// NASA-9 ideal model.
 ///
 
 #include "fugacity/core/concepts.hpp"
@@ -22,82 +20,84 @@
 namespace fugacity {
 
 ///
-/// Ideal-gas equation of state parameterized by the NASA-9 polynomials.
+/// NASA-9 ideal model.
 ///
-/// Each species' standard-state heat capacity, enthalpy, and entropy follow the
-/// 9-coefficient NASA (Glenn) polynomial form
+/// For each species, the NASA-9 equations are
 ///
 /// .. math::
 ///
-///      c_p(T)/R = a_0 T^{-2} + a_1 T^{-1} + a_2 + a_3 T + a_4 T^2 + a_5 T^3 + a_6 T^4,
+///    \frac{c_{p,i}^\circ}{R}
+///      =a_{0,i}T^{-2}+a_{1,i}T^{-1}+a_{2,i}+a_{3,i}T
+///       +a_{4,i}T^2+a_{5,i}T^3+a_{6,i}T^4,
 ///
-/// with :math:`a_7` and :math:`a_8` setting the enthalpy and entropy references.
-/// The two extra inverse-temperature terms are what distinguish NASA-9 from
-/// NASA-7; with :math:`a_0 = a_1 = 0` this model coincides exactly with Nasa7
-/// using the coefficients :math:`a_2 \dots a_8`. The mixture's ideal Helmholtz
-/// energy is the sum of the per-species contributions plus the ideal entropy
-/// of mixing.
+/// .. math::
 ///
-/// Construct the model from one SpeciesInput per species (coefficients plus a
-/// reference state, which may differ per species), pair it with a residual
-/// model in an EoS, and evaluate properties through the free functions in
-/// core_calculations.hpp:
+///    \frac{h_i^\circ}{RT}
+///      =-a_{0,i}T^{-2}+a_{1,i}\frac{\ln T}{T}+a_{2,i}
+///       +\frac{a_{3,i}}{2}T+\frac{a_{4,i}}{3}T^2
+///       +\frac{a_{5,i}}{4}T^3+\frac{a_{6,i}}{5}T^4+\frac{a_{7,i}}{T},
 ///
-/// .. code-block:: cpp
+/// .. math::
 ///
-///    using namespace fugacity;
+///    \frac{s_i^\circ}{R}
+///      =-\frac{a_{0,i}}{2}T^{-2}-a_{1,i}T^{-1}+a_{2,i}\ln T
+///       +a_{3,i}T+\frac{a_{4,i}}{2}T^2+\frac{a_{5,i}}{3}T^3
+///       +\frac{a_{6,i}}{4}T^4+a_{8,i}.
 ///
-///    // N2, low-temperature (200-1000 K) NASA-9 coefficients.
-///    Nasa9<1> ideal(std::array{Nasa9<1>::SpeciesInput{
-///        .a0 = 2.210371497e4, .a1 = -3.818461820e2, .a2 = 6.082738360,
-///        .a3 = -8.530914410e-3, .a4 = 1.384646189e-5, .a5 = -9.625793620e-9,
-///        .a6 = 2.519705809e-12, .a7 = 7.108460860e2, .a8 = -1.076003744e1,
-///        .T_ref = 298.15, .p_ref = 1.0e5}});
-///    EoS eos{ideal, NoResidual<1>{}};
+/// The molar ideal Helmholtz energy is
 ///
-///    const std::array<double, 1> x{1.0}; // mole fractions
-///    const double c = 40.0;              // molar concentration [mol/m^3]
-///    const double T = 350.0;             // temperature [K]
-///    const double cp = calc_cp(eos, c, std::span<const double, 1>{x}, T);
+/// .. math::
 ///
+///    a^\mathrm{ideal}
+///    =\sum_i x_i\left[
+///      h_i^\circ-Ts_i^\circ
+///      +RT\ln\!\left(\frac{x_i cRT}{p_{i,\mathrm{ref}}}\right)
+///      \right]-RT.
 ///
-/// Use the ``std::dynamic_extent`` default (e.g. ``Nasa9<>``) when the number of
-/// species is only known at run time:
+/// Supply a single coefficient range that is valid at the evaluation
+/// temperature. The model does not select among temperature ranges.
 ///
 /// .. code-block:: cpp
 ///
-///    std::vector<Nasa9<>::SpeciesInput> inputs = load_species(...);
-///    Nasa9<> ideal{std::span<const Nasa9<>::SpeciesInput>{inputs}};
+///    using Ideal = fugacity::Nasa9<1>;
+///    const std::array<Ideal::SpeciesInput, 1> species{{{
+///        .a0 = 2.210371497e4, .a1 = -3.818461820e2,
+///        .a2 = 6.082738360, .a3 = -8.530914410e-3,
+///        .a4 = 1.384646189e-5, .a5 = -9.625793620e-9,
+///        .a6 = 2.519705809e-12, .a7 = 7.108460860e2,
+///        .a8 = -1.076003744e1, .T_ref = 298.15, .p_ref = 1.0e5,
+///    }}};
+///    const Ideal ideal{species};
+///    const fugacity::EoS eos{ideal, fugacity::NoResidual<1>{}};
+///
+///    const std::array<double, 1> x{1.0};
+///    const double cp = fugacity::calc_cp(eos, 40.0, x, 350.0);
 ///
 ///
-///
-/// :tparam N: Component count, or ``std::dynamic_extent`` for a runtime size.
+/// :tparam N: Component count, or ``std::dynamic_extent`` for a runtime count.
 ///
 /// \ingroup ideal-models
 template<std::size_t N = std::dynamic_extent> class Nasa9 : public BaseEoS<N>, public BaseIdealEoS {
 public:
-    /// Natural per-species NASA-9 coefficients and reference state.
+    /// NASA-9 coefficients and standard-state data for one species.
     struct SpeciesInput {
-        double a0;    ///< NASA-9 coefficient :math:`a_0` (the :math:`T^{-2}` term).
-        double a1;    ///< NASA-9 coefficient :math:`a_1` (the :math:`T^{-1}` term).
-        double a2;    ///< NASA-9 coefficient :math:`a_2`.
-        double a3;    ///< NASA-9 coefficient :math:`a_3`.
-        double a4;    ///< NASA-9 coefficient :math:`a_4`.
-        double a5;    ///< NASA-9 coefficient :math:`a_5`.
-        double a6;    ///< NASA-9 coefficient :math:`a_6`.
-        double a7;    ///< NASA-9 coefficient :math:`a_7` (enthalpy reference).
-        double a8;    ///< NASA-9 coefficient :math:`a_8` (entropy reference).
-        double T_ref; ///< Reference temperature :math:`T_\mathrm{ref}` [K].
-        double p_ref; ///< Reference pressure :math:`p_\mathrm{ref}` [Pa].
+        double a0;    ///< Coefficient :math:`a_0` [K^2].
+        double a1;    ///< Coefficient :math:`a_1` [K].
+        double a2;    ///< Coefficient :math:`a_2` [-].
+        double a3;    ///< Coefficient :math:`a_3` [1/K].
+        double a4;    ///< Coefficient :math:`a_4` [1/K^2].
+        double a5;    ///< Coefficient :math:`a_5` [1/K^3].
+        double a6;    ///< Coefficient :math:`a_6` [1/K^4].
+        double a7;    ///< Enthalpy integration coefficient :math:`a_7` [K].
+        double a8;    ///< Entropy integration coefficient :math:`a_8` [-].
+        double T_ref; ///< Temperature paired with the standard pressure [K].
+        double p_ref; ///< Standard-state pressure :math:`p_\mathrm{ref}` [Pa].
     };
 
     ///
-    /// Construct a compile-time-sized model from per-species inputs.
+    /// Construct a fixed-size model.
     ///
-    /// Only available when the component count ``N`` is known at compile time.
-    ///
-    ///
-    /// :param inputs: One SpeciesInput per species.
+    /// :param inputs: One :cpp:class:`SpeciesInput` per species.
     /// \id fixed-size
     ///
     explicit Nasa9(const std::array<SpeciesInput, N>& inputs)
@@ -109,13 +109,10 @@ public:
     }
 
     ///
-    /// Construct a runtime-sized model from per-species inputs.
+    /// Construct a runtime-size model.
     ///
-    /// Only available when ``N`` is ``std::dynamic_extent``; ``size()`` becomes
-    /// ``inputs.size()``.
-    ///
-    ///
-    /// :param inputs: One SpeciesInput per species.
+    /// :param inputs: One :cpp:class:`SpeciesInput` per species. ``size()`` is
+    ///                set to ``inputs.size()``.
     /// \id runtime-size
     ///
     explicit Nasa9(std::span<const SpeciesInput> inputs)
@@ -130,7 +127,7 @@ public:
     }
 
     ///
-    /// Total molar Helmholtz energy :math:`a = \sum_i a_i`.
+    /// Return the molar ideal Helmholtz energy.
     ///
     /// :param c: Molar concentration [mol/m^3].
     /// :param x: Mole-fraction array [-].
@@ -164,7 +161,8 @@ public:
     }
 
     ///
-    /// Total Helmholtz energy density :math:`\Psi = \sum_i \Psi_i`.
+    /// Return the ideal Helmholtz energy density
+    /// :math:`\Psi^\mathrm{ideal}=c a^\mathrm{ideal}`.
     ///
     /// :param rho_i: Partial molar concentrations [mol/m^3].
     /// :param T: Temperature [K].
@@ -200,7 +198,7 @@ public:
     }
 
     ///
-    /// Per-component Helmholtz energy density, :math:`\text{out}[i] = \Psi_i`.
+    /// Return a per-component decomposition of the ideal Helmholtz energy density.
     ///
     /// :param rho_i: Partial molar concentrations [mol/m^3].
     /// :param T: Temperature [K].

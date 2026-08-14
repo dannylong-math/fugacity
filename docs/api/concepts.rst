@@ -1,24 +1,47 @@
 Equation-of-state concepts
 ==========================
 
-The concepts below describe the common model interface and distinguish ideal
-contributions from residual contributions. Sphinx-Immaterial's current
-libclang generator does not emit C++ concept declarations, so they are included
-explicitly alongside the generated reference.
+The model concepts define the Helmholtz interface and distinguish ideal and
+residual contributions. The calculation functions are templates over the
+floating-point number type so Enzyme can differentiate the concrete model.
 
 .. cpp:concept:: template<class E> EquationOfState
 
-   Requires a model to provide ``size()``, molar Helmholtz energy,
-   total Helmholtz-energy density, and per-component Helmholtz-energy density.
-   The calculation members are templated by each concrete model so Fugacity can
-   instantiate them with the number type used by automatic differentiation.
+   Require ``size()`` and three mutually consistent Helmholtz calculations:
+
+   .. code-block:: cpp
+
+      template<std::floating_point Number>
+      Number calc_helmholtz(Number c, const Number* x, Number T) const;
+
+      template<std::floating_point Number>
+      Number calc_helmholtz_density(const Number* rho_i, Number T) const;
+
+      template<std::floating_point Number>
+      void calc_partial_helmholtz(
+          const Number* rho_i, Number T, Number* out) const;
+
+   ``calc_helmholtz`` returns molar Helmholtz energy [J/mol]. The density
+   functions return total or per-component Helmholtz energy density [J/m^3].
+   They must satisfy
+
+   .. math::
+
+      \Psi(\boldsymbol{\rho},T)=c\,a(c,\boldsymbol{x},T),\qquad
+      c=\sum_i\rho_i,\qquad x_i=\rho_i/c,
+
+   and
+
+   .. math::
+
+      \Psi=\sum_i\Psi_i.
 
 .. cpp:concept:: template<class E> IdealEoS
 
-   An :cpp:concept:`EquationOfState` that publicly derives from
-   :cpp:class:`BaseIdealEoS`.
+   Match an :cpp:concept:`EquationOfState` that publicly derives from
+   :cpp:class:`fugacity::BaseIdealEoS`.
 
 .. cpp:concept:: template<class E> ResidualEoS
 
-   An :cpp:concept:`EquationOfState` that does not derive from
-   :cpp:class:`BaseIdealEoS`.
+   Match an :cpp:concept:`EquationOfState` that does not derive from
+   :cpp:class:`fugacity::BaseIdealEoS`.

@@ -4,59 +4,93 @@
 [![Documentation](https://github.com/dannylong-math/fugacity/actions/workflows/docs.yml/badge.svg)](https://dannylong-math.github.io/fugacity/)
 [![codecov](https://codecov.io/gh/dannylong-math/fugacity/graph/badge.svg)](https://codecov.io/gh/dannylong-math/fugacity)
 
-A C++ library implementing equations of state in an efficient way.
+Fugacity is a header-only C++23 library for calculating thermodynamic
+properties from Helmholtz-energy equations of state. Pair an ideal contribution
+with a residual contribution; the library uses
+[Enzyme](https://enzyme.mit.edu) automatic differentiation to calculate
+pressure, caloric properties, chemical potentials, fugacities, and property
+derivatives.
 
-Fugacity is a header-only library. Thermodynamic properties are derived from
-the reduced molar Helmholtz energy and its derivatives, which are obtained by
-automatic differentiation with [Enzyme](https://enzyme.mit.edu). Because Enzyme
-is an LLVM/Clang plugin, the project **must be built with Clang**.
+The bundled models are:
+
+- ideal: constant heat capacity, NASA-7, and NASA-9;
+- residual: zero residual, van der Waals, and Peng-Robinson.
+
+All public thermodynamic inputs and outputs use SI units. The density variable is
+molar concentration `c` [mol/m^3].
 
 ## Requirements
 
-- A Clang compiler matching the LLVM version Enzyme was built against
-- [Enzyme](https://enzyme.mit.edu)
-- CMake ≥ 3.21
+- C++23
+- Clang
+- Enzyme built for the same LLVM version as Clang
+- CMake 3.21 or newer when using the supplied build configuration
 
-### Installing Clang and Enzyme (the easy way)
-
-On linux or Mac, the easiest way to install [Enzyme](https://enzyme.mit.edu) is
-with [Homebrew](https://brew.sh):
+On Linux or macOS, Homebrew can install a matching LLVM and Enzyme toolchain:
 
 ```sh
 brew install llvm enzyme lld
-# Put the Homebrew Clang ahead of the system compiler:
 export PATH="$(brew --prefix llvm)/bin:$PATH"
 ```
 
-You can install LLVM/Enzyme other ways. Just ensure that CMake can find `clang++`.
+## Minimal example
 
-## Building and testing
+```cpp
+#include <fugacity/fugacity.hpp>
 
-Configure with one of the CMake presets, passing the location of Enzyme's CMake
-package:
+#include <array>
+#include <iostream>
 
-```sh
-# With the Brew installation: -D Enzyme_DIR="$(brew --prefix enzyme)/lib/cmake/Enzyme"
-cmake --preset release -D Enzyme_DIR=/path/to/Enzyme/install/lib/cmake/Enzyme
-cmake --build build/release
-ctest --preset release
+int main()
+{
+    using Ideal = fugacity::ConstantCp<1>;
+    const std::array<Ideal::SpeciesInput, 1> species{{{
+        .T_ref = 298.15, // K
+        .p_ref = 1.0e5,  // Pa
+        .c_p = 29.12,    // J/(mol K)
+        .h_ref = 0.0,    // J/mol
+        .s_ref = 191.61, // J/(mol K)
+    }}};
+
+    const fugacity::EoS eos{
+        Ideal{species}, fugacity::NoResidual<1>{}};
+
+    const double T = 350.0;           // K
+    const double c = 40.0;            // mol/m^3
+    const std::array<double, 1> x{1.0}; // mole fraction
+
+    const double p = fugacity::calc_pressure(eos, c, x, T); // Pa
+    const double h = fugacity::calc_enthalpy(eos, c, x, T); // J/mol
+
+    std::cout << "p = " << p << " Pa\n"
+              << "h = " << h << " J/mol\n";
+}
 ```
 
-Available presets:
+Link the interface target from CMake:
 
-| Preset        | Purpose                                                        |
-| ------------- | ------------------------------------------------------------- |
-| `debug`       | `-O1 -g` with AddressSanitizer (Enzyme needs ≥ `-O1`)         |
-| `release`     | `-O3 -march=native`                                           |
-| `release-max` | `release` plus aggressive fast-math flags                     |
-| `coverage`    | Clang source-based code coverage (see below)                  |
-| `debug-tidy`  | `debug` with clang-tidy                                        |
+```cmake
+add_subdirectory(/path/to/fugacity fugacity-build)
+target_link_libraries(your_target PRIVATE Fugacity::Fugacity)
+```
+
+Configure the consuming project with Clang and the Enzyme package location:
+
+```sh
+cmake -S . -B build \
+  -D CMAKE_CXX_COMPILER=clang++ \
+  -D Enzyme_DIR=/path/to/Enzyme/lib/cmake/Enzyme
+cmake --build build
+```
 
 ## Documentation
 
-The [Fugacity documentation](https://dannylong-math.github.io/fugacity/) is
-built with Sphinx and Sphinx-Immaterial. To build it locally without configuring
-the Clang/Enzyme library toolchain:
+- [Getting started](https://dannylong-math.github.io/fugacity/getting_started.html)
+- [Model and property tutorial](https://dannylong-math.github.io/fugacity/tutorial.html)
+- [Implementing a new model](https://dannylong-math.github.io/fugacity/implementing_a_new_eos.html)
+- [C++ API reference](https://dannylong-math.github.io/fugacity/api/index.html)
+
+Build the documentation locally with:
 
 ```sh
 python3 -m venv .dependencies/docs
@@ -65,8 +99,17 @@ cmake --preset docs
 cmake --build --preset docs
 ```
 
-Open `build/docs/html/index.html` after the build completes.
+## Building and testing the repository
 
+```sh
+cmake --preset debug \
+  -D Enzyme_DIR=/path/to/Enzyme/lib/cmake/Enzyme
+cmake --build --preset debug
+ctest --preset debug
+```
+
+The repository also provides `release`, `release-max`, `coverage`, and
+`debug-tidy` presets.
 
 ## License
 

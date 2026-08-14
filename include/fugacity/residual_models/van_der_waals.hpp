@@ -1,7 +1,6 @@
 #pragma once
 ///
-/// File ``van_der_waals.hpp``.
-/// Residual (departure) model for the van der Waals equation of state.
+/// van der Waals residual model.
 ///
 
 #include "fugacity/core/assertions.hpp"
@@ -20,7 +19,7 @@
 namespace fugacity {
 
 ///
-/// Residual Helmholtz contribution of the van der Waals equation of state.
+/// van der Waals residual model.
 ///
 /// The molar residual Helmholtz energy is
 ///
@@ -28,15 +27,14 @@ namespace fugacity {
 ///
 ///      a_r = -R T \ln(1 - b_m c) - a_m c,
 ///
-/// the :math:`\Delta_1 = \Delta_2 = 0` specialization of the generalized cubic
-/// form (where :math:`\psi_2` degenerates to :math:`c`; see fugacity::BaseCubic for
-/// the general case). The mixture parameters follow the one-fluid rules
+/// with the one-fluid mixture rules
 ///
 /// .. math::
 ///
-///      a_m = \sum_i \sum_j x_i x_j\, (1 - k_{ij}) \sqrt{a_{0,ii}\, a_{0,jj}},
+///      a_m = \sum_i \sum_j x_i x_j\, (1 - \bar{k}_{ij}) \sqrt{a_{0,ii}\, a_{0,jj}},
 ///      \qquad
-///      b_m = \sum_i x_i b_{ii},
+///      b_m = \sum_i x_i b_{ii},\qquad
+///      \bar{k}_{ij}=\frac{k_{ij}+k_{ji}}{2},
 ///
 /// with the pure-species parameters built from the critical point:
 ///
@@ -44,59 +42,39 @@ namespace fugacity {
 ///
 ///      a_{0,ii} = \frac{27 (R T_c)^2}{64 P_c}, \qquad b_{ii} = \frac{R T_c}{8 P_c}.
 ///
-/// Since the vdW attractive term is temperature independent (:math:`m_{ii}=0`),
-/// the entire pair matrix is precomputed at construction and evaluation reduces
-/// to the double sum plus one logarithm.
-///
-/// Only the symmetric part :math:`(k_{ij}+k_{ji})/2` of the binary-interaction
-/// coefficients can affect :math:`a_m`, so an asymmetric input matrix is
-/// symmetrized internally without loss.
-///
-/// Pair the model with an ideal contribution in a fugacity::EoS and evaluate
-/// properties through the free functions in core_calculations.hpp:
-///
 /// .. code-block:: cpp
 ///
-///    using namespace fugacity;
+///    using VdW = fugacity::VanDerWaals<2>;
+///    const std::array<VdW::SpeciesInput, 2> species{{
+///        {.T_c = 126.192, .P_c = 3.3958e6},
+///        {.T_c = 304.1282, .P_c = 7.3773e6},
+///    }};
+///    const std::array<double, 4> kij{0.0, 0.05,
+///                                     0.05, 0.0};
+///    const VdW residual{species, kij};
 ///
-///    // N2 and CO2 from their critical points, with one interaction coefficient.
-///    VanDerWaals<2> residual(
-///        std::array{VanDerWaals<2>::SpeciesInput{.T_c = 126.192, .P_c = 3.3958e6},
-///                   VanDerWaals<2>::SpeciesInput{.T_c = 304.1282, .P_c = 7.3773e6}},
-///        std::array{0.0, 0.05,
-///                   0.05, 0.0});
-///    EoS eos{some_ideal_model, residual};
-///
-///    const std::array<double, 2> x{0.4, 0.6}; // mole fractions
-///    const double p = calc_pressure(eos, 500.0, std::span<const double, 2>{x}, 300.0);
-///
-///
-/// Use the ``std::dynamic_extent`` default (e.g. ``VanDerWaals<>``) when the number
-/// of species is only known at run time.
+///    const std::array<double, 2> x{0.4, 0.6};
+///    const double a_res = residual.calc_helmholtz(500.0, x.data(), 300.0);
 ///
 ///
-/// :tparam N: Component count, or ``std::dynamic_extent`` for a runtime size.
+/// :tparam N: Component count, or ``std::dynamic_extent`` for a runtime count.
 ///
 /// \ingroup residual-models
 template<std::size_t N = std::dynamic_extent> class VanDerWaals : public BaseEoS<N> {
 public:
-    /// Natural per-species input: the critical point.
+    /// Critical properties for one species.
     struct SpeciesInput {
         double T_c; ///< Critical temperature :math:`T_c` [K].
         double P_c; ///< Critical pressure :math:`P_c` [Pa].
     };
 
     ///
-    /// Construct a compile-time-sized model from per-species critical data.
+    /// Construct a fixed-size model from critical properties.
     ///
-    /// Only available when the component count ``N`` is known at compile time.
-    ///
-    ///
-    /// :param inputs: One SpeciesInput per species.
+    /// :param inputs: One :cpp:class:`SpeciesInput` per species.
     /// :param kij: Full row-major :math:`N \times N` binary-interaction matrix
-    ///               :math:`k_{ij}` [-] (entry ``kij[i*N + j]``); the diagonal must
-    ///               be zero. Defaults to all zeros. May be asymmetric; only the
-    ///               symmetric part affects the model.
+    ///               :math:`k_{ij}` [-], stored as ``kij[i*N + j]``. The default
+    ///               matrix is zero. The model uses its symmetric part.
     /// \id fixed-size
     ///
     explicit VanDerWaals(const std::array<SpeciesInput, N>& inputs, const std::array<double, N * N>& kij = {})
@@ -106,16 +84,12 @@ public:
     }
 
     ///
-    /// Construct a runtime-sized model from per-species critical data.
+    /// Construct a runtime-size model from critical properties.
     ///
-    /// Only available when ``N`` is ``std::dynamic_extent``; ``size()`` becomes
-    /// ``inputs.size()``.
-    ///
-    ///
-    /// :param inputs: One SpeciesInput per species.
+    /// :param inputs: One :cpp:class:`SpeciesInput` per species.
     /// :param kij: Full row-major :math:`n \times n` binary-interaction matrix
-    ///               :math:`k_{ij}` [-], or an empty span for all zeros (the
-    ///               default). Size checked via ``assert``.
+    ///               :math:`k_{ij}` [-], or an empty span for a zero matrix.
+    ///               Supply exactly ``inputs.size() * inputs.size()`` entries.
     /// \id runtime-size
     ///
     explicit VanDerWaals(std::span<const SpeciesInput> inputs, std::span<const double> kij = {})

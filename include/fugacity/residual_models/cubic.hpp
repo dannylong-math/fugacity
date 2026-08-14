@@ -1,8 +1,6 @@
 #pragma once
 ///
-/// File ``cubic.hpp``.
-/// CRTP base class for two-parameter cubic equations of state in
-///        generalized :math:`(\Delta_1, \Delta_2)` form.
+/// Base class for generalized two-parameter cubic residual models.
 ///
 
 #include "fugacity/core/assertions.hpp"
@@ -20,10 +18,10 @@
 namespace fugacity {
 
 ///
-/// CRTP base orchestrating the residual Helmholtz energy of a
-///        generalized two-parameter cubic equation of state.
+/// Implement the common Helmholtz equations and mixture rules for a generalized
+/// two-parameter cubic residual model.
 ///
-/// Many cubic equations of state share the residual form
+/// The molar residual Helmholtz energy is
 ///
 /// .. math::
 ///
@@ -34,15 +32,14 @@ namespace fugacity {
 ///      \psi_2 = \frac{\ln\!\left(\dfrac{\Delta_1 b_m c + 1}{\Delta_2 b_m c + 1}\right)}
 ///                    {b_m (\Delta_1 - \Delta_2)},
 ///
-/// differing only in the constants :math:`\Delta_1 \ne \Delta_2` and in how the
-/// pure-species parameters are built from critical data. This class implements
-/// the shared part: the one-fluid mixture rules
+/// with the one-fluid mixture rules
 ///
 /// .. math::
 ///
-///      a_m = \sum_i \sum_j x_i x_j\, (1 - k_{ij}) \sqrt{a_{ii}(T)\, a_{jj}(T)},
+///      a_m = \sum_i \sum_j x_i x_j\, (1 - \bar{k}_{ij}) \sqrt{a_{ii}(T)\, a_{jj}(T)},
 ///      \qquad
-///      b_m = \sum_i x_i b_{ii},
+///      b_m = \sum_i x_i b_{ii},\qquad
+///      \bar{k}_{ij}=\frac{k_{ij}+k_{ji}}{2},
 ///
 /// with the temperature-dependent pure attractive parameter
 ///
@@ -51,43 +48,16 @@ namespace fugacity {
 ///      a_{ii}(T) = a_{0,ii} \left[1 + m_{ii}\left(1 - \sqrt{T/T_{c,i}}\right)\right]^2
 ///                = a_{0,ii}\, \alpha_i(T)^2,
 ///
-/// and the three Helmholtz kernels required by the fugacity::ResidualEoS
-/// concept.
-///
-/// **CRTP contract**
-///
-/// A derived model ``Derived`` must provide
-///
-/// - ``static constexpr double delta1, delta2`` with ``delta1 != delta2`` (checked
-///   via ``static_assert``; the degenerate :math:`\Delta_1 = \Delta_2 = 0` case is
-///   fugacity::VanDerWaals), and
-///
-/// - constructors that map its natural species inputs to one PureSpecies record
-///   per species and forward them, together with the :math:`k_{ij}` matrix, to the
-///   protected BaseCubic constructor.
-///
-/// See fugacity::PengRobinson for a complete derived model.
-///
-/// **Evaluation notes**
-///
-/// - :math:`\alpha_i` may be negative (at :math:`T` well above a species'
-///   :math:`T_{c,i}`, a reachable condition for light components in hot mixtures).
-///   Since :math:`a_{ii} = a_{0,ii}\alpha_i^2 \ge 0`, the cross term is evaluated
-///   faithfully as
-///   :math:`\sqrt{a_{ii} a_{jj}} = \sqrt{a_{0,ii} a_{0,jj}}\,
-///   |\alpha_i| |\alpha_j|`.
-///
-/// - Only the symmetric part :math:`(k_{ij}+k_{ji})/2` of the binary-interaction
-///   coefficients can affect :math:`a_m`, so an asymmetric input matrix is
-///   symmetrized internally without loss.
-///
-/// - All pairwise square roots are precomputed at construction; one evaluation
-///   costs a single :math:`\sqrt{T}`, the two :math:`\psi` logarithms, and the
-///   multiply-accumulate pair loop over the stored matrix.
+/// A derived class must define ``delta1`` and ``delta2``, with
+/// ``delta1 != delta2``, and convert its public inputs to one
+/// :cpp:class:`PureSpecies` record per component. See
+/// :cpp:class:`fugacity::PengRobinson` for a concrete implementation. Use
+/// :cpp:class:`fugacity::VanDerWaals` for the degenerate case
+/// :math:`\Delta_1=\Delta_2=0`.
 ///
 ///
-/// :tparam Derived: The concrete cubic model (CRTP).
-/// :tparam N: Component count, or ``std::dynamic_extent`` for a runtime size.
+/// :tparam Derived: Concrete cubic model.
+/// :tparam N: Component count, or ``std::dynamic_extent`` for a runtime count.
 ///
 /// \ingroup residual-models
 template<class Derived, std::size_t N = std::dynamic_extent> class BaseCubic : public BaseEoS<N> {
@@ -202,9 +172,7 @@ public:
 
 protected:
     ///
-    /// Model-agnostic per-species parameters, produced by the Derived
-    ///        constructor from its natural inputs.
-    ///
+    /// Generalized cubic parameters for one species.
     struct PureSpecies {
         double a0;  ///< Attractive parameter at :math:`T = T_c` [J m^3/mol^2].
         double b;   ///< Covolume :math:`b_{ii}` [m^3/mol].
@@ -213,17 +181,13 @@ protected:
     };
 
     ///
-    /// Build the stored evaluation parameters from per-species records.
-    ///
-    /// Cold path: the pairwise square roots are paid once here so the kernels
-    /// never take any.
-    ///
+    /// Construct the generalized cubic model.
     ///
     /// :param species: One PureSpecies record per species.
     /// :param kij: Full row-major :math:`n \times n` binary-interaction matrix
     ///                :math:`k_{ij}` [-], or an empty span for all zeros. May be
-    ///                asymmetric; only the symmetric part affects the model.
-    ///                Size checked via ``assert``.
+    ///                asymmetric; the model uses its symmetric part. Supply
+    ///                exactly ``species.size() * species.size()`` entries.
     ///
     BaseCubic(std::span<const PureSpecies> species, std::span<const double> kij) : BaseEoS<N>(species.size())
     {

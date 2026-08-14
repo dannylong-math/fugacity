@@ -7,25 +7,28 @@
 namespace fugacity {
 
 ///
-/// A residual contribution that is identically zero.
+/// Zero residual model.
 ///
-/// Every thermodynamic quantity this model contributes evaluates to zero, so
-/// pairing it (via fugacity::EoS) with an ideal-gas model yields a complete
-/// equation of state whose residual (departure) part vanishes &mdash; i.e. a pure
-/// ideal gas. It exists so that ideal-gas behaviour can be expressed through the
-/// same EoS machinery as any other model without a special-case code path.
+/// The residual molar Helmholtz energy and Helmholtz energy density are
 ///
+/// .. math::
 ///
-/// :tparam N: Number of components, or ``std::dynamic_extent`` for a runtime size.
+///    a^\mathrm{res}(c,\boldsymbol{x},T)=0,\qquad
+///    \Psi^\mathrm{res}(\boldsymbol{\rho},T)=0.
+///
+/// .. code-block:: cpp
+///
+///    fugacity::NoResidual<2> residual;
+///    const std::array<double, 2> x{0.4, 0.6};
+///    const double a_res = residual.calc_helmholtz(40.0, x.data(), 300.0);
+///
+/// :tparam N: Component count, or ``std::dynamic_extent`` for a runtime count.
 ///
 /// \ingroup residual-models
 template<std::size_t N> class NoResidual : public BaseEoS<N> {
 public:
     ///
-    /// Default-construct a compile-time-sized model.
-    ///
-    /// Only available when the component count ``N`` is known at compile time
-    /// (i.e. ``N`` is not ``std::dynamic_extent``); the size is carried by the type.
+    /// Construct a model whose component count is known at compile time.
     /// \id fixed-size
     ///
     constexpr NoResidual() noexcept
@@ -33,13 +36,9 @@ public:
     = default;
 
     ///
-    /// Construct a runtime-sized model with an explicit component count.
+    /// Construct a model with a runtime component count.
     ///
-    /// Only available when ``N`` is ``std::dynamic_extent``; the component count is
-    /// not known until construction and is therefore supplied here.
-    ///
-    ///
-    /// :param n: Number of chemical components.
+    /// :param n: Component count.
     /// \id runtime-size
     ///
     constexpr explicit NoResidual(const std::size_t n) noexcept
@@ -49,7 +48,7 @@ public:
     }
 
     ///
-    /// Molar residual Helmholtz energy, which is identically zero.
+    /// Return the molar residual Helmholtz energy [J/mol].
     ///
     /// :returns: ``Number{0}``.
     ///
@@ -60,7 +59,7 @@ public:
     }
 
     ///
-    /// Total residual Helmholtz energy density, which is identically zero.
+    /// Return the residual Helmholtz energy density [J/m^3].
     ///
     /// :returns: ``Number{0}``.
     ///
@@ -71,12 +70,9 @@ public:
     }
 
     ///
-    /// Per-component residual Helmholtz energy density, all zero.
+    /// Set every per-component residual Helmholtz energy density to zero.
     ///
-    /// Writes ``Number{0}`` into each of the ``size()`` entries of ``out``.
-    ///
-    ///
-    /// :param out: Output array; filled with zeros.
+    /// :param out: Output array of length ``size()`` [J/m^3].
     ///
     template<std::floating_point Number>
     void calc_partial_helmholtz(const Number* /*rho_i*/, const Number /*T*/, Number* out) const

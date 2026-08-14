@@ -1,9 +1,7 @@
 #pragma once
 
 ///
-/// File ``eos_base.hpp``.
-/// Base classes that carry the component-count of an equation of state and
-///        tag a model as an ideal contribution.
+/// Component-count storage and the ideal-model tag.
 ///
 
 #include "fugacity/core/assertions.hpp"
@@ -15,16 +13,12 @@
 namespace fugacity {
 
 ///
-/// Base class that stores the number of chemical components an EoS
-///        describes, either at compile time or at run time.
+/// Store the number of components in an equation-of-state model.
 ///
-/// Provide a concrete component count as the template argument to bake the size
-/// into the type (zero storage, ``size()`` is ``static constexpr``). Use the default
-/// ``std::dynamic_extent`` for a size only known at run time (see the
-/// specialization below).
+/// Specify ``N`` when the component count is known at compile time. Use
+/// ``std::dynamic_extent`` when the count is determined at run time.
 ///
-///
-/// :tparam N: Number of components, or ``std::dynamic_extent`` for a runtime size.
+/// :tparam N: Component count, or ``std::dynamic_extent`` for a runtime count.
 ///
 /// \id fixed-size
 /// \ingroup core
@@ -33,11 +27,11 @@ public:
     constexpr BaseEoS() noexcept = default;
 
     ///
-    /// Construct with an explicit component count.
+    /// Check an explicit component count against ``N``.
     ///
-    /// :param n: Number of components. Must equal ``N``; a mismatch throws
-    ///          ``std::logic_error`` in a debug build and is elided in release
-    ///          (via FUGACITY_ASSERT).
+    /// :param n: Component count. Must equal ``N``. A mismatch throws
+    ///           ``std::logic_error`` in debug builds; the check is omitted in
+    ///           release builds.
     ///
     constexpr explicit BaseEoS([[maybe_unused]] const std::size_t n) { FUGACITY_ASSERT(n == N); }
 
@@ -49,23 +43,14 @@ public:
     [[nodiscard]] static constexpr std::size_t size() noexcept { return N; }
 
     ///
-    /// Invoke ``f`` once for every component index, in ascending order.
+    /// Call ``f(i)`` for each component index in ascending order.
     ///
-    /// Calls ``f(0), f(1), ..., f(size() - 1)``. For a compile-time component count
-    /// the loop is expanded as a fold over ``std::index_sequence``, so the bound is
-    /// known at compile time and the body is fully unrolled. This lets a model
-    /// write a single component loop instead of branching on whether the size is
-    /// static or dynamic.
-    ///
-    ///
-    /// :tparam F: Callable invocable as ``f(std::size_t)``.
-    /// :param f: Callable applied to each component index. Taken by value (like
-    ///           the standard algorithms), so a mutable callable may carry state
-    ///           across the visits.
+    /// :tparam F: Type callable as ``f(std::size_t)``.
+    /// :param f: Callable applied to the indices ``0`` through ``size() - 1``.
     ///
     /// .. code-block:: cpp
     ///
-    ///    // Zero every component of an output buffer:
+    ///    // Zero every entry in a component-sized buffer.
     ///    model.for_each_component([&](std::size_t i) { out[i] = 0.0; });
     ///
     ///
@@ -76,17 +61,14 @@ public:
 };
 
 ///
-/// Runtime-sized specialization of BaseEoS.
-///
-/// Stores the component count in a data member because it is not known until
-/// construction.
+/// Store a component count that is determined at run time.
 ///
 /// \id runtime-size
 /// \ingroup core
 template<> class BaseEoS<std::dynamic_extent> {
 public:
     ///
-    /// Construct with the runtime component count.
+    /// Construct with a component count.
     ///
     /// :param n: Number of components.
     ///
@@ -100,18 +82,10 @@ public:
     [[nodiscard]] constexpr std::size_t size() const noexcept { return n_; }
 
     ///
-    /// Invoke ``f`` once for every component index, in ascending order.
+    /// Call ``f(i)`` for each component index in ascending order.
     ///
-    /// Calls ``f(0), f(1), ..., f(size() - 1)`` via a runtime loop over the stored
-    /// component count. Mirrors the compile-time-sized overload so models can use
-    /// the same component-loop spelling regardless of whether the size is known
-    /// at compile time.
-    ///
-    ///
-    /// :tparam F: Callable invocable as ``f(std::size_t)``.
-    /// :param f: Callable applied to each component index. Taken by value (like
-    ///           the standard algorithms), so a mutable callable may carry state
-    ///           across the visits.
+    /// :tparam F: Type callable as ``f(std::size_t)``.
+    /// :param f: Callable applied to the indices ``0`` through ``size() - 1``.
     ///
     template<class F> [[clang::always_inline]] constexpr void for_each_component(F f) const
     {
@@ -121,15 +95,14 @@ public:
     }
 
 private:
-    std::size_t n_; ///< Number of components.
+    std::size_t n_; // Number of components.
 };
 
 ///
-/// Empty tag type that marks a model as an *ideal* equation of state.
+/// Mark a model as an ideal-gas contribution.
 ///
-/// A model must publicly derive from this class to satisfy the fugacity::IdealEoS
-/// concept. It carries no data or behaviour; it exists purely so the concepts can
-/// distinguish ideal contributions from residual ones at compile time.
+/// Publicly derive an ideal model from this class so that it satisfies
+/// :cpp:concept:`fugacity::IdealEoS`. Residual models must not derive from it.
 ///
 /// \ingroup core
 class BaseIdealEoS {};
