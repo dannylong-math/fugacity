@@ -1,7 +1,6 @@
 #pragma once
 ///
-/// File ``horner.hpp``.
-/// Compile-time-sized polynomial evaluation.
+/// Polynomial evaluation.
 ///
 
 #include "fugacity/core/attributes.hpp"
@@ -11,9 +10,7 @@
 
 namespace fugacity {
 ///
-/// Evaluate a degree-``N`` polynomial at ``x``.
-///
-/// Evaluates :math:`\sum_{k=0}^{N} \text{coeffs}[k]\,x^k` using Horner's method.
+/// Evaluate :math:`\sum_{k=0}^{N}\mathrm{coeffs}[k]x^k` using Horner's method.
 ///
 ///
 /// :tparam N: Degree of the polynomial (``coeffs`` holds ``N`` + 1 values).

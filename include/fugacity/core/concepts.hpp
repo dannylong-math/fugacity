@@ -1,8 +1,6 @@
 #pragma once
 ///
-/// File ``concepts.hpp``.
-/// Concepts that define the interface every equation-of-state model must
-///        provide, and the ideal/residual classification.
+/// Equation-of-state model concepts.
 ///
 #include "fugacity/core/eos_base.hpp"
 
@@ -11,12 +9,10 @@
 namespace fugacity {
 
 ///
-/// Macro ``FUGACITY_RESTRICT``.
-/// Portable spelling of the C99 ``restrict`` pointer qualifier.
+/// Portable spelling of a restricted pointer qualifier.
 ///
-/// Expands to the compiler's restrict keyword (``__restrict__`` on GCC/Clang,
-/// ``__restrict`` on MSVC) or to nothing on unknown compilers. Used to promise that
-/// the buffers passed to the hot autodiff routines do not alias.
+/// The macro expands to the compiler-specific ``restrict`` keyword when one is
+/// available and otherwise expands to nothing.
 ///
 #if defined(__GNUC__) || defined(__clang__)
 #define FUGACITY_RESTRICT __restrict__
@@ -27,45 +23,33 @@ namespace fugacity {
 #endif
 
 ///
-/// Interface required of every equation-of-state model (ideal or residual).
+/// Require the common interface for an ideal or residual model.
 ///
-/// A conforming type ``E`` must expose the following const member functions. The
-/// concept is checked with ``double``, but models are expected to template these on
-/// the floating-point type so the autodiff layer can also instantiate them with,
-/// e.g., a higher-precision type.
+/// Implement the three calculation functions as templates over a floating-point
+/// number type. The concept checks the following interface with ``double``:
 ///
 /// Required members:
 ///
-/// - ``calc_helmholtz(c, x, T) -> (convertible to double)``
-///   Molar Helmholtz energy :math:`a`.
-///   - ``c`` molar concentration [mol/m^3]
-///   - ``x`` pointer to the mole-fraction array [-]
-///   - ``T`` temperature [K]
-///   - returns the **molar** Helmholtz energy [J/mol]
+/// - ``calc_helmholtz(c, x, T)`` returns molar Helmholtz energy :math:`a`
+///   [J/mol]. Here ``c`` is molar concentration [mol/m^3], ``x`` points to the
+///   mole fractions [-], and ``T`` is temperature [K].
 ///
-/// - ``calc_partial_helmholtz(rho_i, T, out) -> void``
-///   Per-component decomposition of the Helmholtz energy **density** :math:`\Psi`
-///   (such that :math:`\sum_i \text{out}[i] = \Psi`).
-///   - ``rho_i`` pointer to the partial-molar-concentration array [mol/m^3]
-///   - ``T`` temperature [K]
-///   - ``out`` output array, per-component Helmholtz energy density [J/m^3]
+/// - ``calc_helmholtz_density(rho_i, T)`` returns Helmholtz energy density
+///   :math:`\Psi` [J/m^3]. ``rho_i`` points to partial molar concentrations
+///   [mol/m^3].
 ///
-/// - ``calc_helmholtz_density(rho_i, T) -> (convertible to double)``
-///   Total Helmholtz energy **density** :math:`\Psi = \sum_i \Psi_i`, accumulated
-///   directly into a scalar (no per-component buffer). This is the scalar the
-///   reverse-mode autodiff differentiates to obtain chemical potentials.
-///   - ``rho_i`` pointer to the partial-molar-concentration array [mol/m^3]
-///   - ``T`` temperature [K]
-///   - returns the total Helmholtz energy density [J/m^3]
+/// - ``calc_partial_helmholtz(rho_i, T, out)`` writes a per-component
+///   decomposition :math:`\Psi_i` [J/m^3] satisfying
+///   :math:`\sum_i\Psi_i=\Psi`.
 ///
-/// - ``size() -> (convertible to std::size_t)``
-///   Number of components [-].
+/// - ``size()`` returns the component count.
 ///
-/// **Note:** The two Helmholtz members use different units on purpose:
-///       ``calc_helmholtz`` is an intensive **molar** quantity [J/mol], while
-///       ``calc_partial_helmholtz`` returns a **volumetric** density [J/m^3]. They
-///       are linked by :math:`\Psi(\rho,T) = c\,a(c,x,T)` with :math:`c=\sum_i\rho_i`
-///       and :math:`x_i=\rho_i/c`.
+/// Keep the molar and density forms consistent:
+///
+/// .. math::
+///
+///    \Psi(\boldsymbol{\rho},T)=c\,a(c,\boldsymbol{x},T),\qquad
+///    c=\sum_i\rho_i,\qquad x_i=\rho_i/c.
 ///
 /// \ingroup core
 template<class E>
@@ -79,21 +63,14 @@ concept EquationOfState =
     };
 
 ///
-/// An ideal-gas contribution: an EquationOfState that also derives from
-///        BaseIdealEoS.
-///
-/// The inheritance requirement is how the library tells ideal models apart from
-/// residual ones at compile time.
+/// Match an equation-of-state model marked as an ideal contribution.
 ///
 /// \ingroup core
 template<class E>
 concept IdealEoS = std::derived_from<E, BaseIdealEoS> && EquationOfState<E>;
 
 ///
-/// A residual (departure) contribution: an EquationOfState that is *not*
-///        an IdealEoS.
-///
-/// Equivalently, a model that does not derive from BaseIdealEoS.
+/// Match an equation-of-state model that is not marked as ideal.
 ///
 /// \ingroup core
 template<class E>

@@ -1,7 +1,6 @@
 #pragma once
 ///
-/// File ``peng_robinson.hpp``.
-/// Residual (departure) model for the Peng-Robinson equation of state.
+/// Peng-Robinson residual model.
 ///
 
 #include "fugacity/core/concepts.hpp"
@@ -18,11 +17,33 @@
 namespace fugacity {
 
 ///
-/// Residual Helmholtz contribution of the Peng-Robinson equation of state.
+/// Peng-Robinson residual model.
 ///
-/// A fugacity::BaseCubic model with :math:`\Delta_{1,2} = 1 \pm \sqrt{2}` and the
-/// pure-species parameters built from each species' critical point and acentric
-/// factor:
+/// The molar residual Helmholtz energy is
+///
+/// .. math::
+///
+///    a^\mathrm{res}
+///    =-RT\ln(1-b_m c)
+///    -\frac{a_m}{b_m(\Delta_1-\Delta_2)}
+///    \ln\!\left(\frac{1+\Delta_1b_mc}{1+\Delta_2b_mc}\right),
+///    \qquad \Delta_{1,2}=1\mathbin{\pm}\sqrt{2}.
+///
+/// The mixture parameters are
+///
+/// .. math::
+///
+///    a_m=\sum_i\sum_jx_ix_j(1-\bar{k}_{ij})
+///        \sqrt{a_{ii}(T)a_{jj}(T)},\qquad
+///    b_m=\sum_i x_i b_{ii},\qquad
+///    \bar{k}_{ij}=\frac{k_{ij}+k_{ji}}{2},
+///
+/// .. math::
+///
+///    a_{ii}(T)=a_{0,ii}
+///      \left[1+m_{ii}\left(1-\sqrt{T/T_{c,i}}\right)\right]^2.
+///
+/// Compute the pure-species parameters from critical properties as
 ///
 /// .. math::
 ///
@@ -38,7 +59,7 @@ namespace fugacity {
 ///      \qquad
 ///      b_{ii} = \Omega_b \frac{R T_c}{P_c},
 ///
-/// with the alpha-function slope from the acentric factor :math:`\omega`:
+/// and compute the alpha-function coefficient from the acentric factor:
 ///
 /// .. math::
 ///
@@ -49,38 +70,27 @@ namespace fugacity {
 ///      + 0.016666\,\omega^3
 ///      \quad \text{for } \omega > 0.491.
 ///
-/// The Helmholtz kernels and mixture rules live in BaseCubic; this class only
-/// performs the parameter transformation at construction.
-///
-/// Pair the model with an ideal contribution in a fugacity::EoS and evaluate
-/// properties through the free functions in core_calculations.hpp:
-///
 /// .. code-block:: cpp
 ///
-///    using namespace fugacity;
+///    using PR = fugacity::PengRobinson<2>;
+///    const std::array<PR::SpeciesInput, 2> species{{
+///        {.T_c = 190.564, .P_c = 4.5992e6, .omega = 0.011},
+///        {.T_c = 304.1282, .P_c = 7.3773e6, .omega = 0.22394},
+///    }};
+///    const std::array<double, 4> kij{0.0, 0.09,
+///                                     0.09, 0.0};
+///    const PR residual{species, kij};
 ///
-///    // CH4 and CO2 from critical data, with one interaction coefficient.
-///    PengRobinson<2> residual(
-///        std::array{PengRobinson<2>::SpeciesInput{.T_c = 190.564, .P_c = 4.5992e6, .omega = 0.011},
-///                   PengRobinson<2>::SpeciesInput{.T_c = 304.1282, .P_c = 7.3773e6, .omega = 0.22394}},
-///        std::array{0.0, 0.09,
-///                   0.09, 0.0});
-///    EoS eos{some_ideal_model, residual};
-///
-///    const std::array<double, 2> x{0.4, 0.6}; // mole fractions
-///    const double p = calc_pressure(eos, 500.0, std::span<const double, 2>{x}, 300.0);
-///
-///
-/// Use the ``std::dynamic_extent`` default (e.g. ``PengRobinson<>``) when the
-/// number of species is only known at run time.
+///    const std::array<double, 2> x{0.4, 0.6};
+///    const double a_res = residual.calc_helmholtz(500.0, x.data(), 300.0);
 ///
 ///
-/// :tparam N: Component count, or ``std::dynamic_extent`` for a runtime size.
+/// :tparam N: Component count, or ``std::dynamic_extent`` for a runtime count.
 ///
 /// \ingroup residual-models
 template<std::size_t N = std::dynamic_extent> class PengRobinson : public BaseCubic<PengRobinson<N>, N> {
 public:
-    /// Natural per-species input: critical point and acentric factor.
+    /// Critical properties for one species.
     struct SpeciesInput {
         double T_c;   ///< Critical temperature :math:`T_c` [K].
         double P_c;   ///< Critical pressure :math:`P_c` [Pa].
@@ -93,16 +103,12 @@ public:
     static constexpr double delta2 = 1.0 - std::numbers::sqrt2;
 
     ///
-    /// Construct a compile-time-sized model from per-species critical data.
+    /// Construct a fixed-size model from critical properties.
     ///
-    /// Only available when the component count ``N`` is known at compile time.
-    ///
-    ///
-    /// :param inputs: One SpeciesInput per species.
+    /// :param inputs: One :cpp:class:`SpeciesInput` per species.
     /// :param kij: Full row-major :math:`N \times N` binary-interaction matrix
-    ///               :math:`k_{ij}` [-] (entry ``kij[i*N + j]``); the diagonal must
-    ///               be zero. Defaults to all zeros. May be asymmetric; only the
-    ///               symmetric part affects the model.
+    ///               :math:`k_{ij}` [-], stored as ``kij[i*N + j]``. The default
+    ///               matrix is zero. The model uses its symmetric part.
     /// \id fixed-size
     ///
     explicit PengRobinson(const std::array<SpeciesInput, N>& inputs, const std::array<double, N * N>& kij = {})
@@ -112,16 +118,12 @@ public:
     }
 
     ///
-    /// Construct a runtime-sized model from per-species critical data.
+    /// Construct a runtime-size model from critical properties.
     ///
-    /// Only available when ``N`` is ``std::dynamic_extent``; ``size()`` becomes
-    /// ``inputs.size()``.
-    ///
-    ///
-    /// :param inputs: One SpeciesInput per species.
+    /// :param inputs: One :cpp:class:`SpeciesInput` per species.
     /// :param kij: Full row-major :math:`n \times n` binary-interaction matrix
-    ///               :math:`k_{ij}` [-], or an empty span for all zeros (the
-    ///               default). Size checked via ``assert``.
+    ///               :math:`k_{ij}` [-], or an empty span for a zero matrix.
+    ///               Supply exactly ``inputs.size() * inputs.size()`` entries.
     /// \id runtime-size
     ///
     explicit PengRobinson(std::span<const SpeciesInput> inputs, std::span<const double> kij = {})

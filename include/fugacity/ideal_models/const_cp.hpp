@@ -1,8 +1,6 @@
 #pragma once
 ///
-/// File ``const_cp.hpp``.
-/// Ideal-gas model in which every pure species has a constant isobaric
-///        molar heat capacity :math:`c_p`.
+/// Constant-heat-capacity ideal model.
 ///
 
 #include "fugacity/core/concepts.hpp"
@@ -21,60 +19,55 @@
 namespace fugacity {
 
 ///
-/// Ideal-gas equation of state with a constant isobaric molar heat
-///        capacity per species.
+/// Constant-heat-capacity ideal model.
 ///
-/// With :math:`c_p` constant the molar enthalpy and entropy of each pure species
-/// are closed-form functions of temperature, referenced to a per-species
+/// For each species, the standard-state enthalpy and entropy are
 ///
-/// :math:`(T_\mathrm{ref}, p_\mathrm{ref})` state. The mixture's ideal Helmholtz
-/// energy is the sum of those per-species contributions plus the ideal entropy
-/// of mixing.
+/// .. math::
 ///
-/// Construct the model from one SpeciesInput per species (each species may use
-/// its own reference state), pair it with a residual model in an EoS, and
-/// evaluate properties through the free functions in core_calculations.hpp:
+///    h_i^\circ(T)=h_{i,\mathrm{ref}}+c_{p,i}(T-T_{i,\mathrm{ref}}),
 ///
-/// .. code-block:: cpp
+/// .. math::
 ///
-///    using namespace fugacity;
+///    s_i^\circ(T)=s_{i,\mathrm{ref}}
+///       +c_{p,i}\ln\!\left(\frac{T}{T_{i,\mathrm{ref}}}\right).
 ///
-///    ConstantCp<2> ideal(std::array{
-///        ConstantCp<2>::SpeciesInput{
-///            .T_ref = 298.15, .p_ref = 1.0e5, .c_p = 29.1, .h_ref = 0.0, .s_ref = 191.6},
-///        ConstantCp<2>::SpeciesInput{
-///            .T_ref = 298.15, .p_ref = 1.0e5, .c_p = 33.6, .h_ref = 0.0, .s_ref = 205.2},
-///    });
-///    EoS eos{ideal, NoResidual<2>{}};
+/// The molar ideal Helmholtz energy is
 ///
-///    const std::array<double, 2> x{0.5, 0.5}; // mole fractions
-///    const double c = 40.0;                   // molar concentration [mol/m^3]
-///    const double T = 350.0;                  // temperature [K]
-///    const double h = calc_enthalpy(eos, c, std::span<const double, 2>{x}, T);
+/// .. math::
 ///
+///    a^\mathrm{ideal}
+///    =\sum_i x_i\left[
+///      h_i^\circ-Ts_i^\circ
+///      +RT\ln\!\left(\frac{x_i cRT}{p_{i,\mathrm{ref}}}\right)
+///      \right]-RT.
 ///
-/// Use the ``std::dynamic_extent`` default (e.g. ``ConstantCp<>``) when the number
-/// of species is only known at run time:
+/// Here :math:`c` is molar concentration [mol/m^3], :math:`T` is temperature
+/// [K], and :math:`x_i` is mole fraction [-].
 ///
 /// .. code-block:: cpp
 ///
-///    std::vector<ConstantCp<>::SpeciesInput> inputs = load_species(...);
-///    ConstantCp<> ideal{std::span<const ConstantCp<>::SpeciesInput>{inputs}};
+///    using Ideal = fugacity::ConstantCp<2>;
+///    const std::array<Ideal::SpeciesInput, 2> species{{
+///        {.T_ref = 298.15, .p_ref = 1.0e5, .c_p = 29.1,
+///         .h_ref = 0.0, .s_ref = 191.6},
+///        {.T_ref = 298.15, .p_ref = 1.0e5, .c_p = 33.6,
+///         .h_ref = 0.0, .s_ref = 205.2},
+///    }};
+///    const Ideal ideal{species};
+///    const fugacity::EoS eos{ideal, fugacity::NoResidual<2>{}};
+///
+///    const std::array<double, 2> x{0.5, 0.5};
+///    const double h = fugacity::calc_enthalpy(eos, 40.0, x, 350.0);
 ///
 ///
-///
-/// :tparam N: Component count, or ``std::dynamic_extent`` for a runtime size.
+/// :tparam N: Component count, or ``std::dynamic_extent`` for a runtime count.
 ///
 /// \ingroup ideal-models
 template<std::size_t N = std::dynamic_extent> class ConstantCp : public BaseEoS<N>, public BaseIdealEoS {
 public:
     ///
-    /// Natural per-species reference data supplied by the user.
-    ///
-    /// The constructor turns these into the derived parameters the model stores.
-    /// The reference molar concentration is *not* supplied directly; it is
-    /// computed as :math:`c_\mathrm{ref} = p_\mathrm{ref} / (R\,T_\mathrm{ref})`.
-    ///
+    /// Thermodynamic data for one species.
     struct SpeciesInput {
         double T_ref; ///< Reference temperature :math:`T_\mathrm{ref}` [K].
         double p_ref; ///< Reference pressure :math:`p_\mathrm{ref}` [Pa].
@@ -84,12 +77,9 @@ public:
     };
 
     ///
-    /// Construct a compile-time-sized model from per-species reference data.
+    /// Construct a fixed-size model.
     ///
-    /// Only available when the component count ``N`` is known at compile time.
-    ///
-    ///
-    /// :param inputs: One SpeciesInput per species.
+    /// :param inputs: One :cpp:class:`SpeciesInput` per species.
     /// \id fixed-size
     ///
     explicit ConstantCp(const std::array<SpeciesInput, N>& inputs)
@@ -101,13 +91,10 @@ public:
     }
 
     ///
-    /// Construct a runtime-sized model from per-species reference data.
+    /// Construct a runtime-size model.
     ///
-    /// Only available when ``N`` is ``std::dynamic_extent``; ``size()`` becomes
-    /// ``inputs.size()``.
-    ///
-    ///
-    /// :param inputs: One SpeciesInput per species.
+    /// :param inputs: One :cpp:class:`SpeciesInput` per species. ``size()`` is
+    ///                set to ``inputs.size()``.
     /// \id runtime-size
     ///
     explicit ConstantCp(std::span<const SpeciesInput> inputs)
@@ -122,7 +109,7 @@ public:
     }
 
     ///
-    /// Total molar Helmholtz energy :math:`a = \sum_i a_i`.
+    /// Return the molar ideal Helmholtz energy.
     ///
     /// :param c: Molar concentration [mol/m^3].
     /// :param x: Mole-fraction array [-].
@@ -153,7 +140,8 @@ public:
     }
 
     ///
-    /// Total Helmholtz energy density :math:`\Psi = \sum_i \Psi_i`.
+    /// Return the ideal Helmholtz energy density
+    /// :math:`\Psi^\mathrm{ideal}=c a^\mathrm{ideal}`.
     ///
     /// :param rho_i: Partial molar concentrations [mol/m^3].
     /// :param T: Temperature [K].
@@ -188,7 +176,7 @@ public:
     }
 
     ///
-    /// Per-component Helmholtz energy density, :math:`\text{out}[i] = \Psi_i`.
+    /// Return a per-component decomposition of the ideal Helmholtz energy density.
     ///
     /// :param rho_i: Partial molar concentrations [mol/m^3].
     /// :param T: Temperature [K].

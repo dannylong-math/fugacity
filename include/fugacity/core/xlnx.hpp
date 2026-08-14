@@ -114,16 +114,10 @@ template<int N, std::floating_point Number> constexpr Number smooth_step(const N
 
 } // namespace detail
 ///
-/// Computes :math:`x \ln(x)` with a continuous extension at and below zero.
+/// Evaluate :math:`x\ln x` with value zero for nonpositive arguments.
 ///
-/// For :math:`x > 0` this returns :math:`x \ln(x)`. For :math:`x \le 0` it returns
-///
-/// :math:`0`, which provides the continuous extension :math:`\lim_{x \to 0^+} x \ln(x) = 0`
-/// at the origin and avoids passing non-positive arguments to ``std::log``.
-///
-/// This term arises frequently in the entropy of mixing and related
-/// thermodynamic expressions, where it must remain well-defined as a
-/// mole fraction or concentration approaches zero.
+/// This definition uses :math:`\lim_{x\to0^+}x\ln x=0` at the origin and does
+/// not call ``std::log`` for :math:`x\le0`.
 ///
 ///
 /// :tparam Number: A floating-point type.
@@ -138,27 +132,13 @@ template<std::floating_point Number> Number xlnx(const Number x)
 }
 
 ///
-/// Computes :math:`x \ln(x)` with a smooth (:math:`C^{\text{Continuity}}`)
-///        extension at and below zero.
+/// Evaluate a smooth extension of :math:`x\ln x` at the origin.
 ///
-/// Like xlnx(Number) this is the continuous extension :math:`x\ln x` for :math:`x > 0`
-/// and :math:`0` for :math:`x \le 0`, but the ``Continuity`` template parameter controls
-/// how smoothly the two pieces are joined:
-///
-/// - ``Continuity == 0`` is exactly xlnx(Number): merely continuous. The
-///   derivative still diverges (:math:`\ln x + 1 \to -\infty`) as :math:`x \to 0^+`.
-///
-/// - ``Continuity >= 1`` multiplies :math:`x\ln x` by a smoothstep
-///   detail::smooth_step "ramp" on the tiny interval :math:`x \in (0, \varepsilon)`
-///   (where :math:`\varepsilon` is the machine epsilon), pulling the contribution to
-///   zero so that the function and its first ``Continuity`` derivatives are
-///   continuous everywhere, including across the :math:`x = 0` join. For
-///   :math:`x \ge \varepsilon` the value is the unmodified :math:`x\ln x`, so ordinary
-///   arguments are unaffected.
-///
-/// Smoothing the :math:`x\ln x` kink is useful where the term and its derivatives are
-/// fed to automatic differentiation (e.g. the entropy of mixing), so a mole
-/// fraction approaching zero does not produce a divergent derivative.
+/// ``Continuity == 0`` is equivalent to the unsmoothed ``xlnx`` overload. For
+/// ``Continuity >= 1``, a smoothstep modifies the function over
+/// :math:`0<x<\varepsilon`, where :math:`\varepsilon` is machine epsilon. The
+/// result has ``Continuity`` continuous derivatives and equals :math:`x\ln x`
+/// for :math:`x\ge\varepsilon`.
 ///
 ///
 /// :tparam Continuity: The order of continuity to enforce at the origin

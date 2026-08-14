@@ -277,6 +277,18 @@ Number calc_helmholtz(const EoS<Ideal, Residual>& eos, const Number c, V& x, con
     return calc_helmholtz(eos, c, x.data(), T);
 }
 
+///
+/// Temperature derivative :math:`(\partial a/\partial T)_{c,\boldsymbol{x}}`
+/// [J/(mol K)].
+///
+/// :param eos: The equation of state.
+/// :param c: Molar concentration [mol/m^3]. Held constant in the derivative.
+/// :param x: Mole fractions [-]. Held constant in the derivative.
+/// :param T: Temperature [K].
+/// :returns: Temperature derivative of molar Helmholtz energy [J/(mol K)].
+/// :precondition: ``x.size() == eos.size()``
+///
+/// \ingroup core
 template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number, typename V>
 Number calc_helmholtz_dT(const EoS<Ideal, Residual>& eos, const Number c, V& x, const Number T)
 {
@@ -285,6 +297,18 @@ Number calc_helmholtz_dT(const EoS<Ideal, Residual>& eos, const Number c, V& x, 
     return calc_helmholtz_dT(eos, c, x.data(), T);
 }
 
+///
+/// Concentration derivative
+/// :math:`(\partial a/\partial c)_{T,\boldsymbol{x}}` [J m^3/mol^2].
+///
+/// :param eos: The equation of state.
+/// :param c: Molar concentration [mol/m^3].
+/// :param x: Mole fractions [-]. Held constant in the derivative.
+/// :param T: Temperature [K]. Held constant in the derivative.
+/// :returns: Concentration derivative of molar Helmholtz energy [J m^3/mol^2].
+/// :precondition: ``x.size() == eos.size()``
+///
+/// \ingroup core
 template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number, typename V>
 Number calc_helmholtz_dc(const EoS<Ideal, Residual>& eos, const Number c, V& x, const Number T)
 {
@@ -293,6 +317,20 @@ Number calc_helmholtz_dc(const EoS<Ideal, Residual>& eos, const Number c, V& x, 
     return calc_helmholtz_dc(eos, c, x.data(), T);
 }
 
+///
+/// Composition gradient :math:`\partial a/\partial x_i` [J/mol].
+///
+/// Treat the mole fractions as independent coordinates.
+///
+/// :param eos: The equation of state.
+/// :param c: Molar concentration [mol/m^3]. Held constant in the derivative.
+/// :param x: Mole fractions [-].
+/// :param T: Temperature [K]. Held constant in the derivative.
+/// :param gradient: Output composition gradient [J/mol]. Overwritten.
+/// :precondition: ``x.size() == eos.size()``
+/// :precondition: ``gradient.size() == eos.size()``
+///
+/// \ingroup core
 template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number, typename V1, typename V2>
 void calc_helmholtz_dx(const EoS<Ideal, Residual>& eos, const Number c, V1& x, const Number T, V2& gradient)
 {
@@ -359,6 +397,19 @@ Number calc_pressure(const EoS<Ideal, Residual>& eos, const Number c, V& x, cons
     return calc_pressure(eos, c, x.data(), T);
 }
 
+///
+/// Temperature derivative :math:`(\partial p/\partial T)_{c,\boldsymbol{x}}`
+/// [Pa/K].
+///
+/// :param eos: The equation of state.
+/// :param c: Molar concentration [mol/m^3]. Held constant in the derivative.
+/// :param x: Mole fractions [-]. Held constant in the derivative.
+/// :param T: Temperature [K].
+/// :returns: Temperature derivative of pressure [Pa/K].
+/// :precondition: ``T > 0``.
+/// :precondition: ``x.size() == eos.size()``
+///
+/// \ingroup core
 template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number, typename V>
 Number calc_pressure_dT(const EoS<Ideal, Residual>& eos, const Number c, V& x, const Number T)
 {
@@ -367,6 +418,19 @@ Number calc_pressure_dT(const EoS<Ideal, Residual>& eos, const Number c, V& x, c
     return calc_pressure_dT(eos, c, x.data(), T);
 }
 
+///
+/// Concentration derivative
+/// :math:`(\partial p/\partial c)_{T,\boldsymbol{x}}` [Pa m^3/mol].
+///
+/// :param eos: The equation of state.
+/// :param c: Molar concentration [mol/m^3].
+/// :param x: Mole fractions [-]. Held constant in the derivative.
+/// :param T: Temperature [K]. Held constant in the derivative.
+/// :returns: Concentration derivative of pressure [Pa m^3/mol].
+/// :precondition: ``T > 0``.
+/// :precondition: ``x.size() == eos.size()``
+///
+/// \ingroup core
 template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number, typename V>
 Number calc_pressure_dc(const EoS<Ideal, Residual>& eos, const Number c, V& x, const Number T)
 {
@@ -375,6 +439,21 @@ Number calc_pressure_dc(const EoS<Ideal, Residual>& eos, const Number c, V& x, c
     return calc_pressure_dc(eos, c, x.data(), T);
 }
 
+///
+/// Composition gradient :math:`\partial p/\partial x_i` [Pa].
+///
+/// Treat the mole fractions as independent coordinates.
+///
+/// :param eos: The equation of state.
+/// :param c: Molar concentration [mol/m^3]. Held constant in the derivative.
+/// :param x: Mole fractions [-].
+/// :param T: Temperature [K]. Held constant in the derivative.
+/// :param gradient: Output composition gradient [Pa]. Overwritten.
+/// :precondition: ``T > 0``.
+/// :precondition: ``x.size() == eos.size()``
+/// :precondition: ``gradient.size() == eos.size()``
+///
+/// \ingroup core
 template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number, typename V1, typename V2>
 void calc_pressure_dx(const EoS<Ideal, Residual>& eos, const Number c, V1& x, const Number T, V2& gradient)
 {
@@ -446,6 +525,19 @@ Number calc_internal_energy(const EoS<Ideal, Residual>& eos, const Number c, V& 
     return calc_internal_energy(eos, c, x.data(), T);
 }
 
+///
+/// Temperature derivative :math:`(\partial u/\partial T)_{c,\boldsymbol{x}}`
+/// [J/(mol K)].
+///
+/// :param eos: The equation of state.
+/// :param c: Molar concentration [mol/m^3]. Held constant in the derivative.
+/// :param x: Mole fractions [-]. Held constant in the derivative.
+/// :param T: Temperature [K].
+/// :returns: Temperature derivative of molar internal energy [J/(mol K)].
+/// :precondition: ``T > 0``.
+/// :precondition: ``x.size() == eos.size()``
+///
+/// \ingroup core
 template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number, typename V>
 Number calc_internal_energy_dT(const EoS<Ideal, Residual>& eos, const Number c, V& x, const Number T)
 {
@@ -454,6 +546,19 @@ Number calc_internal_energy_dT(const EoS<Ideal, Residual>& eos, const Number c, 
     return calc_internal_energy_dT(eos, c, x.data(), T);
 }
 
+///
+/// Concentration derivative
+/// :math:`(\partial u/\partial c)_{T,\boldsymbol{x}}` [J m^3/mol^2].
+///
+/// :param eos: The equation of state.
+/// :param c: Molar concentration [mol/m^3].
+/// :param x: Mole fractions [-]. Held constant in the derivative.
+/// :param T: Temperature [K]. Held constant in the derivative.
+/// :returns: Concentration derivative of molar internal energy [J m^3/mol^2].
+/// :precondition: ``T > 0``.
+/// :precondition: ``x.size() == eos.size()``
+///
+/// \ingroup core
 template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number, typename V>
 Number calc_internal_energy_dc(const EoS<Ideal, Residual>& eos, const Number c, V& x, const Number T)
 {
@@ -462,6 +567,21 @@ Number calc_internal_energy_dc(const EoS<Ideal, Residual>& eos, const Number c, 
     return calc_internal_energy_dc(eos, c, x.data(), T);
 }
 
+///
+/// Composition gradient :math:`\partial u/\partial x_i` [J/mol].
+///
+/// Treat the mole fractions as independent coordinates.
+///
+/// :param eos: The equation of state.
+/// :param c: Molar concentration [mol/m^3]. Held constant in the derivative.
+/// :param x: Mole fractions [-].
+/// :param T: Temperature [K]. Held constant in the derivative.
+/// :param gradient: Output composition gradient [J/mol]. Overwritten.
+/// :precondition: ``T > 0``.
+/// :precondition: ``x.size() == eos.size()``
+/// :precondition: ``gradient.size() == eos.size()``
+///
+/// \ingroup core
 template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number, typename V1, typename V2>
 void calc_internal_energy_dx(const EoS<Ideal, Residual>& eos, const Number c, V1& x, const Number T, V2& gradient)
 {
@@ -528,6 +648,19 @@ Number calc_enthalpy(const EoS<Ideal, Residual>& eos, const Number c, V& x, cons
     return calc_enthalpy(eos, c, x.data(), T);
 }
 
+///
+/// Temperature derivative :math:`(\partial h/\partial T)_{c,\boldsymbol{x}}`
+/// [J/(mol K)].
+///
+/// :param eos: The equation of state.
+/// :param c: Molar concentration [mol/m^3]. Held constant in the derivative.
+/// :param x: Mole fractions [-]. Held constant in the derivative.
+/// :param T: Temperature [K].
+/// :returns: Temperature derivative of molar enthalpy [J/(mol K)].
+/// :precondition: ``T > 0``.
+/// :precondition: ``x.size() == eos.size()``
+///
+/// \ingroup core
 template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number, typename V>
 Number calc_enthalpy_dT(const EoS<Ideal, Residual>& eos, const Number c, V& x, const Number T)
 {
@@ -536,6 +669,19 @@ Number calc_enthalpy_dT(const EoS<Ideal, Residual>& eos, const Number c, V& x, c
     return calc_enthalpy_dT(eos, c, x.data(), T);
 }
 
+///
+/// Concentration derivative
+/// :math:`(\partial h/\partial c)_{T,\boldsymbol{x}}` [J m^3/mol^2].
+///
+/// :param eos: The equation of state.
+/// :param c: Molar concentration [mol/m^3].
+/// :param x: Mole fractions [-]. Held constant in the derivative.
+/// :param T: Temperature [K]. Held constant in the derivative.
+/// :returns: Concentration derivative of molar enthalpy [J m^3/mol^2].
+/// :precondition: ``T > 0``.
+/// :precondition: ``x.size() == eos.size()``
+///
+/// \ingroup core
 template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number, typename V>
 Number calc_enthalpy_dc(const EoS<Ideal, Residual>& eos, const Number c, V& x, const Number T)
 {
@@ -544,6 +690,21 @@ Number calc_enthalpy_dc(const EoS<Ideal, Residual>& eos, const Number c, V& x, c
     return calc_enthalpy_dc(eos, c, x.data(), T);
 }
 
+///
+/// Composition gradient :math:`\partial h/\partial x_i` [J/mol].
+///
+/// Treat the mole fractions as independent coordinates.
+///
+/// :param eos: The equation of state.
+/// :param c: Molar concentration [mol/m^3]. Held constant in the derivative.
+/// :param x: Mole fractions [-].
+/// :param T: Temperature [K]. Held constant in the derivative.
+/// :param gradient: Output composition gradient [J/mol]. Overwritten.
+/// :precondition: ``T > 0``.
+/// :precondition: ``x.size() == eos.size()``
+/// :precondition: ``gradient.size() == eos.size()``
+///
+/// \ingroup core
 template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number, typename V1, typename V2>
 void calc_enthalpy_dx(const EoS<Ideal, Residual>& eos, const Number c, V1& x, const Number T, V2& gradient)
 {
@@ -612,6 +773,19 @@ Number calc_entropy(const EoS<Ideal, Residual>& eos, const Number c, V& x, const
     return calc_entropy(eos, c, x.data(), T);
 }
 
+///
+/// Temperature derivative :math:`(\partial s/\partial T)_{c,\boldsymbol{x}}`
+/// [J/(mol K^2)].
+///
+/// :param eos: The equation of state.
+/// :param c: Molar concentration [mol/m^3]. Held constant in the derivative.
+/// :param x: Mole fractions [-]. Held constant in the derivative.
+/// :param T: Temperature [K].
+/// :returns: Temperature derivative of molar entropy [J/(mol K^2)].
+/// :precondition: ``T > 0``.
+/// :precondition: ``x.size() == eos.size()``
+///
+/// \ingroup core
 template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number, typename V>
 Number calc_entropy_dT(const EoS<Ideal, Residual>& eos, const Number c, V& x, const Number T)
 {
@@ -620,6 +794,19 @@ Number calc_entropy_dT(const EoS<Ideal, Residual>& eos, const Number c, V& x, co
     return calc_entropy_dT(eos, c, x.data(), T);
 }
 
+///
+/// Concentration derivative
+/// :math:`(\partial s/\partial c)_{T,\boldsymbol{x}}` [J m^3/(mol^2 K)].
+///
+/// :param eos: The equation of state.
+/// :param c: Molar concentration [mol/m^3].
+/// :param x: Mole fractions [-]. Held constant in the derivative.
+/// :param T: Temperature [K]. Held constant in the derivative.
+/// :returns: Concentration derivative of molar entropy [J m^3/(mol^2 K)].
+/// :precondition: ``T > 0``.
+/// :precondition: ``x.size() == eos.size()``
+///
+/// \ingroup core
 template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number, typename V>
 Number calc_entropy_dc(const EoS<Ideal, Residual>& eos, const Number c, V& x, const Number T)
 {
@@ -628,6 +815,21 @@ Number calc_entropy_dc(const EoS<Ideal, Residual>& eos, const Number c, V& x, co
     return calc_entropy_dc(eos, c, x.data(), T);
 }
 
+///
+/// Composition gradient :math:`\partial s/\partial x_i` [J/(mol K)].
+///
+/// Treat the mole fractions as independent coordinates.
+///
+/// :param eos: The equation of state.
+/// :param c: Molar concentration [mol/m^3]. Held constant in the derivative.
+/// :param x: Mole fractions [-].
+/// :param T: Temperature [K]. Held constant in the derivative.
+/// :param gradient: Output composition gradient [J/(mol K)]. Overwritten.
+/// :precondition: ``T > 0``.
+/// :precondition: ``x.size() == eos.size()``
+/// :precondition: ``gradient.size() == eos.size()``
+///
+/// \ingroup core
 template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number, typename V1, typename V2>
 void calc_entropy_dx(const EoS<Ideal, Residual>& eos, const Number c, V1& x, const Number T, V2& gradient)
 {
@@ -694,6 +896,19 @@ Number calc_gibbs(const EoS<Ideal, Residual>& eos, const Number c, V& x, const N
     return calc_gibbs(eos, c, x.data(), T);
 }
 
+///
+/// Temperature derivative :math:`(\partial g/\partial T)_{c,\boldsymbol{x}}`
+/// [J/(mol K)].
+///
+/// :param eos: The equation of state.
+/// :param c: Molar concentration [mol/m^3]. Held constant in the derivative.
+/// :param x: Mole fractions [-]. Held constant in the derivative.
+/// :param T: Temperature [K].
+/// :returns: Temperature derivative of molar Gibbs energy [J/(mol K)].
+/// :precondition: ``T > 0``.
+/// :precondition: ``x.size() == eos.size()``
+///
+/// \ingroup core
 template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number, typename V>
 Number calc_gibbs_dT(const EoS<Ideal, Residual>& eos, const Number c, V& x, const Number T)
 {
@@ -702,6 +917,19 @@ Number calc_gibbs_dT(const EoS<Ideal, Residual>& eos, const Number c, V& x, cons
     return calc_gibbs_dT(eos, c, x.data(), T);
 }
 
+///
+/// Concentration derivative
+/// :math:`(\partial g/\partial c)_{T,\boldsymbol{x}}` [J m^3/mol^2].
+///
+/// :param eos: The equation of state.
+/// :param c: Molar concentration [mol/m^3].
+/// :param x: Mole fractions [-]. Held constant in the derivative.
+/// :param T: Temperature [K]. Held constant in the derivative.
+/// :returns: Concentration derivative of molar Gibbs energy [J m^3/mol^2].
+/// :precondition: ``T > 0``.
+/// :precondition: ``x.size() == eos.size()``
+///
+/// \ingroup core
 template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number, typename V>
 Number calc_gibbs_dc(const EoS<Ideal, Residual>& eos, const Number c, V& x, const Number T)
 {
@@ -710,6 +938,21 @@ Number calc_gibbs_dc(const EoS<Ideal, Residual>& eos, const Number c, V& x, cons
     return calc_gibbs_dc(eos, c, x.data(), T);
 }
 
+///
+/// Composition gradient :math:`\partial g/\partial x_i` [J/mol].
+///
+/// Treat the mole fractions as independent coordinates.
+///
+/// :param eos: The equation of state.
+/// :param c: Molar concentration [mol/m^3]. Held constant in the derivative.
+/// :param x: Mole fractions [-].
+/// :param T: Temperature [K]. Held constant in the derivative.
+/// :param gradient: Output composition gradient [J/mol]. Overwritten.
+/// :precondition: ``T > 0``.
+/// :precondition: ``x.size() == eos.size()``
+/// :precondition: ``gradient.size() == eos.size()``
+///
+/// \ingroup core
 template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number, typename V1, typename V2>
 void calc_gibbs_dx(const EoS<Ideal, Residual>& eos, const Number c, V1& x, const Number T, V2& gradient)
 {
@@ -778,6 +1021,19 @@ Number calc_dp_dc(const EoS<Ideal, Residual>& eos, const Number c, V& x, const N
     return calc_dp_dc(eos, c, x.data(), T);
 }
 
+///
+/// Temperature derivative of :math:`(\partial p/\partial c)_{T,\boldsymbol{x}}`
+/// [Pa m^3/(mol K)].
+///
+/// :param eos: The equation of state.
+/// :param c: Molar concentration [mol/m^3]. Held constant in the derivative.
+/// :param x: Mole fractions [-]. Held constant in the derivative.
+/// :param T: Temperature [K].
+/// :returns: Mixed pressure derivative [Pa m^3/(mol K)].
+/// :precondition: ``T > 0``.
+/// :precondition: ``x.size() == eos.size()``
+///
+/// \ingroup core
 template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number, typename V>
 Number calc_dp_dc_dT(const EoS<Ideal, Residual>& eos, const Number c, V& x, const Number T)
 {
@@ -786,6 +1042,19 @@ Number calc_dp_dc_dT(const EoS<Ideal, Residual>& eos, const Number c, V& x, cons
     return calc_dp_dc_dT(eos, c, x.data(), T);
 }
 
+///
+/// Concentration derivative of
+/// :math:`(\partial p/\partial c)_{T,\boldsymbol{x}}` [Pa m^6/mol^2].
+///
+/// :param eos: The equation of state.
+/// :param c: Molar concentration [mol/m^3].
+/// :param x: Mole fractions [-]. Held constant in the derivative.
+/// :param T: Temperature [K]. Held constant in the derivative.
+/// :returns: Second concentration derivative of pressure [Pa m^6/mol^2].
+/// :precondition: ``T > 0``.
+/// :precondition: ``x.size() == eos.size()``
+///
+/// \ingroup core
 template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number, typename V>
 Number calc_dp_dc_dc(const EoS<Ideal, Residual>& eos, const Number c, V& x, const Number T)
 {
@@ -794,6 +1063,22 @@ Number calc_dp_dc_dc(const EoS<Ideal, Residual>& eos, const Number c, V& x, cons
     return calc_dp_dc_dc(eos, c, x.data(), T);
 }
 
+///
+/// Composition gradient of :math:`(\partial p/\partial c)_{T,\boldsymbol{x}}`
+/// [Pa m^3/mol].
+///
+/// Treat the mole fractions as independent coordinates.
+///
+/// :param eos: The equation of state.
+/// :param c: Molar concentration [mol/m^3]. Held constant in the derivative.
+/// :param x: Mole fractions [-].
+/// :param T: Temperature [K]. Held constant in the derivative.
+/// :param gradient: Output composition gradient [Pa m^3/mol]. Overwritten.
+/// :precondition: ``T > 0``.
+/// :precondition: ``x.size() == eos.size()``
+/// :precondition: ``gradient.size() == eos.size()``
+///
+/// \ingroup core
 template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number, typename V1, typename V2>
 void calc_dp_dc_dx(const EoS<Ideal, Residual>& eos, const Number c, V1& x, const Number T, V2& gradient)
 {
@@ -861,6 +1146,19 @@ Number calc_dp_dT(const EoS<Ideal, Residual>& eos, const Number c, V& x, const N
     return calc_dp_dT(eos, c, x.data(), T);
 }
 
+///
+/// Temperature derivative of :math:`(\partial p/\partial T)_{c,\boldsymbol{x}}`
+/// [Pa/K^2].
+///
+/// :param eos: The equation of state.
+/// :param c: Molar concentration [mol/m^3]. Held constant in the derivative.
+/// :param x: Mole fractions [-]. Held constant in the derivative.
+/// :param T: Temperature [K].
+/// :returns: Second temperature derivative of pressure [Pa/K^2].
+/// :precondition: ``T > 0``.
+/// :precondition: ``x.size() == eos.size()``
+///
+/// \ingroup core
 template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number, typename V>
 Number calc_dp_dT_dT(const EoS<Ideal, Residual>& eos, const Number c, V& x, const Number T)
 {
@@ -869,6 +1167,19 @@ Number calc_dp_dT_dT(const EoS<Ideal, Residual>& eos, const Number c, V& x, cons
     return calc_dp_dT_dT(eos, c, x.data(), T);
 }
 
+///
+/// Concentration derivative of
+/// :math:`(\partial p/\partial T)_{c,\boldsymbol{x}}` [Pa m^3/(mol K)].
+///
+/// :param eos: The equation of state.
+/// :param c: Molar concentration [mol/m^3].
+/// :param x: Mole fractions [-]. Held constant in the derivative.
+/// :param T: Temperature [K]. Held constant in the derivative.
+/// :returns: Mixed pressure derivative [Pa m^3/(mol K)].
+/// :precondition: ``T > 0``.
+/// :precondition: ``x.size() == eos.size()``
+///
+/// \ingroup core
 template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number, typename V>
 Number calc_dp_dT_dc(const EoS<Ideal, Residual>& eos, const Number c, V& x, const Number T)
 {
@@ -877,6 +1188,22 @@ Number calc_dp_dT_dc(const EoS<Ideal, Residual>& eos, const Number c, V& x, cons
     return calc_dp_dT_dc(eos, c, x.data(), T);
 }
 
+///
+/// Composition gradient of :math:`(\partial p/\partial T)_{c,\boldsymbol{x}}`
+/// [Pa/K].
+///
+/// Treat the mole fractions as independent coordinates.
+///
+/// :param eos: The equation of state.
+/// :param c: Molar concentration [mol/m^3]. Held constant in the derivative.
+/// :param x: Mole fractions [-].
+/// :param T: Temperature [K]. Held constant in the derivative.
+/// :param gradient: Output composition gradient [Pa/K]. Overwritten.
+/// :precondition: ``T > 0``.
+/// :precondition: ``x.size() == eos.size()``
+/// :precondition: ``gradient.size() == eos.size()``
+///
+/// \ingroup core
 template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number, typename V1, typename V2>
 void calc_dp_dT_dx(const EoS<Ideal, Residual>& eos, const Number c, V1& x, const Number T, V2& gradient)
 {
@@ -943,6 +1270,19 @@ Number calc_cv(const EoS<Ideal, Residual>& eos, const Number c, V& x, const Numb
     return calc_cv(eos, c, x.data(), T);
 }
 
+///
+/// Temperature derivative :math:`(\partial c_v/\partial T)_{c,\boldsymbol{x}}`
+/// [J/(mol K^2)].
+///
+/// :param eos: The equation of state.
+/// :param c: Molar concentration [mol/m^3]. Held constant in the derivative.
+/// :param x: Mole fractions [-]. Held constant in the derivative.
+/// :param T: Temperature [K].
+/// :returns: Temperature derivative of molar :math:`c_v` [J/(mol K^2)].
+/// :precondition: ``T > 0``.
+/// :precondition: ``x.size() == eos.size()``
+///
+/// \ingroup core
 template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number, typename V>
 Number calc_cv_dT(const EoS<Ideal, Residual>& eos, const Number c, V& x, const Number T)
 {
@@ -951,6 +1291,19 @@ Number calc_cv_dT(const EoS<Ideal, Residual>& eos, const Number c, V& x, const N
     return calc_cv_dT(eos, c, x.data(), T);
 }
 
+///
+/// Concentration derivative
+/// :math:`(\partial c_v/\partial c)_{T,\boldsymbol{x}}` [J m^3/(mol^2 K)].
+///
+/// :param eos: The equation of state.
+/// :param c: Molar concentration [mol/m^3].
+/// :param x: Mole fractions [-]. Held constant in the derivative.
+/// :param T: Temperature [K]. Held constant in the derivative.
+/// :returns: Concentration derivative of molar :math:`c_v` [J m^3/(mol^2 K)].
+/// :precondition: ``T > 0``.
+/// :precondition: ``x.size() == eos.size()``
+///
+/// \ingroup core
 template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number, typename V>
 Number calc_cv_dc(const EoS<Ideal, Residual>& eos, const Number c, V& x, const Number T)
 {
@@ -959,6 +1312,21 @@ Number calc_cv_dc(const EoS<Ideal, Residual>& eos, const Number c, V& x, const N
     return calc_cv_dc(eos, c, x.data(), T);
 }
 
+///
+/// Composition gradient :math:`\partial c_v/\partial x_i` [J/(mol K)].
+///
+/// Treat the mole fractions as independent coordinates.
+///
+/// :param eos: The equation of state.
+/// :param c: Molar concentration [mol/m^3]. Held constant in the derivative.
+/// :param x: Mole fractions [-].
+/// :param T: Temperature [K]. Held constant in the derivative.
+/// :param gradient: Output composition gradient [J/(mol K)]. Overwritten.
+/// :precondition: ``T > 0``.
+/// :precondition: ``x.size() == eos.size()``
+/// :precondition: ``gradient.size() == eos.size()``
+///
+/// \ingroup core
 template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number, typename V1, typename V2>
 void calc_cv_dx(const EoS<Ideal, Residual>& eos, const Number c, V1& x, const Number T, V2& gradient)
 {
@@ -1024,6 +1392,19 @@ Number calc_cp(const EoS<Ideal, Residual>& eos, const Number c, V& x, const Numb
     return calc_cp(eos, c, x.data(), T);
 }
 
+///
+/// Temperature derivative :math:`(\partial c_p/\partial T)_{c,\boldsymbol{x}}`
+/// [J/(mol K^2)].
+///
+/// :param eos: The equation of state.
+/// :param c: Molar concentration [mol/m^3]. Held constant in the derivative.
+/// :param x: Mole fractions [-]. Held constant in the derivative.
+/// :param T: Temperature [K].
+/// :returns: Temperature derivative of molar :math:`c_p` [J/(mol K^2)].
+/// :precondition: ``T > 0``.
+/// :precondition: ``x.size() == eos.size()``
+///
+/// \ingroup core
 template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number, typename V>
 Number calc_cp_dT(const EoS<Ideal, Residual>& eos, const Number c, V& x, const Number T)
 {
@@ -1032,6 +1413,19 @@ Number calc_cp_dT(const EoS<Ideal, Residual>& eos, const Number c, V& x, const N
     return calc_cp_dT(eos, c, x.data(), T);
 }
 
+///
+/// Concentration derivative
+/// :math:`(\partial c_p/\partial c)_{T,\boldsymbol{x}}` [J m^3/(mol^2 K)].
+///
+/// :param eos: The equation of state.
+/// :param c: Molar concentration [mol/m^3].
+/// :param x: Mole fractions [-]. Held constant in the derivative.
+/// :param T: Temperature [K]. Held constant in the derivative.
+/// :returns: Concentration derivative of molar :math:`c_p` [J m^3/(mol^2 K)].
+/// :precondition: ``T > 0``.
+/// :precondition: ``x.size() == eos.size()``
+///
+/// \ingroup core
 template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number, typename V>
 Number calc_cp_dc(const EoS<Ideal, Residual>& eos, const Number c, V& x, const Number T)
 {
@@ -1040,6 +1434,21 @@ Number calc_cp_dc(const EoS<Ideal, Residual>& eos, const Number c, V& x, const N
     return calc_cp_dc(eos, c, x.data(), T);
 }
 
+///
+/// Composition gradient :math:`\partial c_p/\partial x_i` [J/(mol K)].
+///
+/// Treat the mole fractions as independent coordinates.
+///
+/// :param eos: The equation of state.
+/// :param c: Molar concentration [mol/m^3]. Held constant in the derivative.
+/// :param x: Mole fractions [-].
+/// :param T: Temperature [K]. Held constant in the derivative.
+/// :param gradient: Output composition gradient [J/(mol K)]. Overwritten.
+/// :precondition: ``T > 0``.
+/// :precondition: ``x.size() == eos.size()``
+/// :precondition: ``gradient.size() == eos.size()``
+///
+/// \ingroup core
 template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number, typename V1, typename V2>
 void calc_cp_dx(const EoS<Ideal, Residual>& eos, const Number c, V1& x, const Number T, V2& gradient)
 {
@@ -1112,6 +1521,22 @@ Number calc_sound_speed_squared(const EoS<Ideal, Residual>& eos, const Number c,
     return calc_sound_speed_squared(eos, c, x.data(), T, effective_molar_mass);
 }
 
+///
+/// Temperature derivative
+/// :math:`(\partial w^2/\partial T)_{c,\boldsymbol{x},M}` [m^2/(s^2 K)].
+///
+/// Hold the supplied effective molar mass constant.
+///
+/// :param eos: The equation of state.
+/// :param c: Molar concentration [mol/m^3]. Held constant in the derivative.
+/// :param x: Mole fractions [-]. Held constant in the derivative.
+/// :param T: Temperature [K].
+/// :param effective_molar_mass: Mixture molar mass :math:`M` [kg/mol]. Held constant in the derivative.
+/// :returns: Temperature derivative of squared speed of sound [m^2/(s^2 K)].
+/// :precondition: ``T > 0``.
+/// :precondition: ``x.size() == eos.size()``
+///
+/// \ingroup core
 template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number, typename V>
 Number calc_sound_speed_squared_dT(const EoS<Ideal, Residual>& eos, const Number c, V& x, const Number T,
                                    const Number effective_molar_mass)
@@ -1121,6 +1546,22 @@ Number calc_sound_speed_squared_dT(const EoS<Ideal, Residual>& eos, const Number
     return calc_sound_speed_squared_dT(eos, c, x.data(), T, effective_molar_mass);
 }
 
+///
+/// Concentration derivative
+/// :math:`(\partial w^2/\partial c)_{T,\boldsymbol{x},M}` [m^5/(mol s^2)].
+///
+/// Hold the supplied effective molar mass constant.
+///
+/// :param eos: The equation of state.
+/// :param c: Molar concentration [mol/m^3].
+/// :param x: Mole fractions [-]. Held constant in the derivative.
+/// :param T: Temperature [K]. Held constant in the derivative.
+/// :param effective_molar_mass: Mixture molar mass :math:`M` [kg/mol]. Held constant in the derivative.
+/// :returns: Concentration derivative of squared speed of sound [m^5/(mol s^2)].
+/// :precondition: ``T > 0``.
+/// :precondition: ``x.size() == eos.size()``
+///
+/// \ingroup core
 template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number, typename V>
 Number calc_sound_speed_squared_dc(const EoS<Ideal, Residual>& eos, const Number c, V& x, const Number T,
                                    const Number effective_molar_mass)
@@ -1130,6 +1571,23 @@ Number calc_sound_speed_squared_dc(const EoS<Ideal, Residual>& eos, const Number
     return calc_sound_speed_squared_dc(eos, c, x.data(), T, effective_molar_mass);
 }
 
+///
+/// Composition gradient :math:`\partial w^2/\partial x_i` [m^2/s^2].
+///
+/// Treat the mole fractions as independent coordinates and hold the supplied
+/// effective molar mass constant.
+///
+/// :param eos: The equation of state.
+/// :param c: Molar concentration [mol/m^3]. Held constant in the derivative.
+/// :param x: Mole fractions [-].
+/// :param T: Temperature [K]. Held constant in the derivative.
+/// :param effective_molar_mass: Mixture molar mass :math:`M` [kg/mol]. Held constant in the derivative.
+/// :param gradient: Output composition gradient [m^2/s^2]. Overwritten.
+/// :precondition: ``T > 0``.
+/// :precondition: ``x.size() == eos.size()``
+/// :precondition: ``gradient.size() == eos.size()``
+///
+/// \ingroup core
 template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number, typename V1, typename V2>
 void calc_sound_speed_squared_dx(const EoS<Ideal, Residual>& eos, const Number c, V1& x, const Number T,
                                  const Number effective_molar_mass, V2& gradient)
@@ -1184,8 +1642,11 @@ void calc_sound_speed_squared_dx(const EoS<Ideal, Residual>& eos, const Number c
 
 // TODO: add derivatives of vector-valued functions
 ///
-/// Chemical potentials :math:`\mu_i = \partial A/\partial n_i` of all
-/// components (ideal + residual).
+/// Chemical potentials of all components, including ideal and residual parts.
+///
+/// .. math::
+///
+///    \mu_i=\left(\frac{\partial\Psi}{\partial\rho_i}\right)_{T,\rho_{j\ne i}}.
 ///
 /// :param eos: The equation of state.
 /// :param rho_i: Partial molar concentrations [mol/m^3].
@@ -1193,6 +1654,7 @@ void calc_sound_speed_squared_dx(const EoS<Ideal, Residual>& eos, const Number c
 /// :param chemical_potential: Output chemical potentials [J/mol]. Overwritten (zeroed then filled).
 /// :precondition: ``rho_i.size() == eos.size()``
 /// :precondition: ``chemical_potential.size() == eos.size()``
+/// :precondition: ``T > 0``.
 ///
 /// \ingroup core
 template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number, std::size_t N>
@@ -1209,7 +1671,7 @@ void calc_chemical_potential(const EoS<Ideal, Residual>& eos, std::span<const Nu
 }
 
 ///
-/// Natural log of the fugacity coefficients,
+/// Natural logarithms of the fugacity coefficients,
 /// :math:`\ln\varphi_i = \mu_i^{\text{res}}/(RT) - \ln Z`.
 ///
 /// :param eos: The equation of state.
@@ -1219,6 +1681,9 @@ void calc_chemical_potential(const EoS<Ideal, Residual>& eos, std::span<const Nu
 /// :param rho_i: Partial molar concentrations [mol/m^3] (should equal ``x*c``).
 /// :param log_fug_coeff: Output :math:`\ln\varphi_i` [-] (length ``eos.size()``).
 ///             Overwritten (zeroed then filled).
+/// :precondition: ``x.size() == rho_i.size() == log_fug_coeff.size() == eos.size()``.
+/// :precondition: ``rho_i[i] == c*x[i]``.
+/// :precondition: ``T > 0`` and :math:`Z>0`.
 ///
 /// \ingroup core
 template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number, std::size_t N>
@@ -1248,6 +1713,8 @@ void calc_log_fugacity_coeff(const EoS<Ideal, Residual>& eos, const Number c, st
 /// :param T: Temperature [K].
 /// :param fugacity: Output fugacities [Pa] (length ``eos.size()``).
 ///             Overwritten (zeroed then filled).
+/// :precondition: ``rho_i.size() == fugacity.size() == eos.size()``.
+/// :precondition: ``T > 0``.
 ///
 /// \ingroup core
 template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number, std::size_t N>
