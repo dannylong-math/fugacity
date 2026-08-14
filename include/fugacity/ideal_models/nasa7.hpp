@@ -147,7 +147,7 @@ public:
             coeffs[3] = -data_[(col_a2_over_6 * n) + i];
             coeffs[4] = -data_[(col_a3_over_12 * n) + i];
             coeffs[5] = -data_[(col_a4_over_20 * n) + i];
-            a += R * ((x[i] * eval_polynomial<5>(coeffs, T)) + (T * Number{2} * xlnx<0>(x[i])));
+            a += R * ((x[i] * eval_polynomial<5>(coeffs, T)) + (T * xlnx<0>(x[i])));
         }
         return a;
     }
@@ -165,24 +165,19 @@ public:
     {
         const Number R = ideal_gas_constant<Number>;
         const std::size_t n = this->size();
-        Number c{0};
-        for (std::size_t i = 0; i < n; ++i) {
-            c += rho_i[i];
-        }
-        const Number lnC = std::log(c);
         const Number lnT = std::log(T);
 
         Number psi{0};
         for (std::size_t i = 0; i < n; ++i) {
             std::array<Number, 6> coeffs;
             coeffs[0] = data_[(col_a5 * n) + i];
-            coeffs[1] = (data_[(col_a0 * n) + i] * (Number{1} - lnT)) - data_[(col_a6 * n) + i] + lnT - lnC -
+            coeffs[1] = (data_[(col_a0 * n) + i] * (Number{1} - lnT)) - data_[(col_a6 * n) + i] + lnT -
                         data_[(col_ln_cref_Tref * n) + i] - Number{1};
             coeffs[2] = -data_[(col_a1_over_2 * n) + i];
             coeffs[3] = -data_[(col_a2_over_6 * n) + i];
             coeffs[4] = -data_[(col_a3_over_12 * n) + i];
             coeffs[5] = -data_[(col_a4_over_20 * n) + i];
-            psi += R * ((rho_i[i] * eval_polynomial<5>(coeffs, T)) + (T * Number{2} * xlnx<0>(rho_i[i])));
+            psi += R * ((rho_i[i] * eval_polynomial<5>(coeffs, T)) + (T * xlnx<0>(rho_i[i])));
         }
         return psi;
     }
@@ -198,23 +193,18 @@ public:
     {
         const Number R = ideal_gas_constant<Number>;
         const std::size_t n = this->size();
-        Number c{0};
-        for (std::size_t i = 0; i < n; ++i) {
-            c += rho_i[i];
-        }
-        const Number lnC = std::log(c);
         const Number lnT = std::log(T);
 
         for (std::size_t i = 0; i < n; ++i) {
             std::array<Number, 6> coeffs;
             coeffs[0] = data_[(col_a5 * n) + i];
-            coeffs[1] = (data_[(col_a0 * n) + i] * (Number{1} - lnT)) - data_[(col_a6 * n) + i] + lnT - lnC -
+            coeffs[1] = (data_[(col_a0 * n) + i] * (Number{1} - lnT)) - data_[(col_a6 * n) + i] + lnT -
                         data_[(col_ln_cref_Tref * n) + i] - Number{1};
             coeffs[2] = -data_[(col_a1_over_2 * n) + i];
             coeffs[3] = -data_[(col_a2_over_6 * n) + i];
             coeffs[4] = -data_[(col_a3_over_12 * n) + i];
             coeffs[5] = -data_[(col_a4_over_20 * n) + i];
-            out[i] = R * ((rho_i[i] * eval_polynomial<5>(coeffs, T)) + (T * Number{2} * xlnx<0>(rho_i[i])));
+            out[i] = R * ((rho_i[i] * eval_polynomial<5>(coeffs, T)) + (T * xlnx<0>(rho_i[i])));
         }
     }
 
