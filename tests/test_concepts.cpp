@@ -1,4 +1,4 @@
-#include "eos_test_models.hpp"
+#include "support/analytic_eos_models.hpp"
 #include "synthesize/core/concepts.hpp"
 
 #include <boost/ut.hpp>

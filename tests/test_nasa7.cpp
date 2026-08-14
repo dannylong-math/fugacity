@@ -19,8 +19,8 @@
 // model entropy carries the ideal-gas mixing term  -R ln(c / c_ref).
 // Enthalpy and c_p are pressure/concentration independent for an ideal gas.
 //
-#include "derivative_test_harness.hpp"
 #include "support/eos_test_suite.hpp"
+#include "support/numeric_checks.hpp"
 #include "synthesize/core/core_calculations.hpp"
 #include "synthesize/core/eos_pair.hpp"
 #include "synthesize/core/numbers.hpp"
@@ -78,8 +78,15 @@ std::vector<ge::Nasa7<>::SpeciesInput> dynamic_binary_inputs()
     std::vector<ge::Nasa7<>::SpeciesInput> result;
     result.reserve(binary_inputs.size());
     for (const auto& input : binary_inputs) {
-        result.push_back(
-            {.a0=input.a0, .a1=input.a1, .a2=input.a2, .a3=input.a3, .a4=input.a4, .a5=input.a5, .a6=input.a6, .T_ref=input.T_ref, .p_ref=input.p_ref});
+        result.push_back({.a0 = input.a0,
+                          .a1 = input.a1,
+                          .a2 = input.a2,
+                          .a3 = input.a3,
+                          .a4 = input.a4,
+                          .a5 = input.a5,
+                          .a6 = input.a6,
+                          .T_ref = input.T_ref,
+                          .p_ref = input.p_ref});
     }
     return result;
 }

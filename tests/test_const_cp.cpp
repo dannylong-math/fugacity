@@ -14,8 +14,8 @@
 //     c_p     = c_p  (constant),   with c_ref = p_ref / (R T_ref).
 // At the reference state (T = T_ref, c = c_ref): h = h_ref and s = s_ref.
 //
-#include "derivative_test_harness.hpp"
 #include "support/eos_test_suite.hpp"
+#include "support/numeric_checks.hpp"
 #include "synthesize/core/core_calculations.hpp"
 #include "synthesize/core/eos_pair.hpp"
 #include "synthesize/core/numbers.hpp"
@@ -48,8 +48,16 @@ template<std::size_t N> auto make_const_cp_eos(const std::array<Input<N>, N>& in
 // *different* reference temperatures and pressures to exercise per-species
 // reference handling.
 constexpr std::array<Input<2>, 2> binary_inputs{{
-    {/*T_ref*/ .T_ref=300.0, /*p_ref*/ .p_ref=1.0e5, /*c_p*/ .c_p=29.1, /*h_ref*/ .h_ref=1500.0, /*s_ref*/ .s_ref=191.0},
-    {/*T_ref*/ .T_ref=320.0, /*p_ref*/ .p_ref=9.0e4, /*c_p*/ .c_p=33.6, /*h_ref*/ .h_ref=-2200.0, /*s_ref*/ .s_ref=189.0},
+    {/*T_ref*/ .T_ref = 300.0,
+     /*p_ref*/ .p_ref = 1.0e5,
+     /*c_p*/ .c_p = 29.1,
+     /*h_ref*/ .h_ref = 1500.0,
+     /*s_ref*/ .s_ref = 191.0},
+    {/*T_ref*/ .T_ref = 320.0,
+     /*p_ref*/ .p_ref = 9.0e4,
+     /*c_p*/ .c_p = 33.6,
+     /*h_ref*/ .h_ref = -2200.0,
+     /*s_ref*/ .s_ref = 189.0},
 }};
 
 std::vector<ge::ConstantCp<>::SpeciesInput> dynamic_binary_inputs()
@@ -57,7 +65,8 @@ std::vector<ge::ConstantCp<>::SpeciesInput> dynamic_binary_inputs()
     std::vector<ge::ConstantCp<>::SpeciesInput> result;
     result.reserve(binary_inputs.size());
     for (const auto& input : binary_inputs) {
-        result.push_back({.T_ref=input.T_ref, .p_ref=input.p_ref, .c_p=input.c_p, .h_ref=input.h_ref, .s_ref=input.s_ref});
+        result.push_back(
+            {.T_ref = input.T_ref, .p_ref = input.p_ref, .c_p = input.c_p, .h_ref = input.h_ref, .s_ref = input.s_ref});
     }
     return result;
 }
@@ -91,7 +100,8 @@ constexpr double cp_in = 29.1;
 constexpr double h_ref = -1234.0;
 constexpr double s_ref = 205.0;
 
-constexpr std::array<Input<1>, 1> unary_inputs{{{.T_ref=T_ref, .p_ref=p_ref, .c_p=cp_in, .h_ref=h_ref, .s_ref=s_ref}}};
+constexpr std::array<Input<1>, 1> unary_inputs{
+    {{.T_ref = T_ref, .p_ref = p_ref, .c_p = cp_in, .h_ref = h_ref, .s_ref = s_ref}}};
 
 } // namespace
 

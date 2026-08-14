@@ -6,7 +6,7 @@
 // by SYNTHESIZE_ASSERT, which throws std::logic_error on a mismatch; in a release
 // build the check is elided (so the throwing test is compiled only under debug).
 //
-#include "eos_test_models.hpp"
+#include "support/analytic_eos_models.hpp"
 #include "synthesize/core/eos_pair.hpp"
 
 #include <boost/ut.hpp>
