@@ -1,6 +1,7 @@
 # Fugacity
 
 [![CI test](https://github.com/dannylong-math/fugacity/actions/workflows/ci.yml/badge.svg)](https://github.com/dannylong-math/fugacity/actions/workflows/ci.yml)
+[![Documentation](https://github.com/dannylong-math/fugacity/actions/workflows/docs.yml/badge.svg)](https://dannylong-math.github.io/fugacity/)
 [![codecov](https://codecov.io/gh/dannylong-math/fugacity/graph/badge.svg)](https://codecov.io/gh/dannylong-math/fugacity)
 
 A C++ library implementing equations of state in an efficient way.
@@ -50,6 +51,21 @@ Available presets:
 | `release-max` | `release` plus aggressive fast-math flags                     |
 | `coverage`    | Clang source-based code coverage (see below)                  |
 | `debug-tidy`  | `debug` with clang-tidy                                        |
+
+## Documentation
+
+The [Fugacity documentation](https://dannylong-math.github.io/fugacity/) is
+built with Sphinx and Sphinx-Immaterial. To build it locally without configuring
+the Clang/Enzyme library toolchain:
+
+```sh
+python3 -m venv .dependencies/docs
+.dependencies/docs/bin/pip install -r docs/requirements.txt
+cmake --preset docs
+cmake --build --preset docs
+```
+
+Open `build/docs/html/index.html` after the build completes.
 
 
 ## License
