@@ -42,9 +42,8 @@ struct eos_valid_domain {
     [[nodiscard]] bool contains(const eos_test_state& state) const
     {
         if (!std::isfinite(state.c) || !std::isfinite(state.T) || state.c < c_min || state.c > c_max ||
-              state.T < T_min || state.T > T_max || !std::isfinite(state.effective_molar_mass) ||
-              state.effective_molar_mass <= 0.0 ||
-            state.x.empty()) {
+            state.T < T_min || state.T > T_max || !std::isfinite(state.effective_molar_mass) ||
+            state.effective_molar_mass <= 0.0 || state.x.empty()) {
             return false;
         }
         const double sum = std::accumulate(state.x.begin(), state.x.end(), 0.0);
@@ -101,8 +100,11 @@ inline std::vector<eos_test_state> sample_valid_states(const eos_valid_domain& d
         for (double& value : weights) {
             value = domain.minimum_mole_fraction + remainder * value / total;
         }
-        result.push_back({.c=c_distribution(generator), .x=std::move(weights), .T=T_distribution(generator),
-                          .effective_molar_mass=effective_molar_mass, .label=std::format("random(seed={},sample={})", domain.seed, sample)});
+        result.push_back({.c = c_distribution(generator),
+                          .x = std::move(weights),
+                          .T = T_distribution(generator),
+                          .effective_molar_mass = effective_molar_mass,
+                          .label = std::format("random(seed={},sample={})", domain.seed, sample)});
     }
     return result;
 }

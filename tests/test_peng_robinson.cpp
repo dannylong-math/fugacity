@@ -369,7 +369,7 @@ int main()
             using DynInput = ge::PengRobinson<>::SpeciesInput;
             std::vector<DynInput> in_dyn;
             in_dyn.reserve(binary_inputs.size());
-for (const auto& in : binary_inputs) {
+            for (const auto& in : binary_inputs) {
                 in_dyn.push_back({.T_c = in.T_c, .P_c = in.P_c, .omega = in.omega});
             }
             const ge::PengRobinson<> empty_kij{std::span<const DynInput>{in_dyn}}; // kij defaulted to empty span
@@ -394,7 +394,7 @@ for (const auto& in : binary_inputs) {
             using DynInput = ge::PengRobinson<>::SpeciesInput;
             std::vector<DynInput> in_dyn;
             in_dyn.reserve(binary_inputs.size());
-for (const auto& in : binary_inputs) {
+            for (const auto& in : binary_inputs) {
                 in_dyn.push_back({.T_c = in.T_c, .P_c = in.P_c, .omega = in.omega});
             }
             const std::vector<double> kij_bad(3, 0.0); // size 3, not 2*2 = 4

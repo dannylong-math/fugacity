@@ -18,9 +18,9 @@
 
 namespace synthesize_test {
 
-inline constexpr tolerance structural_tolerance{.abs=1e-8, .rel=1e-9};
-inline constexpr tolerance identity_tolerance{.abs=1e-7, .rel=2e-8};
-inline constexpr tolerance derivative_tolerance{.abs=2e-5, .rel=2e-5};
+inline constexpr tolerance structural_tolerance{.abs = 1e-8, .rel = 1e-9};
+inline constexpr tolerance identity_tolerance{.abs = 1e-7, .rel = 2e-8};
+inline constexpr tolerance derivative_tolerance{.abs = 2e-5, .rel = 2e-5};
 
 template<class Contribution>
 void check_contribution_contracts(const Contribution& contribution, const eos_test_state& state)
@@ -291,7 +291,7 @@ void check_ideal_gas_contracts(const EoSPair& eos, const eos_test_state& state, 
 
 struct residual_contract_options {
     double dilute_concentration{};
-    tolerance dilute_tolerance{.abs=1e-5, .rel=1e-5};
+    tolerance dilute_tolerance{.abs = 1e-5, .rel = 1e-5};
 };
 
 template<class EoSPair>
