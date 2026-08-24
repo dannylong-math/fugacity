@@ -203,9 +203,6 @@ constexpr std::array<CalcInfo, 14> kCalcs{{
     {.id = Calc::fugacity, .name = "fugacity"},
 }};
 
-// The size sweep used by the grouped default run.
-constexpr std::array<std::size_t, 6> kSizes{1, 2, 10, 50, 100, 1000};
-
 // Heap-allocated benches kept alive for the whole process.
 auto& keepalive()
 {
@@ -367,17 +364,18 @@ template<std::size_t N> void register_size()
     }
 }
 
-void register_all()
-{
-    register_size<1>();
-    register_size<5>();
-    register_size<10>();
-    register_size<50>();
-    register_size<100>();
-    register_size<500>();
-    register_size<1000>();
-    register_size<5000>();
-}
+// One compile-time registry drives both template instantiation and the grouped
+// default sweep. The chosen sizes retain the driver's documented/default set:
+// a unary case, a binary case, and a logarithmic scaling sweep through N=1000.
+template<std::size_t... Sizes> struct SizeRegistry {
+    static constexpr std::array<std::size_t, sizeof...(Sizes)> values{Sizes...};
+
+    static void register_all() { (register_size<Sizes>(), ...); }
+};
+
+using DefaultSizeRegistry = SizeRegistry<1, 2, 10, 50, 100, 1000>;
+
+void register_all() { DefaultSizeRegistry::register_all(); }
 
 // ---------------------------------------------------------------------------
 // Reporter that prints the (verbose) run context only once, so the repeated
@@ -446,7 +444,7 @@ int main(int argc, char** argv)
 
     constexpr std::array<const char*, 2> families{"ConstantCp", "Nasa7"};
 
-    for (const std::size_t n : kSizes) {
+    for (const std::size_t n : DefaultSizeRegistry::values) {
         print_size_banner(n);
         for (const CalcInfo& ci : kCalcs) {
             for (const char* family : families) {

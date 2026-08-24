@@ -22,6 +22,20 @@ target_link_libraries(bench_ideal_models PRIVATE
     ${PROJECT_NAME}::${PROJECT_NAME}
     benchmark::benchmark
 )
+find_package(Python3 REQUIRED COMPONENTS Interpreter)
+add_custom_target(bench-ideal-registry-check
+    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/check_ideal_registry.py"
+        "$<TARGET_FILE:bench_ideal_models>"
+    DEPENDS bench_ideal_models
+    USES_TERMINAL
+    VERBATIM
+)
+if(BUILD_TESTING)
+    add_test(NAME bench_ideal_registry
+        COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/check_ideal_registry.py"
+            "$<TARGET_FILE:bench_ideal_models>"
+    )
+endif()
 target_compile_options(bench_ideal_models PRIVATE -Wall -Wextra)
 
 # ----------------------------------------------------------------------------
