@@ -72,7 +72,9 @@ reference workflow.
 - The normal Debug and Release library configure/build/test workflows remain
   green, establishing that the documentation-only migration did not affect
   executable behavior.
-- C++ formatting and `git diff --check` pass.
+- `git diff --check` passes and the migration introduces no new C++ formatting
+  diagnostics. The repository-wide zero-diagnostic formatting policy remains
+  unmet by the feature-base baseline.
 
 ## Task plan
 
@@ -80,9 +82,9 @@ reference workflow.
 | --- | --- | --- | --- | --- | --- |
 | A1 | — | scientific software architect | `sourcey` | Complete | Architecture decision and compatibility risks recorded above |
 | I1 | A1 | scientific implementation engineer | `task/doxygen-sourcey/migration` | Complete | Doxyfile, exact pins, Markdown, CMake/CI, strict output checks, legacy redirects, and clean documentation build |
-| S1 | I1 | test skeptic | integration tree | Re-review pending | Initial audit found URL, API inventory, math, redirect, edit-link, and checking gaps; corrective implementation is ready for re-review |
-| Q1 | S1 | quality gate auditor | integration tree | Pending | Independent documentation, build/test, formatting, and repository audit |
-| R1 | Q1 | project manager | PR-ready branch | Pending | Squashed commit and evidence-based PR report |
+| S1 | I1 | test skeptic | integration tree | Complete | Two corrective reviews resolved the URL, API inventory, math, redirect, edit-link, and checking gaps; final independent result: PASS with no actionable findings |
+| Q1 | S1 | quality gate auditor | integration tree | Complete: NOT READY | Migration-specific documentation and regression gates pass; inherited clang-tidy and clang-format diagnostics violate the repository-wide zero-warning policy |
+| R1 | Q1 | project manager | PR-ready branch | Blocked | PR-ready squash is withheld until the inherited clang-tidy and clang-format gates are resolved or repository policy is explicitly revised |
 
 ## Risks and controls
 

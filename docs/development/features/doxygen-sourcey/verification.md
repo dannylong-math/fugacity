@@ -109,10 +109,15 @@ inline equations, and display equations rendered. The Peng-Robinson page had
 16 KaTeX equations (six display equations), no literal `$$` delimiters, and no
 detail/Enzyme API text. Long equations remained within the content column.
 
-A corrective-run browser reconnect was attempted after the exact-link/API/math
-fixes, but the in-app browser reported no available browser. The generated
-artifacts therefore passed the stronger committed static/content gates above,
-while browser re-inspection remains an explicit item for independent re-review.
+A corrective browser run was completed on the integrated `sourcey` tree after
+the exact-link, API, and math fixes. The tutorial rendered 19 KaTeX formulas
+(five display formulas), 11 code blocks, and one table without literal `$$`
+delimiters or horizontal overflow. The Core API rendered 51 member headings,
+including four `calc_pressure` overloads and `ideal_gas_constant`, with 125
+KaTeX formulas and no internal API leakage. The Peng-Robinson page rendered 16
+KaTeX formulas (six display formulas), seven tables, its full public include
+path, and the `BaseCubic` relationship without horizontal overflow. The browser
+reported no warnings or errors on that representative model page.
 
 Tracked-tree searches found no surviving Sphinx configuration, dependency, RST
 source, or Sphinx workflow reference outside this feature's historical plan and
@@ -168,6 +173,16 @@ reported the same 89 diagnostics with the same per-file counts; the only
 modified header among those files is `assertions.hpp`, whose three diagnostics
 are unchanged pre-existing macro-layout findings. No formatting rewrite was
 made because this documentation-only task may not alter executable source.
+
+The final independent audit also ran the configured `debug-tidy` workflow. It
+reported 426 unique first-party warning lines plus 15 Enzyme analyzer-plugin
+compatibility warnings. The 17 modified headers remain token-identical to the
+feature base, so these findings are inherited rather than introduced by the
+migration. They nevertheless fail the repository-wide zero-warning policy.
+Together with the unchanged 89 clang-format diagnostics, this prevents a
+PR-ready designation until the debt is resolved or the policy is explicitly
+revised. All migration-specific documentation gates, Debug/Release/release-max
+15/15 test suites, and the Debug ASan gate passed.
 
 ## Applicability
 
