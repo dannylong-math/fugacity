@@ -73,17 +73,15 @@ jobs:
             -D Enzyme_DIR="$(brew --prefix enzyme)/lib/cmake/Enzyme"
           cmake --build build/coverage -j2
 
-      - name: Run tests and collect profiles
-        run: |
-          mkdir -p build/coverage/profraw
-          # Each test process writes its own raw profile (%p = pid).
-          LLVM_PROFILE_FILE="$PWD/build/coverage/profraw/%p.profraw" \
-            ctest --test-dir build/coverage --output-on-failure
+      - name: Require complete source-site coverage
+        run: cmake --build build/coverage --target coverage-check
 
-      - name: Generate lcov report
+      - name: Generate informational merged lcov report
         run: |
-          # Merge every test process's raw profile into one indexed profile.
-          llvm-profdata merge -sparse build/coverage/profraw/*.profraw \
+          # coverage-check is the completion gate. This merged report is kept
+          # only for Codecov compatibility; independently linked template
+          # instantiations can produce llvm-cov "mismatched data" warnings.
+          llvm-profdata merge -sparse build/coverage/profraw/test_*.profraw \
             -o build/coverage/merged.profdata
           # llvm-cov needs every instrumented binary; the first is positional,
           # the rest are passed with -object.

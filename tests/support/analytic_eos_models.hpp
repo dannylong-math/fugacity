@@ -164,15 +164,15 @@ public:
 // ---------------------------------------------------------------------------
 inline auto make_binary_model()
 {
-    IdealGasTestModel<2> ideal{{2.5, 3.1}, {1.5, 2.0}};
-    VirialResidualTestModel<2> residual{{1.0e-3, 1.5e-3}, {1.0e-1, 8.0e-2}, {2.0e-6, 1.0e-6}};
+    const IdealGasTestModel<2> ideal{{2.5, 3.1}, {1.5, 2.0}};
+    const VirialResidualTestModel<2> residual{{1.0e-3, 1.5e-3}, {1.0e-1, 8.0e-2}, {2.0e-6, 1.0e-6}};
     return fugacity::EoS<IdealGasTestModel<2>, VirialResidualTestModel<2>>{ideal, residual};
 }
 
 inline auto make_unary_model()
 {
-    IdealGasTestModel<1> ideal{{2.5}, {1.5}};
-    VirialResidualTestModel<1> residual{{1.0e-3}, {1.0e-1}, {2.0e-6}};
+    const IdealGasTestModel<1> ideal{{2.5}, {1.5}};
+    const VirialResidualTestModel<1> residual{{1.0e-3}, {1.0e-1}, {2.0e-6}};
     return fugacity::EoS<IdealGasTestModel<1>, VirialResidualTestModel<1>>{ideal, residual};
 }
 

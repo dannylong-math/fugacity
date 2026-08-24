@@ -1,15 +1,20 @@
-#include "support/eos_test_suite.hpp"
 #include "fugacity/core/eos_pair.hpp"
 #include "fugacity/core/numbers.hpp"
 #include "fugacity/ideal_models/const_cp.hpp"
 #include "fugacity/residual_models/no_residual.hpp"
 #include "fugacity/residual_models/peng_robinson.hpp"
 #include "fugacity/residual_models/van_der_waals.hpp"
+#include "support/derivative_oracle.hpp"
+#include "support/eos_test_state.hpp"
+#include "support/eos_test_suite.hpp"
 
 #include <array>
 #include <boost/ut.hpp>
+#include <cmath>
+#include <concepts>
 #include <span>
 #include <type_traits>
+#include <utility>
 #include <vector>
 
 using namespace boost::ut;
@@ -39,7 +44,7 @@ auto make_dynamic_eos()
 {
     const auto inputs = make_dynamic_inputs();
     return fug::EoS{DynamicIdeal{std::span<const DynamicIdeal::SpeciesInput>{inputs}},
-                   fug::NoResidual<std::dynamic_extent>{inputs.size()}};
+                    fug::NoResidual<std::dynamic_extent>{inputs.size()}};
 }
 
 auto make_fixed_unary_eos()
@@ -55,7 +60,7 @@ auto make_dynamic_unary_eos()
     const std::vector<DynamicIdeal::SpeciesInput> inputs{
         {.T_ref = 300.0, .p_ref = 1.0e5, .c_p = 29.1, .h_ref = 1500.0, .s_ref = 191.0}};
     return fug::EoS{DynamicIdeal{std::span<const DynamicIdeal::SpeciesInput>{inputs}},
-                   fug::NoResidual<std::dynamic_extent>{inputs.size()}};
+                    fug::NoResidual<std::dynamic_extent>{inputs.size()}};
 }
 
 auto make_fixed_vdw_eos()
@@ -73,7 +78,7 @@ auto make_dynamic_vdw_eos()
     const std::vector<Residual::SpeciesInput> residual_inputs{{.T_c = 126.192, .P_c = 3.3958e6},
                                                               {.T_c = 304.1282, .P_c = 7.3773e6}};
     return fug::EoS{DynamicIdeal{std::span<const DynamicIdeal::SpeciesInput>{ideal_inputs}},
-                   Residual{std::span<const Residual::SpeciesInput>{residual_inputs}}};
+                    Residual{std::span<const Residual::SpeciesInput>{residual_inputs}}};
 }
 
 auto make_fixed_pr_eos()
@@ -97,7 +102,7 @@ auto make_dynamic_pr_eos()
     };
     constexpr std::array<double, 4> kij{0.0, 0.09, 0.09, 0.0};
     return fug::EoS{DynamicIdeal{std::span<const DynamicIdeal::SpeciesInput>{ideal_inputs}},
-                   Residual{std::span<const Residual::SpeciesInput>{residual_inputs}, std::span{kij}}};
+                    Residual{std::span<const Residual::SpeciesInput>{residual_inputs}, std::span{kij}}};
 }
 
 std::vector<eos_test_state> make_states()
@@ -116,9 +121,11 @@ constexpr eos_valid_domain valid_domain{.c_min = 10.0,
                                         .random_samples = 50};
 } // namespace
 
+// Test entry points intentionally let assertion failures escape to the runner.
+// NOLINTNEXTLINE(bugprone-exception-escape)
 int main()
 {
-    suite<"automated_unary_eos_contracts"> unary = [] {
+    const suite<"automated_unary_eos_contracts"> unary = [] {
         auto dynamic_eos = make_dynamic_unary_eos();
         const eos_valid_domain domain{.c_min = 10.0,
                                       .c_max = 250.0,
@@ -136,7 +143,7 @@ int main()
         register_static_dynamic_equivalence_tests(make_fixed_unary_eos(), make_dynamic_unary_eos(), states);
     };
 
-    suite<"automated_eos_contracts"> automated = [] {
+    const suite<"automated_eos_contracts"> automated = [] {
         auto dynamic_eos = make_dynamic_eos();
         auto fixture = eos_test_fixture{
             .contribution = dynamic_eos.ideal(), .eos = dynamic_eos, .states = make_states(), .domain = valid_domain};
@@ -145,42 +152,68 @@ int main()
         register_static_dynamic_equivalence_tests(make_fixed_eos(), make_dynamic_eos(), make_states());
 
         "multiprecision derivative oracle and ADL math"_test = [] {
+            static_assert(std::same_as<decltype(test_math::log(std::declval<const multiprecision_float&>())),
+                                       multiprecision_float>);
+            static_assert(std::same_as<decltype(test_math::sqrt(std::declval<const multiprecision_float&>())),
+                                       multiprecision_float>);
+            static_assert(std::same_as<decltype(test_math::exp(std::declval<const multiprecision_float&>())),
+                                       multiprecision_float>);
+
+            const multiprecision_float lvalue{"4"};
+            const auto log_lvalue = test_math::log(lvalue);
+            const auto log_rvalue = test_math::log(multiprecision_float{"4"});
+            const auto sqrt_lvalue = test_math::sqrt(lvalue);
+            const auto sqrt_rvalue = test_math::sqrt(multiprecision_float{"4"});
+            const auto exp_lvalue = test_math::exp(lvalue);
+            const auto exp_rvalue = test_math::exp(multiprecision_float{"4"});
+            expect(std::abs(static_cast<double>(log_lvalue) - std::log(4.0)) < 1e-15);
+            expect(std::abs(static_cast<double>(log_rvalue) - std::log(4.0)) < 1e-15);
+            expect(std::abs(static_cast<double>(sqrt_lvalue) - 2.0) < 1e-15);
+            expect(std::abs(static_cast<double>(sqrt_rvalue) - 2.0) < 1e-15);
+            expect(std::abs(static_cast<double>(exp_lvalue) - std::exp(4.0)) < 1e-14);
+            expect(std::abs(static_cast<double>(exp_rvalue) - std::exp(4.0)) < 1e-14);
+
             const double point = 120.0;
             const double temperature = 350.0;
-            const auto estimate = multiprecision_first_derivative(
-                [temperature](const auto& concentration) {
-                    using Number = std::remove_cvref_t<decltype(concentration)>;
-                    const Number R{"8.31446261815324"};
-                    return R * Number{temperature} * test_math::log(concentration);
-                },
-                point, 1.0, 10.0, 250.0);
+            const auto first_function = [temperature](const auto& concentration) {
+                using Number = std::remove_cvref_t<decltype(concentration)>;
+                const Number R{"8.31446261815324"};
+                return Number{R * Number{temperature} * test_math::log(concentration)};
+            };
+            static_assert(std::same_as<decltype(first_function(std::declval<const multiprecision_float&>())),
+                                       multiprecision_float>);
+            const auto estimate = multiprecision_first_derivative(first_function, point, 1.0, 10.0, 250.0);
             const auto actual = static_cast<double>(estimate.value);
             const double expected = fug::ideal_gas_constant<double> * temperature / point;
             const auto state = make_eos_test_state(point, std::array{0.4, 0.6}, temperature, "multiprecision-oracle");
             check_close("d(RT log(c))/dc", actual, expected, {.abs = 1e-13, .rel = 1e-13}, state,
                         static_cast<double>(estimate.step), static_cast<double>(estimate.error));
 
-            const auto second = multiprecision_second_derivative(
-                [temperature](const auto& concentration) {
-                    using Number = std::remove_cvref_t<decltype(concentration)>;
-                    return Number{"8.31446261815324"} * Number{temperature} * test_math::log(concentration);
-                },
-                point, 1.0, 10.0, 250.0);
+            const auto second_function = [temperature](const auto& concentration) {
+                using Number = std::remove_cvref_t<decltype(concentration)>;
+                return Number{Number{"8.31446261815324"} * Number{temperature} * test_math::log(concentration)};
+            };
+            static_assert(std::same_as<decltype(second_function(std::declval<const multiprecision_float&>())),
+                                       multiprecision_float>);
+            const auto second = multiprecision_second_derivative(second_function, point, 1.0, 10.0, 250.0);
             check_close("d2(RT log(c))/dc2", static_cast<double>(second.value), -expected / point,
                         {.abs = 1e-13, .rel = 1e-13}, state, static_cast<double>(second.step),
                         static_cast<double>(second.error));
 
-            const auto mixed = multiprecision_mixed_derivative(
-                [](const auto& concentration, const auto& T) {
-                    return concentration * T + concentration * concentration * T * T;
-                },
-                2.0, 3.0, 1.0, 1.0, 1.0, 4.0, 1.0, 5.0);
+            const auto mixed_function = [](const auto& concentration, const auto& T) {
+                using Number = std::remove_cvref_t<decltype(concentration)>;
+                return Number{concentration * T + concentration * concentration * T * T};
+            };
+            static_assert(std::same_as<decltype(mixed_function(std::declval<const multiprecision_float&>(),
+                                                               std::declval<const multiprecision_float&>())),
+                                       multiprecision_float>);
+            const auto mixed = multiprecision_mixed_derivative(mixed_function, 2.0, 3.0, 1.0, 1.0, 1.0, 4.0, 1.0, 5.0);
             check_close("d2(cT+c2T2)/dcdT", static_cast<double>(mixed.value), 25.0, {.abs = 1e-20, .rel = 1e-20}, state,
                         static_cast<double>(mixed.step), static_cast<double>(mixed.error));
         };
     };
 
-    suite<"automated_residual_contracts"> residual = [] {
+    const suite<"automated_residual_contracts"> residual = [] {
         auto dynamic_eos = make_dynamic_vdw_eos();
         const eos_valid_domain domain{.c_min = 1e-8,
                                       .c_max = 5000.0,
@@ -201,7 +234,7 @@ int main()
         register_static_dynamic_equivalence_tests(make_fixed_vdw_eos(), make_dynamic_vdw_eos(), states);
     };
 
-    suite<"automated_peng_robinson_contracts"> peng_robinson = [] {
+    const suite<"automated_peng_robinson_contracts"> peng_robinson = [] {
         auto dynamic_eos = make_dynamic_pr_eos();
         const eos_valid_domain domain{.c_min = 1e-8,
                                       .c_max = 4000.0,

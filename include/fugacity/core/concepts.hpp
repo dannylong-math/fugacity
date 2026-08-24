@@ -16,7 +16,7 @@ namespace fugacity {
 ///
 #if defined(__GNUC__) || defined(__clang__)
 #define FUGACITY_RESTRICT __restrict__
-#elif defined(_MSC_VER)
+#elifdef _MSC_VER
 #define FUGACITY_RESTRICT __restrict
 #else
 #define FUGACITY_RESTRICT

@@ -14,13 +14,14 @@
 //   - the critical-point identities p(T_c, c_c) = P_c and dp/dc = 0 at
 //     c_c = 1 / (3 b), which pin down the a0/b parameter construction.
 //
-#include "support/eos_test_suite.hpp"
-#include "support/numeric_checks.hpp"
 #include "fugacity/core/core_calculations.hpp"
 #include "fugacity/core/eos_pair.hpp"
 #include "fugacity/core/numbers.hpp"
 #include "fugacity/ideal_models/const_cp.hpp"
 #include "fugacity/residual_models/van_der_waals.hpp"
+#include "support/eos_test_state.hpp"
+#include "support/eos_test_suite.hpp"
+#include "support/numeric_checks.hpp"
 
 #include <array>
 #include <boost/ut.hpp>
@@ -37,7 +38,7 @@ namespace {
 
 namespace fug = fugacity;
 
-template<std::size_t N> using Input = typename fug::VanDerWaals<N>::SpeciesInput;
+template<std::size_t N> using Input = fug::VanDerWaals<N>::SpeciesInput;
 
 // N2 and CO2 critical data.
 constexpr Input<2> n2{.T_c = 126.192, .P_c = 3.3958e6};
@@ -94,7 +95,7 @@ auto make_dynamic_binary_eos()
     const std::vector<Residual::SpeciesInput> inputs{{.T_c = n2.T_c, .P_c = n2.P_c}, {.T_c = co2.T_c, .P_c = co2.P_c}};
     const std::vector<double> kij(binary_kij.begin(), binary_kij.end());
     return fug::EoS{make_dynamic_ideal<2>(),
-                   Residual{std::span<const Residual::SpeciesInput>{inputs}, std::span<const double>{kij}}};
+                    Residual{std::span<const Residual::SpeciesInput>{inputs}, std::span<const double>{kij}}};
 }
 
 std::vector<eos_test_state> unary_contract_states()
@@ -155,9 +156,11 @@ long double ref_helmholtz(const std::array<Input<N>, N>& in, const std::array<do
 
 } // namespace
 
+// Test entry points intentionally let assertion failures escape to the runner.
+// NOLINTNEXTLINE(bugprone-exception-escape)
 int main()
 {
-    suite<"van_der_waals_unary_contracts"> unary_contracts = [] {
+    const suite<"van_der_waals_unary_contracts"> unary_contracts = [] {
         auto dynamic_eos = make_dynamic_unary_eos();
         const auto fixture = eos_test_fixture{.contribution = dynamic_eos.residual(),
                                               .eos = dynamic_eos,
@@ -170,7 +173,7 @@ int main()
                                                   unary_contract_states());
     };
 
-    suite<"van_der_waals"> vdw_suite = [] {
+    const suite<"van_der_waals"> vdw_suite = [] {
         auto dynamic_eos = make_dynamic_binary_eos();
         const auto fixture = eos_test_fixture{.contribution = dynamic_eos.residual(),
                                               .eos = dynamic_eos,
@@ -325,8 +328,8 @@ int main()
         "pure species pressure matches pressure-explicit form"_test = [] {
             const fug::EoS eos{make_ideal<1>(), fug::VanDerWaals<1>(unary_inputs)};
             const double R = fug::ideal_gas_constant<double>;
-            const double a = static_cast<double>(vdw_a0(n2.T_c, n2.P_c));
-            const double b = static_cast<double>(vdw_b(n2.T_c, n2.P_c));
+            const auto a = static_cast<double>(vdw_a0(n2.T_c, n2.P_c));
+            const auto b = static_cast<double>(vdw_b(n2.T_c, n2.P_c));
             const std::array<double, 1> x{1.0};
             const std::span<const double, 1> xs{x};
             for (const double c : {1.0, 100.0, 5000.0, 15000.0}) {
@@ -344,7 +347,7 @@ int main()
         // ===================================================================
         "pure species reproduces its critical point"_test = [] {
             const fug::EoS eos{make_ideal<1>(), fug::VanDerWaals<1>(unary_inputs)};
-            const double b = static_cast<double>(vdw_b(n2.T_c, n2.P_c));
+            const auto b = static_cast<double>(vdw_b(n2.T_c, n2.P_c));
             const double c_c = 1.0 / (3.0 * b);
             const std::array<double, 1> x{1.0};
             const std::span<const double, 1> xs{x};

@@ -15,6 +15,9 @@ endif()
 find_package(benchmark REQUIRED CONFIG)
 
 add_executable(bench_ideal_models src/bench_ideal_models.cpp)
+if(ENABLE_CLANG_TIDY)
+    set_property(TARGET bench_ideal_models PROPERTY CXX_CLANG_TIDY "${FUGACITY_CLANG_TIDY_COMMAND}")
+endif()
 target_link_libraries(bench_ideal_models PRIVATE
     ${PROJECT_NAME}::${PROJECT_NAME}
     benchmark::benchmark
@@ -41,6 +44,9 @@ FetchContent_Declare(teqp
 FetchContent_MakeAvailable(teqp)
 
 add_executable(bench_cubic_vs_teqp src/bench_cubic_vs_teqp.cpp)
+if(ENABLE_CLANG_TIDY)
+    set_property(TARGET bench_cubic_vs_teqp PROPERTY CXX_CLANG_TIDY "${FUGACITY_CLANG_TIDY_COMMAND}")
+endif()
 target_link_libraries(bench_cubic_vs_teqp PRIVATE
     ${PROJECT_NAME}::${PROJECT_NAME}
     benchmark::benchmark

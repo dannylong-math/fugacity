@@ -55,8 +55,10 @@ public:
     }
 
     /// Return the ideal contribution.
+    // NOLINTNEXTLINE(modernize-use-nodiscard) -- retained source API; callers may intentionally probe and discard.
     const Ideal& ideal() const noexcept { return ideal_; }
     /// Return the residual contribution.
+    // NOLINTNEXTLINE(modernize-use-nodiscard) -- retained source API; callers may intentionally probe and discard.
     const Residual& residual() const noexcept { return residual_; }
     ///
     /// Number of chemical components.

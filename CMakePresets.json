@@ -38,7 +38,7 @@
     {
       "name": "coverage",
       "displayName": "Coverage",
-      "description": "Clang source-based code coverage build. Uses -O1 -g (Enzyme needs >= -O1 for correct derivatives) with sanitizers off. Run the tests, then merge the .profraw files with llvm-profdata and report with llvm-cov.",
+      "description": "Clang source-based coverage build. Uses -O1 -g (Enzyme needs >= -O1 for correct derivatives) with sanitizers off. Build the coverage-check target for the per-executable 100% source-site gate.",
       "inherits": "base",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",

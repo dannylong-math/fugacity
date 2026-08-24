@@ -116,18 +116,21 @@
   ```console
   cmake --preset coverage -DEnzyme_DIR=/path/to/Enzyme/lib/cmake/Enzyme
   cmake --build --preset coverage --parallel
-  mkdir -p build/coverage/profraw
-  LLVM_PROFILE_FILE="$PWD/build/coverage/profraw/%p.profraw" \
-    ctest --preset coverage --output-on-failure
+  cmake --build build/coverage --target coverage-check
   ```
 
-- Use the `llvm-profdata merge` and `llvm-cov export/report` sequence in
-  `.github/workflows/ci.yml`. Ensure the matching LLVM toolchain is on `PATH`;
-  local installations may expose only versioned names such as `llvm-cov-22`
-  and `llvm-profdata-22`.
+- `coverage-check` runs each test executable with its own raw profile, exports
+  it with the matching `llvm-cov`, and unions first-party source sites across
+  the per-executable reports. This avoids losing header-only template mappings
+  to llvm-cov's `mismatched data` handling. It requires exactly 100% line,
+  source-function, and source-site branch-outcome coverage and verifies the
+  current 1031/150/244 denominator. The merged lcov sequence in CI remains an
+  informational Codecov artifact, not the completion gate.
+- Ensure the matching LLVM toolchain is on `PATH`; local installations may
+  expose only versioned names such as `llvm-cov-22` and `llvm-profdata-22`.
 - Current Codecov checks are informational and are not the completion gate.
-  Automated fail-under enforcement remains a tooling gap; record raw
-  line/function/branch metrics in each feature verification report.
+  Record both the source-site union and informational native metrics in each
+  feature verification report.
 - No coverage exclusion is approved by default. Record proposed exclusions in
   `docs/development/quality/coverage-exclusions.md` with a stable ID, exact
   source locations, proof of unreachability, tool-specific suppression,
@@ -135,9 +138,8 @@
   an exclusion.
 - Coverage is a gate, not evidence that tests contain adequate scientific
   oracles or properties.
-- First-party compiler and clang-tidy warnings must be zero. The build currently
-  lacks `-Werror` and clang-tidy warnings-as-errors; report this enforcement
-  gap until it is closed.
+- First-party compiler and clang-tidy warnings must be zero. The clang-tidy
+  configuration treats every enabled diagnostic as an error.
 - Debug ASan is the verified sanitizer gate.
 - UBSan is prohibited for Enzyme-differentiated targets until compatible
   evidence exists. TSan and MSan policy is TBD.

@@ -195,6 +195,8 @@ protected:
     ///                asymmetric; the model uses its symmetric part. Supply
     ///                exactly `species.size() * species.size()` entries.
     ///
+    // Protected construction is the intentional extension point for downstream cubic models.
+    // NOLINTNEXTLINE(bugprone-crtp-constructor-accessibility)
     BaseCubic(std::span<const PureSpecies> species, std::span<const double> kij) : BaseEoS<N>(species.size())
     {
         const std::size_t n = species.size();

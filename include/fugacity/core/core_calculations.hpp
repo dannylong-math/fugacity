@@ -34,17 +34,20 @@
 #include <cstddef>
 #include <span>
 
-// NOLINTBEGIN
 // Enzyme autodiff requires a few global definitions
+// NOLINTBEGIN(cppcoreguidelines-avoid-non-const-global-variables)
 inline int enzyme_dup;
 inline int enzyme_dupnoneed;
 inline int enzyme_out;
 inline int enzyme_const;
+// NOLINTEND(cppcoreguidelines-avoid-non-const-global-variables)
 
+// Enzyme recognizes these reserved intrinsic names and variadic declarations.
+// NOLINTBEGIN(bugprone-reserved-identifier)
 template<typename return_type, typename... T> return_type __enzyme_fwddiff(void*, T...);
 
 template<typename return_type, typename... T> return_type __enzyme_autodiff(void*, T...);
-// NOLINTEND
+// NOLINTEND(bugprone-reserved-identifier)
 
 namespace fugacity {
 
@@ -76,7 +79,7 @@ template<std::floating_point Number, int N> constexpr Number fast_pow(const Numb
         return base;
     }
     else if constexpr (N % 2 == 0) {
-        Number half = fast_pow<Number, N / 2>(base);
+        auto half = fast_pow<Number, N / 2>(base);
         return half * half;
     }
     else {
@@ -120,11 +123,13 @@ template<int i, int j, EquationOfState EoS, std::floating_point Number>
     }
     else if constexpr (i > j) {
         Number dinvT{1.};
+        // NOLINTNEXTLINE(modernize-avoid-c-style-cast) -- Enzyme requires its documented function-pointer spelling.
         return __enzyme_fwddiff<Number>((void*)calc_alpha<i - 1, j, EoS, Number>, enzyme_const, &eos, enzyme_const, c,
                                         enzyme_const, x, enzyme_dup, invT, dinvT);
     }
     else {
         Number dc{1.};
+        // NOLINTNEXTLINE(modernize-avoid-c-style-cast) -- Enzyme requires its documented function-pointer spelling.
         return __enzyme_fwddiff<Number>((void*)calc_alpha<i, j - 1, EoS, Number>, enzyme_const, &eos, enzyme_dup, c, dc,
                                         enzyme_const, x, enzyme_const, invT);
     }
@@ -208,6 +213,7 @@ template<int i, EquationOfState EoS, std::floating_point Number>
     }
     else {
         Number dT{1};
+        // NOLINTNEXTLINE(modernize-avoid-c-style-cast) -- Enzyme requires its documented function-pointer spelling.
         return __enzyme_fwddiff<Number>((void*)calc_dPsi_dT<i - 1, EoS, Number>, enzyme_const, &eos, enzyme_const,
                                         rho_i, enzyme_dup, T, dT);
     }
@@ -247,6 +253,7 @@ void calc_dPsi_drhoi(const EoS& eos, const Number* FUGACITY_RESTRICT rho_i, cons
         // scalar, so there is no caller-visible intermediate buffer to shadow:
         // `rho_i` is the only active input and the gradient lands in `dPsi_drho`.
         // FIXME: should <Number> be <void> since nothing is returned?
+        // NOLINTNEXTLINE(modernize-avoid-c-style-cast) -- Enzyme requires its documented function-pointer spelling.
         __enzyme_autodiff<void>((void*)calc_Psi<EoS, Number>, enzyme_const, &eos, enzyme_dup, rho_i, dPsi_drho,
                                 enzyme_const, T);
         return;
@@ -353,6 +360,7 @@ Number calc_helmholtz_dT(const EoS<Ideal, Residual>& eos, const Number c, const 
 {
     // TODO: Handle errors
     Number dT{1};
+    // NOLINTNEXTLINE(modernize-avoid-c-style-cast) -- Enzyme requires its documented function-pointer spelling.
     return __enzyme_fwddiff<Number>((void*)calc_helmholtz<Ideal, Residual, Number>, enzyme_const, &eos, enzyme_const, c,
                                     enzyme_const, x, enzyme_dup, T, dT);
 }
@@ -362,6 +370,7 @@ Number calc_helmholtz_dc(const EoS<Ideal, Residual>& eos, const Number c, const 
 {
     // TODO: Handle errors
     Number dc{1};
+    // NOLINTNEXTLINE(modernize-avoid-c-style-cast) -- Enzyme requires its documented function-pointer spelling.
     return __enzyme_fwddiff<Number>((void*)calc_helmholtz<Ideal, Residual, Number>, enzyme_const, &eos, enzyme_dup, c,
                                     dc, enzyme_const, x, enzyme_const, T);
 }
@@ -372,6 +381,7 @@ void calc_helmholtz_dx(const EoS<Ideal, Residual>& eos, const Number c, const Nu
 {
     std::fill_n(gradient, eos.size(), Number{0});
     // TODO: Handle errors
+    // NOLINTNEXTLINE(modernize-avoid-c-style-cast) -- Enzyme requires its documented function-pointer spelling.
     __enzyme_autodiff<void>((void*)calc_helmholtz<Ideal, Residual, Number>, enzyme_const, &eos, enzyme_const, c,
                             enzyme_dup, x, gradient, enzyme_const, T);
 }
@@ -479,6 +489,7 @@ Number calc_pressure_dT(const EoS<Ideal, Residual>& eos, const Number c, const N
     // TODO: Consider a custom assertion with a better error message
     FUGACITY_REQUIRE_POSITIVE_TEMPERATURE(T);
     Number dT{1};
+    // NOLINTNEXTLINE(modernize-avoid-c-style-cast) -- Enzyme requires its documented function-pointer spelling.
     return __enzyme_fwddiff<Number>((void*)calc_pressure<Ideal, Residual, Number>, enzyme_const, &eos, enzyme_const, c,
                                     enzyme_const, x, enzyme_dup, T, dT);
 }
@@ -489,6 +500,7 @@ Number calc_pressure_dc(const EoS<Ideal, Residual>& eos, const Number c, const N
     // TODO: Consider a custom assertion with a better error message
     FUGACITY_REQUIRE_POSITIVE_TEMPERATURE(T);
     Number dc{1};
+    // NOLINTNEXTLINE(modernize-avoid-c-style-cast) -- Enzyme requires its documented function-pointer spelling.
     return __enzyme_fwddiff<Number>((void*)calc_pressure<Ideal, Residual, Number>, enzyme_const, &eos, enzyme_dup, c,
                                     dc, enzyme_const, x, enzyme_const, T);
 }
@@ -500,6 +512,7 @@ void calc_pressure_dx(const EoS<Ideal, Residual>& eos, const Number c, const Num
     std::fill_n(gradient, eos.size(), Number{0});
     // TODO: Consider a custom assertion with a better error message
     FUGACITY_REQUIRE_POSITIVE_TEMPERATURE(T);
+    // NOLINTNEXTLINE(modernize-avoid-c-style-cast) -- Enzyme requires its documented function-pointer spelling.
     __enzyme_autodiff<void>((void*)calc_pressure<Ideal, Residual, Number>, enzyme_const, &eos, enzyme_const, c,
                             enzyme_dup, x, gradient, enzyme_const, T);
 }
@@ -606,6 +619,7 @@ template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number>
 Number calc_internal_energy_dT(const EoS<Ideal, Residual>& eos, const Number c, const Number* x, const Number T)
 {
     Number dT{1};
+    // NOLINTNEXTLINE(modernize-avoid-c-style-cast) -- Enzyme requires its documented function-pointer spelling.
     return __enzyme_fwddiff<Number>((void*)calc_internal_energy<Ideal, Residual, Number>, enzyme_const, &eos,
                                     enzyme_const, c, enzyme_const, x, enzyme_dup, T, dT);
 }
@@ -614,6 +628,7 @@ template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number>
 Number calc_internal_energy_dc(const EoS<Ideal, Residual>& eos, const Number c, const Number* x, const Number T)
 {
     Number dc{1};
+    // NOLINTNEXTLINE(modernize-avoid-c-style-cast) -- Enzyme requires its documented function-pointer spelling.
     return __enzyme_fwddiff<Number>((void*)calc_internal_energy<Ideal, Residual, Number>, enzyme_const, &eos,
                                     enzyme_dup, c, dc, enzyme_const, x, enzyme_const, T);
 }
@@ -623,6 +638,7 @@ void calc_internal_energy_dx(const EoS<Ideal, Residual>& eos, const Number c, co
                              Number* gradient)
 {
     std::fill_n(gradient, eos.size(), Number{0});
+    // NOLINTNEXTLINE(modernize-avoid-c-style-cast) -- Enzyme requires its documented function-pointer spelling.
     __enzyme_autodiff<void>((void*)calc_internal_energy<Ideal, Residual, Number>, enzyme_const, &eos, enzyme_const, c,
                             enzyme_dup, x, gradient, enzyme_const, T);
 }
@@ -731,6 +747,7 @@ template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number>
 Number calc_enthalpy_dT(const EoS<Ideal, Residual>& eos, const Number c, const Number* x, const Number T)
 {
     Number dT{1};
+    // NOLINTNEXTLINE(modernize-avoid-c-style-cast) -- Enzyme requires its documented function-pointer spelling.
     return __enzyme_fwddiff<Number>((void*)calc_enthalpy<Ideal, Residual, Number>, enzyme_const, &eos, enzyme_const, c,
                                     enzyme_const, x, enzyme_dup, T, dT);
 }
@@ -739,6 +756,7 @@ template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number>
 Number calc_enthalpy_dc(const EoS<Ideal, Residual>& eos, const Number c, const Number* x, const Number T)
 {
     Number dc{1};
+    // NOLINTNEXTLINE(modernize-avoid-c-style-cast) -- Enzyme requires its documented function-pointer spelling.
     return __enzyme_fwddiff<Number>((void*)calc_enthalpy<Ideal, Residual, Number>, enzyme_const, &eos, enzyme_dup, c,
                                     dc, enzyme_const, x, enzyme_const, T);
 }
@@ -748,6 +766,7 @@ void calc_enthalpy_dx(const EoS<Ideal, Residual>& eos, const Number c, const Num
                       Number* gradient)
 {
     std::fill_n(gradient, eos.size(), Number{0});
+    // NOLINTNEXTLINE(modernize-avoid-c-style-cast) -- Enzyme requires its documented function-pointer spelling.
     __enzyme_autodiff<void>((void*)calc_enthalpy<Ideal, Residual, Number>, enzyme_const, &eos, enzyme_const, c,
                             enzyme_dup, x, gradient, enzyme_const, T);
 }
@@ -855,6 +874,7 @@ template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number>
 Number calc_entropy_dT(const EoS<Ideal, Residual>& eos, const Number c, const Number* x, const Number T)
 {
     Number dT{1};
+    // NOLINTNEXTLINE(modernize-avoid-c-style-cast) -- Enzyme requires its documented function-pointer spelling.
     return __enzyme_fwddiff<Number>((void*)calc_entropy<Ideal, Residual, Number>, enzyme_const, &eos, enzyme_const, c,
                                     enzyme_const, x, enzyme_dup, T, dT);
 }
@@ -863,6 +883,7 @@ template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number>
 Number calc_entropy_dc(const EoS<Ideal, Residual>& eos, const Number c, const Number* x, const Number T)
 {
     Number dc{1};
+    // NOLINTNEXTLINE(modernize-avoid-c-style-cast) -- Enzyme requires its documented function-pointer spelling.
     return __enzyme_fwddiff<Number>((void*)calc_entropy<Ideal, Residual, Number>, enzyme_const, &eos, enzyme_dup, c, dc,
                                     enzyme_const, x, enzyme_const, T);
 }
@@ -871,6 +892,7 @@ template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number>
 void calc_entropy_dx(const EoS<Ideal, Residual>& eos, const Number c, const Number* x, const Number T, Number* gradient)
 {
     std::fill_n(gradient, eos.size(), Number{0});
+    // NOLINTNEXTLINE(modernize-avoid-c-style-cast) -- Enzyme requires its documented function-pointer spelling.
     __enzyme_autodiff<void>((void*)calc_entropy<Ideal, Residual, Number>, enzyme_const, &eos, enzyme_const, c,
                             enzyme_dup, x, gradient, enzyme_const, T);
 }
@@ -979,6 +1001,7 @@ template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number>
 Number calc_gibbs_dT(const EoS<Ideal, Residual>& eos, const Number c, const Number* x, const Number T)
 {
     Number dT{1};
+    // NOLINTNEXTLINE(modernize-avoid-c-style-cast) -- Enzyme requires its documented function-pointer spelling.
     return __enzyme_fwddiff<Number>((void*)calc_gibbs<Ideal, Residual, Number>, enzyme_const, &eos, enzyme_const, c,
                                     enzyme_const, x, enzyme_dup, T, dT);
 }
@@ -987,6 +1010,7 @@ template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number>
 Number calc_gibbs_dc(const EoS<Ideal, Residual>& eos, const Number c, const Number* x, const Number T)
 {
     Number dc{1};
+    // NOLINTNEXTLINE(modernize-avoid-c-style-cast) -- Enzyme requires its documented function-pointer spelling.
     return __enzyme_fwddiff<Number>((void*)calc_gibbs<Ideal, Residual, Number>, enzyme_const, &eos, enzyme_dup, c, dc,
                                     enzyme_const, x, enzyme_const, T);
 }
@@ -995,6 +1019,7 @@ template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number>
 void calc_gibbs_dx(const EoS<Ideal, Residual>& eos, const Number c, const Number* x, const Number T, Number* gradient)
 {
     std::fill_n(gradient, eos.size(), Number{0});
+    // NOLINTNEXTLINE(modernize-avoid-c-style-cast) -- Enzyme requires its documented function-pointer spelling.
     __enzyme_autodiff<void>((void*)calc_gibbs<Ideal, Residual, Number>, enzyme_const, &eos, enzyme_const, c, enzyme_dup,
                             x, gradient, enzyme_const, T);
 }
@@ -1104,6 +1129,7 @@ template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number>
 Number calc_dp_dc_dT(const EoS<Ideal, Residual>& eos, const Number c, const Number* x, const Number T)
 {
     Number dT{1};
+    // NOLINTNEXTLINE(modernize-avoid-c-style-cast) -- Enzyme requires its documented function-pointer spelling.
     return __enzyme_fwddiff<Number>((void*)calc_dp_dc<Ideal, Residual, Number>, enzyme_const, &eos, enzyme_const, c,
                                     enzyme_const, x, enzyme_dup, T, dT);
 }
@@ -1112,6 +1138,7 @@ template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number>
 Number calc_dp_dc_dc(const EoS<Ideal, Residual>& eos, const Number c, const Number* x, const Number T)
 {
     Number dc{1};
+    // NOLINTNEXTLINE(modernize-avoid-c-style-cast) -- Enzyme requires its documented function-pointer spelling.
     return __enzyme_fwddiff<Number>((void*)calc_dp_dc<Ideal, Residual, Number>, enzyme_const, &eos, enzyme_dup, c, dc,
                                     enzyme_const, x, enzyme_const, T);
 }
@@ -1120,6 +1147,7 @@ template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number>
 void calc_dp_dc_dx(const EoS<Ideal, Residual>& eos, const Number c, const Number* x, const Number T, Number* gradient)
 {
     std::fill_n(gradient, eos.size(), Number{0});
+    // NOLINTNEXTLINE(modernize-avoid-c-style-cast) -- Enzyme requires its documented function-pointer spelling.
     __enzyme_autodiff<void>((void*)calc_dp_dc<Ideal, Residual, Number>, enzyme_const, &eos, enzyme_const, c, enzyme_dup,
                             x, gradient, enzyme_const, T);
 }
@@ -1229,6 +1257,7 @@ template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number>
 Number calc_dp_dT_dT(const EoS<Ideal, Residual>& eos, const Number c, const Number* x, const Number T)
 {
     Number dT{1};
+    // NOLINTNEXTLINE(modernize-avoid-c-style-cast) -- Enzyme requires its documented function-pointer spelling.
     return __enzyme_fwddiff<Number>((void*)calc_dp_dT<Ideal, Residual, Number>, enzyme_const, &eos, enzyme_const, c,
                                     enzyme_const, x, enzyme_dup, T, dT);
 }
@@ -1237,6 +1266,7 @@ template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number>
 Number calc_dp_dT_dc(const EoS<Ideal, Residual>& eos, const Number c, const Number* x, const Number T)
 {
     Number dc{1};
+    // NOLINTNEXTLINE(modernize-avoid-c-style-cast) -- Enzyme requires its documented function-pointer spelling.
     return __enzyme_fwddiff<Number>((void*)calc_dp_dT<Ideal, Residual, Number>, enzyme_const, &eos, enzyme_dup, c, dc,
                                     enzyme_const, x, enzyme_const, T);
 }
@@ -1245,6 +1275,7 @@ template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number>
 void calc_dp_dT_dx(const EoS<Ideal, Residual>& eos, const Number c, const Number* x, const Number T, Number* gradient)
 {
     std::fill_n(gradient, eos.size(), Number{0});
+    // NOLINTNEXTLINE(modernize-avoid-c-style-cast) -- Enzyme requires its documented function-pointer spelling.
     __enzyme_autodiff<void>((void*)calc_dp_dT<Ideal, Residual, Number>, enzyme_const, &eos, enzyme_const, c, enzyme_dup,
                             x, gradient, enzyme_const, T);
 }
@@ -1351,6 +1382,7 @@ template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number>
 Number calc_cv_dT(const EoS<Ideal, Residual>& eos, const Number c, const Number* x, const Number T)
 {
     Number dT{1};
+    // NOLINTNEXTLINE(modernize-avoid-c-style-cast) -- Enzyme requires its documented function-pointer spelling.
     return __enzyme_fwddiff<Number>((void*)calc_cv<Ideal, Residual, Number>, enzyme_const, &eos, enzyme_const, c,
                                     enzyme_const, x, enzyme_dup, T, dT);
 }
@@ -1359,6 +1391,7 @@ template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number>
 Number calc_cv_dc(const EoS<Ideal, Residual>& eos, const Number c, const Number* x, const Number T)
 {
     Number dc{1};
+    // NOLINTNEXTLINE(modernize-avoid-c-style-cast) -- Enzyme requires its documented function-pointer spelling.
     return __enzyme_fwddiff<Number>((void*)calc_cv<Ideal, Residual, Number>, enzyme_const, &eos, enzyme_dup, c, dc,
                                     enzyme_const, x, enzyme_const, T);
 }
@@ -1367,6 +1400,7 @@ template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number>
 void calc_cv_dx(const EoS<Ideal, Residual>& eos, const Number c, const Number* x, const Number T, Number* gradient)
 {
     std::fill_n(gradient, eos.size(), Number{0});
+    // NOLINTNEXTLINE(modernize-avoid-c-style-cast) -- Enzyme requires its documented function-pointer spelling.
     __enzyme_autodiff<void>((void*)calc_cv<Ideal, Residual, Number>, enzyme_const, &eos, enzyme_const, c, enzyme_dup, x,
                             gradient, enzyme_const, T);
 }
@@ -1476,6 +1510,7 @@ template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number>
 Number calc_cp_dT(const EoS<Ideal, Residual>& eos, const Number c, const Number* x, const Number T)
 {
     Number dT{1};
+    // NOLINTNEXTLINE(modernize-avoid-c-style-cast) -- Enzyme requires its documented function-pointer spelling.
     return __enzyme_fwddiff<Number>((void*)calc_cp<Ideal, Residual, Number>, enzyme_const, &eos, enzyme_const, c,
                                     enzyme_const, x, enzyme_dup, T, dT);
 }
@@ -1484,6 +1519,7 @@ template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number>
 Number calc_cp_dc(const EoS<Ideal, Residual>& eos, const Number c, const Number* x, const Number T)
 {
     Number dc{1};
+    // NOLINTNEXTLINE(modernize-avoid-c-style-cast) -- Enzyme requires its documented function-pointer spelling.
     return __enzyme_fwddiff<Number>((void*)calc_cp<Ideal, Residual, Number>, enzyme_const, &eos, enzyme_dup, c, dc,
                                     enzyme_const, x, enzyme_const, T);
 }
@@ -1492,6 +1528,7 @@ template<IdealEoS Ideal, ResidualEoS Residual, std::floating_point Number>
 void calc_cp_dx(const EoS<Ideal, Residual>& eos, const Number c, const Number* x, const Number T, Number* gradient)
 {
     std::fill_n(gradient, eos.size(), Number{0});
+    // NOLINTNEXTLINE(modernize-avoid-c-style-cast) -- Enzyme requires its documented function-pointer spelling.
     __enzyme_autodiff<void>((void*)calc_cp<Ideal, Residual, Number>, enzyme_const, &eos, enzyme_const, c, enzyme_dup, x,
                             gradient, enzyme_const, T);
 }
@@ -1616,6 +1653,7 @@ Number calc_sound_speed_squared_dT(const EoS<Ideal, Residual>& eos, const Number
                                    const Number effective_molar_mass)
 {
     Number dT{1};
+    // NOLINTNEXTLINE(modernize-avoid-c-style-cast) -- Enzyme requires its documented function-pointer spelling.
     return __enzyme_fwddiff<Number>((void*)calc_sound_speed_squared<Ideal, Residual, Number>, enzyme_const, &eos,
                                     enzyme_const, c, enzyme_const, x, enzyme_dup, T, dT, enzyme_const,
                                     effective_molar_mass);
@@ -1626,6 +1664,7 @@ Number calc_sound_speed_squared_dc(const EoS<Ideal, Residual>& eos, const Number
                                    const Number effective_molar_mass)
 {
     Number dc{1};
+    // NOLINTNEXTLINE(modernize-avoid-c-style-cast) -- Enzyme requires its documented function-pointer spelling.
     return __enzyme_fwddiff<Number>((void*)calc_sound_speed_squared<Ideal, Residual, Number>, enzyme_const, &eos,
                                     enzyme_dup, c, dc, enzyme_const, x, enzyme_const, T, enzyme_const,
                                     effective_molar_mass);
@@ -1636,6 +1675,7 @@ void calc_sound_speed_squared_dx(const EoS<Ideal, Residual>& eos, const Number c
                                  const Number effective_molar_mass, Number* gradient)
 {
     std::fill_n(gradient, eos.size(), Number{0});
+    // NOLINTNEXTLINE(modernize-avoid-c-style-cast) -- Enzyme requires its documented function-pointer spelling.
     __enzyme_autodiff<void>((void*)calc_sound_speed_squared<Ideal, Residual, Number>, enzyme_const, &eos, enzyme_const,
                             c, enzyme_dup, x, gradient, enzyme_const, T, enzyme_const, effective_molar_mass);
 }

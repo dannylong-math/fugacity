@@ -14,13 +14,14 @@
 //     c_p     = c_p  (constant),   with c_ref = p_ref / (R T_ref).
 // At the reference state (T = T_ref, c = c_ref): h = h_ref and s = s_ref.
 //
-#include "support/eos_test_suite.hpp"
-#include "support/numeric_checks.hpp"
 #include "fugacity/core/core_calculations.hpp"
 #include "fugacity/core/eos_pair.hpp"
 #include "fugacity/core/numbers.hpp"
 #include "fugacity/ideal_models/const_cp.hpp"
 #include "fugacity/residual_models/no_residual.hpp"
+#include "support/eos_test_state.hpp"
+#include "support/eos_test_suite.hpp"
+#include "support/numeric_checks.hpp"
 
 #include <array>
 #include <boost/ut.hpp>
@@ -36,7 +37,7 @@ namespace {
 
 namespace fug = fugacity;
 
-template<std::size_t N> using Input = typename fug::ConstantCp<N>::SpeciesInput;
+template<std::size_t N> using Input = fug::ConstantCp<N>::SpeciesInput;
 
 // Build a complete EoS: a constant-cp ideal contribution + a vanishing residual.
 template<std::size_t N> auto make_const_cp_eos(const std::array<Input<N>, N>& in)
@@ -75,7 +76,7 @@ auto make_dynamic_const_cp_eos()
 {
     const auto inputs = dynamic_binary_inputs();
     return fug::EoS{fug::ConstantCp<>{std::span<const fug::ConstantCp<>::SpeciesInput>{inputs}},
-                   fug::NoResidual<std::dynamic_extent>{inputs.size()}};
+                    fug::NoResidual<std::dynamic_extent>{inputs.size()}};
 }
 
 std::vector<eos_test_state> const_cp_contract_states()
@@ -105,9 +106,11 @@ constexpr std::array<Input<1>, 1> unary_inputs{
 
 } // namespace
 
+// Test entry points intentionally let assertion failures escape to the runner.
+// NOLINTNEXTLINE(bugprone-exception-escape)
 int main()
 {
-    suite<"const_cp"> const_cp = [] {
+    const suite<"const_cp"> const_cp = [] {
         const double R = fug::ideal_gas_constant<double>;
 
         auto dynamic_eos = make_dynamic_const_cp_eos();

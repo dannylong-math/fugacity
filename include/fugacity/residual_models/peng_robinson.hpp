@@ -139,7 +139,7 @@ public:
 
 private:
     using Base = BaseCubic<PengRobinson<N>, N>;
-    using Pure = typename Base::PureSpecies;
+    using Pure = Base::PureSpecies;
 
     // Map one species' critical data to the generalized cubic parameters.
     static Pure to_pure(const SpeciesInput& in)

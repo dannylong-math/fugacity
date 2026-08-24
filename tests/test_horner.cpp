@@ -3,8 +3,10 @@
 #include <algorithm>
 #include <array>
 #include <boost/ut.hpp>
+#include <concepts>
 #include <cstddef>
 #include <random>
+#include <tuple>
 
 namespace {
 using namespace boost::ut;
@@ -31,11 +33,13 @@ template<int N, std::floating_point Number> void test_horner(const std::size_t n
 }
 } // namespace
 
+// Test entry points intentionally let assertion failures escape to the runner.
+// NOLINTNEXTLINE(bugprone-exception-escape)
 int main()
 {
     using namespace boost::ut;
 
-    suite<"Horner polynomial evaluation"> s = [] {
+    const suite<"Horner polynomial evaluation"> s = [] {
         "Number type"_test = []<typename T> {
             "Degree 0"_test = [] { test_horner<0, T>(); };
             "Degree 1"_test = [] { test_horner<1, T>(); };

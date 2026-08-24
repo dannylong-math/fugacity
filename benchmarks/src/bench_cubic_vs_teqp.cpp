@@ -26,17 +26,22 @@
 #include "fugacity/core/core_calculations.hpp"
 #include "fugacity/residual_models/peng_robinson.hpp"
 #include "fugacity/residual_models/van_der_waals.hpp"
-
 #include "teqp/derivs.hpp"
-#include "teqp/models/cubics.hpp"
+#include "teqp/models/cubics/simple_cubics.hpp"
 #include "teqp/models/vdW.hpp"
 
+#include <Eigen/Core> // NOLINT(misc-include-cleaner) -- Eigen's supported umbrella header owns the aliases below.
 #include <array>
-#include <benchmark/benchmark.h>
+#include <benchmark/benchmark_api.h>
+#include <benchmark/state.h>
+#include <benchmark/utils.h>
 #include <cstddef>
+#include <exception>
 #include <memory>
 #include <random>
+#include <span>
 #include <string>
+#include <type_traits>
 #include <utility>
 #include <valarray>
 #include <vector>
@@ -126,7 +131,7 @@ template<class Mine, class Teqp> struct Bench {
     double c = 500.0; // molar concentration [mol/m^3]
     double T = 350.0; // temperature [K]
     std::vector<double> x;
-    Eigen::ArrayXd z;
+    Eigen::ArrayXd z; // NOLINT(misc-include-cleaner) -- provided by Eigen/Core's generated public aliases.
 
     Bench(Mine m, Teqp t, std::size_t n) : mine(std::move(m)), tq(std::move(t)), x(n), z(n)
     {
@@ -139,7 +144,7 @@ template<class Mine, class Teqp> struct Bench {
         }
         for (std::size_t i = 0; i < n; ++i) {
             x[i] /= sum;
-            z[static_cast<Eigen::Index>(i)] = x[i];
+            z[static_cast<Eigen::Index>(i)] = x[i]; // NOLINT(misc-include-cleaner) -- Eigen/Core public index alias.
         }
     }
 };
@@ -219,12 +224,19 @@ void register_all()
 
 int main(int argc, char** argv)
 {
-    register_all();
-    benchmark::Initialize(&argc, argv);
-    if (benchmark::ReportUnrecognizedArguments(argc, argv)) {
-        return 1;
+    try {
+        register_all();
+        benchmark::Initialize(&argc, argv);
+        if (benchmark::ReportUnrecognizedArguments(argc, argv)) {
+            return 1;
+        }
+        benchmark::RunSpecifiedBenchmarks();
+        benchmark::Shutdown();
+        return 0;
     }
-    benchmark::RunSpecifiedBenchmarks();
-    benchmark::Shutdown();
-    return 0;
+    catch (...) {
+        // Preserve the prior uncaught-exception behavior while making the
+        // benchmark entry point's non-throwing contract explicit.
+        std::terminate();
+    }
 }

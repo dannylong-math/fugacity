@@ -28,10 +28,14 @@ file(GLOB_RECURSE TEST_SOURCES CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp"
 )
 
+set(FUGACITY_TEST_TARGETS)
 foreach(test_source IN LISTS TEST_SOURCES)
     # NAME_WE: filename Without Extension (e.g. test_foo.cpp -> test_foo)
     get_filename_component(test_name "${test_source}" NAME_WE)
     add_executable(${test_name} "${test_source}")
+    if(ENABLE_CLANG_TIDY)
+        set_property(TARGET ${test_name} PROPERTY CXX_CLANG_TIDY "${FUGACITY_CLANG_TIDY_COMMAND}")
+    endif()
     target_link_libraries(${test_name} PRIVATE
         ${PROJECT_NAME}::${PROJECT_NAME}
         ${PROJECT_NAME}_warnings
@@ -43,4 +47,6 @@ foreach(test_source IN LISTS TEST_SOURCES)
     )
     target_compile_definitions(${test_name} PRIVATE BOOST_MP_STANDALONE)
     add_test(NAME ${test_name} COMMAND ${test_name})
+    list(APPEND FUGACITY_TEST_TARGETS ${test_name})
 endforeach()
+set(FUGACITY_TEST_TARGETS "${FUGACITY_TEST_TARGETS}" PARENT_SCOPE)

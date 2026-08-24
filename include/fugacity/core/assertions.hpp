@@ -17,11 +17,12 @@
 ///
 /// \ingroup core
 #ifdef NDEBUG
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage) -- public assertion macro must compile out in release builds.
 #define FUGACITY_ASSERT(cond) ((void)0)
 #else
-#define FUGACITY_ASSERT(cond)                                                                                        \
+#define FUGACITY_ASSERT(cond)                                                                                          \
     ((cond) ? void(0)                                                                                                  \
-            : throw std::logic_error(std::string("FUGACITY_ASSERT failed: " #cond " (" __FILE__ ":") +               \
+            : throw std::logic_error(std::string("FUGACITY_ASSERT failed: " #cond " (" __FILE__ ":") +                 \
                                      std::to_string(__LINE__) + ")"))
 #endif
 
@@ -34,5 +35,8 @@
 /// \param T Temperature [K].
 ///
 /// \ingroup core
-#define FUGACITY_REQUIRE_POSITIVE_TEMPERATURE(T)                                                                     \
+// This public macro preserves call-site source locations and expression-like
+// exception semantics in every build configuration.
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage) -- shared public precondition macro preserves source locations.
+#define FUGACITY_REQUIRE_POSITIVE_TEMPERATURE(T)                                                                       \
     ((T) > 0 ? void(0) : throw std::domain_error("fugacity: temperature must be positive (T > 0 K required)"))

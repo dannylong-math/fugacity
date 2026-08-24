@@ -140,9 +140,20 @@ Result: both configurations and builds passed; Debug and Release each passed
 ptrace incompatibility after every test's assertions passed. Repeating CTest
 outside that sandbox passed 15/15 with ASan/LSan enabled.
 
-Coverage was not rerun because executable tokens are unchanged and coverage's
-first-party denominator excludes documentation. Existing Debug and Release
-tests are regression evidence, not new coverage or physical validation.
+The expanded quality cleanup reran coverage with each of the 15 independently
+linked test executables profiled and exported separately. The committed
+`coverage-check` target unions resolved first-party source sites under
+`include/fugacity` and reports 1031/1031 lines, 150/150 source functions, and
+244/244 branch outcomes (122 conditions), with no exclusions. A temporary
+uncovered branch in `core/horner.hpp` made the gate fail at 1032/1034 lines and
+245/246 outcomes, proving fail-under enforcement. The mutant was removed.
+
+The legacy merged native report remains informational. Before the focused
+precondition tests it reported 1013/1013 lines, 150/150 functions, and 227/244
+branch outcomes. After the tests it reports 1013/1013, 150/150, and 242/244,
+while still warning that 270 functions have mismatched data. Merging unrelated
+executables drops 18 mapped source lines and conflicting header-template branch
+instances, so the merged report is not used as the completion gate.
 
 ## Source-token and repository checks
 
@@ -167,26 +178,33 @@ find include tests benchmarks -type f \
 git diff --check
 ```
 
-`git diff --check` passed. The repository-wide formatting dry check reported
-89 diagnostics in 14 files. Repeating the same command against the feature base
-reported the same 89 diagnostics with the same per-file counts; the only
-modified header among those files is `assertions.hpp`, whose three diagnostics
-are unchanged pre-existing macro-layout findings. No formatting rewrite was
-made because this documentation-only task may not alter executable source.
+`git diff --check` passed. The initial repository-wide formatting dry check
+reported 89 diagnostics in 14 files. After formatting the authoritative
+`include`, `tests`, and `benchmarks` trees, the same command reports zero.
 
-The final independent audit also ran the configured `debug-tidy` workflow. It
-reported 426 unique first-party warning lines plus 15 Enzyme analyzer-plugin
-compatibility warnings. The 17 modified headers remain token-identical to the
-feature base, so these findings are inherited rather than introduced by the
-migration. They nevertheless fail the repository-wide zero-warning policy.
-Together with the unchanged 89 clang-format diagnostics, this prevents a
-PR-ready designation until the debt is resolved or the policy is explicitly
-revised. All migration-specific documentation gates, Debug/Release/release-max
-15/15 test suites, and the Debug ASan gate passed.
+The initial independent `debug-tidy` audit reported 426 unique first-party
+warning lines plus 15 Enzyme analyzer-plugin compatibility warnings. The exact
+disposition ledger is:
+
+| Disposition | Count | Checks |
+|---|---:|---|
+| Approved global disables | 293 | 277 bounds-index findings; 16 `#pragma once` findings |
+| Exact approved suppressions | 62 | 37 Enzyme casts; 15 test-main exception escapes; 6 fully assigned arrays; 2 retained getters; 1 public temperature macro; 1 CRTP constructor |
+| Actionable fixes | 71 | 26 include-cleaner; 26 const-correctness; 8 use-auto; 6 redundant-typename; 3 concise-preprocessor; 1 redundant-parentheses; 1 multiprecision lifetime |
+
+The final all-target `debug-tidy` build treats every enabled diagnostic as an
+error and reports zero warnings and errors across all 15 test translation
+units. Both benchmark translation units were analyzed explicitly and also
+report zero. The real compiler retains Enzyme's plugin; only clang-tidy's false
+analyzer-subprocess plugin warning is suppressed. Every `NOLINT` annotation is
+check-qualified, and there are no bare suppressions.
 
 ## Applicability
 
-The migration changes documentation tooling, prose, and comments only. ABI,
-numerical behavior, scientific data formats, calculation/solution verification,
-physical-model validation, uncertainty quantification, and performance are
-unchanged. New numerical V&V and benchmarking are therefore not applicable.
+The quality cleanup preserves the public source API, storage layout, numerical
+expression order, Enzyme intrinsic spelling and behavior, exception semantics,
+test tolerances, and deterministic seeds. A base/current consumer produced
+identical layout values and hexadecimal numerical results. The only intentional
+calculation-support change is the test oracle's owning multiprecision return
+lifetime; it does not alter production calculations, data formats, model
+validation, uncertainty quantification, or performance claims.

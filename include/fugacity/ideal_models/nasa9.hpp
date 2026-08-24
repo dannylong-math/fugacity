@@ -149,7 +149,8 @@ public:
         for (std::size_t i = 0; i < n; ++i) {
             // The NASA-9 Helmholtz contribution is a 5th-degree polynomial in T
             // plus 1/T and lnT-dependent constants, folded into coeffs[0].
-            std::array<Number, 6> coeffs;
+            // Every element is assigned below before the array is read.
+            std::array<Number, 6> coeffs; // NOLINT(cppcoreguidelines-pro-type-member-init)
             coeffs[0] = (data_[(col_a1 * n) + i] * (lnT + Number{1})) + data_[(col_a7 * n) + i] -
                         (data_[(col_a0_over_2 * n) + i] * one_over_T);
             coeffs[1] = (data_[(col_a2 * n) + i] * (Number{1} - lnT)) - data_[(col_a8 * n) + i] + lnT + lnC -
@@ -181,7 +182,8 @@ public:
 
         Number psi{0};
         for (std::size_t i = 0; i < n; ++i) {
-            std::array<Number, 6> coeffs;
+            // Every element is assigned below before the array is read.
+            std::array<Number, 6> coeffs; // NOLINT(cppcoreguidelines-pro-type-member-init)
             coeffs[0] = (data_[(col_a1 * n) + i] * (lnT + Number{1})) + data_[(col_a7 * n) + i] -
                         (data_[(col_a0_over_2 * n) + i] * one_over_T);
             coeffs[1] = (data_[(col_a2 * n) + i] * (Number{1} - lnT)) - data_[(col_a8 * n) + i] + lnT -
@@ -210,7 +212,8 @@ public:
         const Number one_over_T = Number{1} / T;
 
         for (std::size_t i = 0; i < n; ++i) {
-            std::array<Number, 6> coeffs;
+            // Every element is assigned below before the array is read.
+            std::array<Number, 6> coeffs; // NOLINT(cppcoreguidelines-pro-type-member-init)
             coeffs[0] = (data_[(col_a1 * n) + i] * (lnT + Number{1})) + data_[(col_a7 * n) + i] -
                         (data_[(col_a0_over_2 * n) + i] * one_over_T);
             coeffs[1] = (data_[(col_a2 * n) + i] * (Number{1} - lnT)) - data_[(col_a8 * n) + i] + lnT -

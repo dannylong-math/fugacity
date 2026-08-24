@@ -142,7 +142,8 @@ public:
         Number a{0};
         for (std::size_t i = 0; i < n; ++i) {
             // The NASA-7 Helmholtz contribution is a 5th-degree polynomial in T.
-            std::array<Number, 6> coeffs;
+            // Every element is assigned below before the array is read.
+            std::array<Number, 6> coeffs; // NOLINT(cppcoreguidelines-pro-type-member-init)
             coeffs[0] = data_[(col_a5 * n) + i];
             coeffs[1] = (data_[(col_a0 * n) + i] * (Number{1} - lnT)) - data_[(col_a6 * n) + i] + lnT + lnC -
                         data_[(col_ln_cref_Tref * n) + i] - Number{1};
@@ -172,7 +173,8 @@ public:
 
         Number psi{0};
         for (std::size_t i = 0; i < n; ++i) {
-            std::array<Number, 6> coeffs;
+            // Every element is assigned below before the array is read.
+            std::array<Number, 6> coeffs; // NOLINT(cppcoreguidelines-pro-type-member-init)
             coeffs[0] = data_[(col_a5 * n) + i];
             coeffs[1] = (data_[(col_a0 * n) + i] * (Number{1} - lnT)) - data_[(col_a6 * n) + i] + lnT -
                         data_[(col_ln_cref_Tref * n) + i] - Number{1};
@@ -199,7 +201,8 @@ public:
         const Number lnT = std::log(T);
 
         for (std::size_t i = 0; i < n; ++i) {
-            std::array<Number, 6> coeffs;
+            // Every element is assigned below before the array is read.
+            std::array<Number, 6> coeffs; // NOLINT(cppcoreguidelines-pro-type-member-init)
             coeffs[0] = data_[(col_a5 * n) + i];
             coeffs[1] = (data_[(col_a0 * n) + i] * (Number{1} - lnT)) - data_[(col_a6 * n) + i] + lnT -
                         data_[(col_ln_cref_Tref * n) + i] - Number{1};

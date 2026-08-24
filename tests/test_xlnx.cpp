@@ -4,6 +4,7 @@
 #include <array>
 #include <boost/ut.hpp>
 #include <cmath>
+#include <cstddef>
 #include <limits>
 #include <random>
 #include <tuple>
@@ -30,12 +31,14 @@ template<int N> void expect_coeffs(const std::array<long long, N + 1>& expected)
 }
 } // namespace
 
+// Test entry points intentionally let assertion failures escape to the runner.
+// NOLINTNEXTLINE(bugprone-exception-escape)
 int main()
 {
     using namespace boost::ut;
     using fugacity::xlnx;
 
-    suite<"xlnx"> s = [] {
+    const suite<"xlnx"> s = [] {
         constexpr unsigned int n_tests = 100;
         std::random_device rd;
         std::mt19937 gen(rd());
@@ -130,7 +133,7 @@ int main()
             const std::array<Number, 7> xs{Number{0},    Number{0.1}, Number{0.25}, Number{0.5},
                                            Number{0.75}, Number{0.9}, Number{1}};
             for (const Number x : xs) {
-                expect(lt(std::abs(smooth_step<0>(x) - (x)), tol));
+                expect(lt(std::abs(smooth_step<0>(x) - x), tol));
                 expect(lt(std::abs(smooth_step<1>(x) - (-2 * ipow(x, 3) + 3 * ipow(x, 2))), tol));
                 expect(lt(std::abs(smooth_step<2>(x) - (6 * ipow(x, 5) - 15 * ipow(x, 4) + 10 * ipow(x, 3))), tol));
                 expect(lt(std::abs(smooth_step<3>(x) -

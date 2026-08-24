@@ -29,8 +29,12 @@
 #include "fugacity/residual_models/no_residual.hpp"
 
 #include <array>
-#include <benchmark/benchmark.h>
+#include <benchmark/benchmark_api.h>
+#include <benchmark/reporter.h>
+#include <benchmark/state.h>
+#include <benchmark/utils.h>
 #include <cstddef>
+#include <cstdint>
 #include <iostream>
 #include <memory>
 #include <random>
@@ -93,7 +97,7 @@ template<class SI, class Gen, class Dist> SI make_input(Gen& g, Dist& d)
 template<template<std::size_t> class Tmpl, std::size_t N> Tmpl<N> make_model(std::size_t n)
 {
     using Model = Tmpl<N>;
-    using SI = typename Model::SpeciesInput;
+    using SI = Model::SpeciesInput;
     std::mt19937_64 gen(0xEAB0ULL + n);
     std::uniform_real_distribution<double> d(0.5, 2.0);
     if constexpr (N == std::dynamic_extent) {
@@ -160,7 +164,7 @@ template<class Ideal, std::size_t N> struct Bench {
 // ---------------------------------------------------------------------------
 // The set of core calculations, with the label used in the benchmark name.
 // ---------------------------------------------------------------------------
-enum class Calc {
+enum class Calc : std::uint8_t {
     helmholtz,
     pressure,
     internal_energy,
@@ -183,27 +187,55 @@ struct CalcInfo {
 };
 
 constexpr std::array<CalcInfo, 14> kCalcs{{
-    {Calc::helmholtz, "helmholtz"},
-    {Calc::pressure, "pressure"},
-    {Calc::internal_energy, "internal_energy"},
-    {Calc::enthalpy, "enthalpy"},
-    {Calc::entropy, "entropy"},
-    {Calc::gibbs, "gibbs"},
-    {Calc::dp_dc, "dp_dc"},
-    {Calc::dp_dT, "dp_dT"},
-    {Calc::cv, "cv"},
-    {Calc::cp, "cp"},
-    {Calc::sound_speed_sq, "sound_speed_sq"},
-    {Calc::chemical_potential, "chemical_potential"},
-    {Calc::log_fugacity_coeff, "log_fugacity_coeff"},
-    {Calc::fugacity, "fugacity"},
+    {.id = Calc::helmholtz, .name = "helmholtz"},
+    {.id = Calc::pressure, .name = "pressure"},
+    {.id = Calc::internal_energy, .name = "internal_energy"},
+    {.id = Calc::enthalpy, .name = "enthalpy"},
+    {.id = Calc::entropy, .name = "entropy"},
+    {.id = Calc::gibbs, .name = "gibbs"},
+    {.id = Calc::dp_dc, .name = "dp_dc"},
+    {.id = Calc::dp_dT, .name = "dp_dT"},
+    {.id = Calc::cv, .name = "cv"},
+    {.id = Calc::cp, .name = "cp"},
+    {.id = Calc::sound_speed_sq, .name = "sound_speed_sq"},
+    {.id = Calc::chemical_potential, .name = "chemical_potential"},
+    {.id = Calc::log_fugacity_coeff, .name = "log_fugacity_coeff"},
+    {.id = Calc::fugacity, .name = "fugacity"},
 }};
 
 // The size sweep used by the grouped default run.
 constexpr std::array<std::size_t, 6> kSizes{1, 2, 10, 50, 100, 1000};
 
 // Heap-allocated benches kept alive for the whole process.
-std::vector<std::shared_ptr<void>> g_keepalive;
+auto& keepalive()
+{
+    static std::vector<std::shared_ptr<void>> benches;
+    return benches;
+}
+
+template<class B, class Operation> void register_scalar(const std::string& name, B* bench, Operation operation)
+{
+    benchmark::RegisterBenchmark(name, [bench, operation](benchmark::State& state) {
+        for (auto _ : state) {
+            benchmark::DoNotOptimize(bench->c);
+            benchmark::DoNotOptimize(bench->T);
+            auto value = operation(*bench);
+            benchmark::DoNotOptimize(value);
+        }
+    });
+}
+
+template<class B, class Operation> void register_void(const std::string& name, B* bench, Operation operation)
+{
+    benchmark::RegisterBenchmark(name, [bench, operation](benchmark::State& state) {
+        for (auto _ : state) {
+            benchmark::DoNotOptimize(bench->T);
+            operation(*bench);
+            benchmark::DoNotOptimize(bench->out.data());
+            benchmark::ClobberMemory();
+        }
+    });
+}
 
 // ---------------------------------------------------------------------------
 // Register a single (calculation, bench) benchmark under the given name.
@@ -212,72 +244,96 @@ template<class B> void register_calc(const std::string& name, B* b, Calc calc)
 {
     constexpr std::size_t E = B::extent;
 
-#define SCALAR(...)                                                                                                    \
-    benchmark::RegisterBenchmark(name, [b](benchmark::State& st) {                                                     \
-        for (auto _ : st) {                                                                                            \
-            benchmark::DoNotOptimize(b->c);                                                                            \
-            benchmark::DoNotOptimize(b->T);                                                                            \
-            auto v = (__VA_ARGS__);                                                                                    \
-            benchmark::DoNotOptimize(v);                                                                               \
-        }                                                                                                              \
-    })
-#define VOIDC(...)                                                                                                     \
-    benchmark::RegisterBenchmark(name, [b](benchmark::State& st) {                                                     \
-        for (auto _ : st) {                                                                                            \
-            benchmark::DoNotOptimize(b->T);                                                                            \
-            __VA_ARGS__;                                                                                               \
-            benchmark::DoNotOptimize(b->out.data());                                                                   \
-            benchmark::ClobberMemory();                                                                                \
-        }                                                                                                              \
-    })
-
     switch (calc) {
     case Calc::helmholtz:
-        SCALAR(fug::calc_helmholtz(b->eos, b->c, cspan<E>(b->x), b->T));
+        register_scalar(name, b, [](B& bench) {
+            auto x = cspan<E>(bench.x);
+            return fug::calc_helmholtz(bench.eos, bench.c, x, bench.T);
+        });
         break;
     case Calc::pressure:
-        SCALAR(fug::calc_pressure(b->eos, b->c, cspan<E>(b->x), b->T));
+        register_scalar(name, b, [](B& bench) {
+            auto x = cspan<E>(bench.x);
+            return fug::calc_pressure(bench.eos, bench.c, x, bench.T);
+        });
         break;
     case Calc::internal_energy:
-        SCALAR(fug::calc_internal_energy(b->eos, b->c, cspan<E>(b->x), b->T));
+        register_scalar(name, b, [](B& bench) {
+            auto x = cspan<E>(bench.x);
+            return fug::calc_internal_energy(bench.eos, bench.c, x, bench.T);
+        });
         break;
     case Calc::enthalpy:
-        SCALAR(fug::calc_enthalpy(b->eos, b->c, cspan<E>(b->x), b->T));
+        register_scalar(name, b, [](B& bench) {
+            auto x = cspan<E>(bench.x);
+            return fug::calc_enthalpy(bench.eos, bench.c, x, bench.T);
+        });
         break;
     case Calc::entropy:
-        SCALAR(fug::calc_entropy(b->eos, b->c, cspan<E>(b->x), b->T));
+        register_scalar(name, b, [](B& bench) {
+            auto x = cspan<E>(bench.x);
+            return fug::calc_entropy(bench.eos, bench.c, x, bench.T);
+        });
         break;
     case Calc::gibbs:
-        SCALAR(fug::calc_gibbs(b->eos, b->c, cspan<E>(b->x), b->T));
+        register_scalar(name, b, [](B& bench) {
+            auto x = cspan<E>(bench.x);
+            return fug::calc_gibbs(bench.eos, bench.c, x, bench.T);
+        });
         break;
     case Calc::dp_dc:
-        SCALAR(fug::calc_dp_dc(b->eos, b->c, cspan<E>(b->x), b->T));
+        register_scalar(name, b, [](B& bench) {
+            auto x = cspan<E>(bench.x);
+            return fug::calc_dp_dc(bench.eos, bench.c, x, bench.T);
+        });
         break;
     case Calc::dp_dT:
-        SCALAR(fug::calc_dp_dT(b->eos, b->c, cspan<E>(b->x), b->T));
+        register_scalar(name, b, [](B& bench) {
+            auto x = cspan<E>(bench.x);
+            return fug::calc_dp_dT(bench.eos, bench.c, x, bench.T);
+        });
         break;
     case Calc::cv:
-        SCALAR(fug::calc_cv(b->eos, b->c, cspan<E>(b->x), b->T));
+        register_scalar(name, b, [](B& bench) {
+            auto x = cspan<E>(bench.x);
+            return fug::calc_cv(bench.eos, bench.c, x, bench.T);
+        });
         break;
     case Calc::cp:
-        SCALAR(fug::calc_cp(b->eos, b->c, cspan<E>(b->x), b->T));
+        register_scalar(name, b, [](B& bench) {
+            auto x = cspan<E>(bench.x);
+            return fug::calc_cp(bench.eos, bench.c, x, bench.T);
+        });
         break;
     case Calc::sound_speed_sq:
-        SCALAR(fug::calc_sound_speed_squared(b->eos, b->c, cspan<E>(b->x), b->T, b->molar_mass));
+        register_scalar(name, b, [](B& bench) {
+            auto x = cspan<E>(bench.x);
+            return fug::calc_sound_speed_squared(bench.eos, bench.c, x, bench.T, bench.molar_mass);
+        });
         break;
     case Calc::chemical_potential:
-        VOIDC(fug::calc_chemical_potential(b->eos, cspan<E>(b->rho), b->T, mspan<E>(b->out)));
+        register_void(name, b, [](B& bench) {
+            auto rho = cspan<E>(bench.rho);
+            auto out = mspan<E>(bench.out);
+            fug::calc_chemical_potential(bench.eos, rho, bench.T, out);
+        });
         break;
     case Calc::log_fugacity_coeff:
-        VOIDC(fug::calc_log_fugacity_coeff(b->eos, b->c, cspan<E>(b->x), b->T, cspan<E>(b->rho), mspan<E>(b->out)));
+        register_void(name, b, [](B& bench) {
+            auto x = cspan<E>(bench.x);
+            auto rho = cspan<E>(bench.rho);
+            auto out = mspan<E>(bench.out);
+            fug::calc_log_fugacity_coeff(bench.eos, bench.c, x, bench.T, rho, out);
+        });
         break;
     case Calc::fugacity:
-        VOIDC(fug::calc_fugacity(b->eos, cspan<E>(b->rho), b->T, mspan<E>(b->out)));
+        register_void(name, b, [](B& bench) {
+            auto rho = cspan<E>(bench.rho);
+            auto out = mspan<E>(bench.out);
+            fug::calc_fugacity(bench.eos, rho, bench.T, out);
+        });
         break;
     }
-
-#undef SCALAR
-#undef VOIDC
 }
 
 // ---------------------------------------------------------------------------
@@ -294,10 +350,10 @@ template<std::size_t N> void register_size()
     auto n7_s = std::make_shared<Bench<fug::Nasa7<N>, N>>(N, make_model<fug::Nasa7, N>(N));
     auto n7_d = std::make_shared<Bench<fug::Nasa7<dyn>, dyn>>(N, make_model<fug::Nasa7, dyn>(N));
 
-    g_keepalive.push_back(cc_s);
-    g_keepalive.push_back(cc_d);
-    g_keepalive.push_back(n7_s);
-    g_keepalive.push_back(n7_d);
+    keepalive().push_back(cc_s);
+    keepalive().push_back(cc_d);
+    keepalive().push_back(n7_s);
+    keepalive().push_back(n7_d);
 
     const std::string ns = std::to_string(N);
     for (const CalcInfo& ci : kCalcs) {
@@ -369,7 +425,7 @@ int main(int argc, char** argv)
     // front and, if present, fall back to a single plain run that honours it.
     bool user_filtered = false;
     for (int i = 1; i < argc; ++i) {
-        if (std::string_view(argv[i]).rfind("--benchmark_filter", 0) == 0) {
+        if (std::string_view(argv[i]).starts_with("--benchmark_filter")) {
             user_filtered = true;
         }
     }
@@ -390,7 +446,7 @@ int main(int argc, char** argv)
 
     constexpr std::array<const char*, 2> families{"ConstantCp", "Nasa7"};
 
-    for (std::size_t n : kSizes) {
+    for (const std::size_t n : kSizes) {
         print_size_banner(n);
         for (const CalcInfo& ci : kCalcs) {
             for (const char* family : families) {
