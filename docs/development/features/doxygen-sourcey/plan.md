@@ -12,6 +12,13 @@ The migration must not change public declarations, source API, ABI,
 thermodynamic equations, numerical behavior, precision, tolerances,
 determinism, or performance.
 
+The user expanded the feature after the first independent audit to make the
+repository-wide clang-tidy and clang-format gates clean. The cleanup base is
+`3a37a63b21c1a133ef9219bae874ca8a452440c1`. Production edits in this expanded
+scope must preserve public declarations, numerical expression order, storage
+and layout, Enzyme intrinsic spelling, exception behavior, and deterministic
+test inputs.
+
 ## Base and compatibility
 
 - Integration branch: `sourcey`.
@@ -54,6 +61,36 @@ A standalone shell-only pipeline was rejected because it would bypass the
 project's stable CMake preset/target and diverge from the approved Rift
 reference workflow.
 
+## Static-analysis cleanup decision
+
+The user approved a risk-tiered remediation policy on 2026-08-24:
+
+- Fix actionable clang-tidy findings and the multiprecision expression-template
+  lifetime defect.
+- Disable `cppcoreguidelines-pro-bounds-avoid-unchecked-container-access`
+  repository-wide. Rewriting the 277 reported indexed accesses would add
+  branches or change iteration/IR in differentiated numerical kernels; C++23
+  `std::span` also has no checked `at()` member.
+- Disable `portability-avoid-pragma-once` repository-wide because `#pragma
+  once` is the deliberate convention on the mandatory Clang toolchain.
+- Disable `bugprone-exception-escape` only for Boost.UT test mains, where
+  uncaught exceptions intentionally become CTest failures.
+- Use narrowly justified `NOLINT` annotations for Enzyme-required casts,
+  fully assigned NASA coefficient arrays, the public assertion macro and
+  getters, and the `BaseCubic` extension constructor rather than changing
+  public behavior or differentiated IR.
+- Suppress only clang-tidy's false analyzer-plugin compatibility warning; the
+  real compiler continues to load the Enzyme frontend plugin unchanged.
+- Tighten the header filter to first-party production and test-support headers,
+  then enable clang-tidy warnings-as-errors once the baseline is clean.
+- Apply clang-format to the authoritative `include`, `tests`, and `benchmarks`
+  scope and update `format.sh` to match that scope.
+
+The rejected alternative rewrites bounds access, public attributes/macros,
+CRTP access, NASA initialization, and Enzyme casts solely to satisfy generic
+checks. That option carries disproportionate source-compatibility, floating-
+point, performance, and Enzyme risk.
+
 ## Acceptance criteria
 
 - `sourcey` is pinned exactly to 3.6.5 in a committed npm lockfile.
@@ -84,7 +121,10 @@ reference workflow.
 | I1 | A1 | scientific implementation engineer | `task/doxygen-sourcey/migration` | Complete | Doxyfile, exact pins, Markdown, CMake/CI, strict output checks, legacy redirects, and clean documentation build |
 | S1 | I1 | test skeptic | integration tree | Complete | Two corrective reviews resolved the URL, API inventory, math, redirect, edit-link, and checking gaps; final independent result: PASS with no actionable findings |
 | Q1 | S1 | quality gate auditor | integration tree | Complete: NOT READY | Migration-specific documentation and regression gates pass; inherited clang-tidy and clang-format diagnostics violate the repository-wide zero-warning policy |
-| R1 | Q1 | project manager | PR-ready branch | Blocked | PR-ready squash is withheld until the inherited clang-tidy and clang-format gates are resolved or repository policy is explicitly revised |
+| T1 | Q1 | scientific implementation engineer | `task/doxygen-sourcey/quality-cleanup` | Approved | Apply the approved static-analysis policy, fix actionable diagnostics, update tooling, and format the authoritative scope |
+| S2 | T1 | test skeptic | cleanup task tree | Pending | Independently challenge suppressions, token/API/numerical preservation, warning enforcement, and coverage adequacy |
+| Q2 | S2 | quality gate auditor | integration tree | Pending | Require zero tidy/compiler/format diagnostics plus full docs, coverage, sanitizer, and regression gates |
+| R1 | Q2 | project manager | PR-ready branch | Pending | Squashed commit, audited-tree equivalence, and evidence-based PR report |
 
 ## Risks and controls
 
