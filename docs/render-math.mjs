@@ -27,13 +27,26 @@ function decodeEntities(value) {
     .replaceAll("&amp;", "&");
 }
 
-function restoreTags(fragment, tags) {
-  return fragment.replace(/FUGACITYPROTECTEDTAG([0-9]+)END/g,
-    (_entry, index) => tags[Number(index)]);
+function temporaryPrefix(input) {
+  let prefix = "FUGACITYTEMP";
+  while (input.includes(prefix)) prefix += "X";
+  return prefix;
 }
 
-function markdownHtmlToTex(fragment, tags) {
-  return decodeEntities(restoreTags(fragment, tags)
+function token(prefix, kind, index) {
+  return `${prefix}:${kind}:${index}:END`;
+}
+
+function restoreTokens(value, prefix, kind, contents) {
+  let restored = value;
+  for (const [index, content] of contents.entries()) {
+    restored = restored.replaceAll(token(prefix, kind, index), () => content);
+  }
+  return restored;
+}
+
+function markdownHtmlToTex(fragment, prefix, tags) {
+  return decodeEntities(restoreTokens(fragment, prefix, "TAG", tags)
     .replace(/<em>/g, "_")
     .replace(/<\/em>/g, "_")
     .replace(/<br\s*\/?>/gi, "\n")
@@ -58,7 +71,7 @@ function render(tex, displayMode, source) {
 
 // Quote-aware tag protection lets formulas span inline markup while ensuring
 // dollar signs in HTML attributes are never interpreted as TeX delimiters.
-function protectTags(html) {
+function protectTags(html, prefix) {
   const tags = [];
   let protectedHtml = "";
   let cursor = 0;
@@ -83,7 +96,7 @@ function protectTags(html) {
     if (end === html.length) throw new Error("Malformed HTML: unterminated tag");
     const tag = html.slice(cursor, end + 1);
     const index = tags.push(tag) - 1;
-    protectedHtml += `FUGACITYPROTECTEDTAG${index}END`;
+    protectedHtml += token(prefix, "TAG", index);
     cursor = end + 1;
   }
   return { protectedHtml, tags };
@@ -102,30 +115,36 @@ function firstUnescapedDollar(value) {
 }
 
 export function renderHtmlMath(input, source = "HTML input") {
+  const prefix = temporaryPrefix(input);
   const protectedContent = [];
   let html = input.replace(protectedBlocks, (block) => {
     const index = protectedContent.push(block) - 1;
-    return `FUGACITYPROTECTEDBLOCK${index}END`;
+    return token(prefix, "BLOCK", index);
   });
-  const { protectedHtml, tags } = protectTags(html);
+  const { protectedHtml, tags } = protectTags(html, prefix);
   html = protectedHtml;
 
   let displayCount = 0;
   let inlineCount = 0;
+  const renderedMath = [];
+  const protectRenderedMath = (tex, display) => {
+    const index = renderedMath.push(render(tex, display, source)) - 1;
+    return token(prefix, "MATH", index);
+  };
   html = html.replace(doxygenFormula, (_entry, mode, payload) => {
     const display = mode === "DISPLAY";
     if (display) displayCount += 1;
     else inlineCount += 1;
     const tex = decodeEntities(Buffer.from(payload, "base64url").toString("utf8"));
-    return render(tex, display, source);
+    return protectRenderedMath(tex, display);
   });
   html = html.replace(displayFormula, (_entry, fragment) => {
     displayCount += 1;
-    return render(markdownHtmlToTex(fragment, tags), true, source);
+    return protectRenderedMath(markdownHtmlToTex(fragment, prefix, tags), true);
   });
   html = html.replace(inlineFormula, (_entry, fragment) => {
     inlineCount += 1;
-    return render(markdownHtmlToTex(fragment, tags), false, source);
+    return protectRenderedMath(markdownHtmlToTex(fragment, prefix, tags), false);
   });
 
   if (html.includes("FUGACITYKATEX:")) {
@@ -137,9 +156,9 @@ export function renderHtmlMath(input, source = "HTML input") {
     throw new Error(`Unmatched TeX delimiter remains in ${source}: ${context}`);
   }
 
-  html = restoreTags(html, tags);
-  html = html.replace(/FUGACITYPROTECTEDBLOCK([0-9]+)END/g,
-    (_entry, index) => protectedContent[Number(index)]);
+  html = restoreTokens(html, prefix, "TAG", tags);
+  html = restoreTokens(html, prefix, "BLOCK", protectedContent);
+  html = restoreTokens(html, prefix, "MATH", renderedMath);
   return { html, displayCount, inlineCount };
 }
 

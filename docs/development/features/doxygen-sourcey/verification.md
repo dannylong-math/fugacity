@@ -93,8 +93,14 @@ npm test --prefix docs
 
 Result: pass. An unmatched inline delimiter (`$x^2`), unmatched display
 delimiter, invalid TeX, and a compound XML orphan all fail. Dollar signs inside
-HTML attributes, `pre`, and `code` remain untouched. Formula markers use
-unambiguous non-base64 framing, and KaTeX CSS/fonts are copied locally.
+HTML attributes, `pre`, and `code` remain untouched. Valid escaped dollars in
+`$\\$5$` and `$\\text{price \\$5}$` render successfully: rendered KaTeX is held
+behind a temporary token until unmatched source delimiters have been checked.
+Temporary tag, block, and rendered-math tokens use a prefix proven absent from
+each input, and regression fixtures preserve the former literal
+`FUGACITYPROTECTEDTAG0END` and `FUGACITYPROTECTEDBLOCK0END` sentinels. Formula
+markers use unambiguous non-base64 framing, and KaTeX CSS/fonts are copied
+locally.
 
 Original browser inspection used a temporary localhost server. The tutorial and
 Peng-Robinson API pages were inspected through the rendered DOM and screenshots.
