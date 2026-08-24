@@ -121,9 +121,9 @@ point, performance, and Enzyme risk.
 | I1 | A1 | scientific implementation engineer | `task/doxygen-sourcey/migration` | Complete | Doxyfile, exact pins, Markdown, CMake/CI, strict output checks, legacy redirects, and clean documentation build |
 | S1 | I1 | test skeptic | integration tree | Complete | Two corrective reviews resolved the URL, API inventory, math, redirect, edit-link, and checking gaps; final independent result: PASS with no actionable findings |
 | Q1 | S1 | quality gate auditor | integration tree | Complete: NOT READY | Migration-specific documentation and regression gates pass; inherited clang-tidy and clang-format diagnostics violate the repository-wide zero-warning policy |
-| T1 | Q1 | scientific implementation engineer | `task/doxygen-sourcey/quality-cleanup` | Approved | Apply the approved static-analysis policy, fix actionable diagnostics, update tooling, and format the authoritative scope |
-| S2 | T1 | test skeptic | cleanup task tree | Pending | Independently challenge suppressions, token/API/numerical preservation, warning enforcement, and coverage adequacy |
-| Q2 | S2 | quality gate auditor | integration tree | Pending | Require zero tidy/compiler/format diagnostics plus full docs, coverage, sanitizer, and regression gates |
+| T1 | Q1 | scientific implementation engineer | `task/doxygen-sourcey/quality-cleanup` | Complete | Commits `84862ac` and `8542501`: zero tidy/format diagnostics, 100% source-site-union coverage, lifetime and benchmark registry fixes |
+| S2 | T1 | test skeptic | cleanup task tree | Complete | Exact-commit re-audit of `8542501` passed with no actionable findings; scope, canaries, coverage mutation, API/numerical equivalence, and benchmark registry independently checked |
+| Q2 | S2 | quality gate auditor | integration tree | In progress | Require zero tidy/compiler/format diagnostics plus full docs, coverage, sanitizer, and regression gates |
 | R1 | Q2 | project manager | PR-ready branch | Pending | Squashed commit, audited-tree equivalence, and evidence-based PR report |
 
 ## Risks and controls
