@@ -60,12 +60,22 @@ state re-audit that precedes the local squash.
   suppressions; authoritative formatting; per-executable coverage checker;
   focused precondition tests; owning multiprecision helpers; canonical ideal
   benchmark registry and registry oracle.
+- Generated API/output inventory: 50 public core overloads,
+  `ideal_gas_constant`, three concepts, four legacy URLs, and no
+  `fugacity::detail` or Enzyme API leakage; 2,119 exact local targets and
+  fragments pass.
+- Static-analysis disposition: 426 original findings = 293 covered by the two
+  approved global disables
+  (`cppcoreguidelines-pro-bounds-avoid-unchecked-container-access` and
+  `portability-avoid-pragma-once`) + 62 exact qualified suppressions + 71
+  actionable fixes.
 - Numerical behavior: production calculations and floating-point expression
   order are unchanged. Six hexadecimal thermodynamic outputs matched the
   cleanup base exactly.
-- Dependencies/build changes: exact `sourcey@3.6.5` and `katex@0.18.4`; no new
-  cleanup dependency. Coverage and registry checkers use Python's standard
-  library.
+- Dependencies/build changes: exact `sourcey@3.6.5` and `katex@0.18.4` in npm
+  lockfile version 3, with Node.js 22.12 or newer; `npm audit` reports zero
+  known vulnerabilities. No cleanup dependency was added. Coverage and
+  registry checkers use Python's standard library.
 - Target environments: Linux workstation CPU with Clang/LLVM/clang-tidy
   22.1.8, Enzyme, CMake 3.28.3, Doxygen 1.9.8, Node.js 24.19.0, npm 11.17.0,
   and Python 3.12.3.
@@ -78,12 +88,13 @@ state re-audit that precedes the local squash.
   15 reachable precondition branches. The registry oracle caught 28 unmatched
   default benchmark filters.
 - Independent oracles: exact deployed-artifact checker; owning-return static
-  assertions and lifetime mutant; tidy scope/error canaries; external consumer
-  layout and hexadecimal-output comparison; coverage uncovered-branch mutant;
-  336-name benchmark registry enumeration.
+  assertions; tidy scope/error canaries; external consumer layout and
+  hexadecimal-output comparison; coverage uncovered-branch mutant; 336-name
+  benchmark registry enumeration.
 - Property/metamorphic/differential/fuzz/mutation evidence: existing
-  deterministic scientific tests and focused manual mutants were used. No
-  repository mutation, fuzz, or shrinking property framework is configured.
+  deterministic scientific tests and a focused coverage negative-control
+  mutant were used. No repository mutation, fuzz, or shrinking property
+  framework is configured.
 - Skeptic findings resolved: URL layout/API completeness, math parsing and
   token collisions, invalid tidy configuration, over-broad analysis risks,
   multiprecision expression lifetime, coverage aggregation, and benchmark
@@ -155,7 +166,7 @@ functions, and 242/244 branch outcomes with 270 mismatched-function warnings.
 | clang-tidy/static analysis | 15 test + 2 benchmark TUs, warnings as errors | PASS: zero diagnostics | [verification.md](verification.md) |
 | Sanitizers | Debug ASan/LSan | PASS: 15/15 | [verification.md](verification.md) |
 | ABI compatibility | header-only; layout probe | NOT APPLICABLE as ABI gate; layout PASS | [verification.md](verification.md) |
-| Adversarial tooling | committed tests, canaries, manual mutants, skeptic | PASS | [verification.md](verification.md) |
+| Adversarial tooling | committed tests, canaries, coverage mutant, skeptic | PASS | [verification.md](verification.md) |
 | Integration/V&V | existing numerical regressions and compatibility probe | PASS as regression; new physical V&V NOT APPLICABLE | [verification.md](verification.md) |
 | Documentation | clean docs build and exact output checker | PASS: 29 pages, 34 HTML, 2,119 links | [verification.md](verification.md) |
 | Formatting | 41-file dry run and idempotence | PASS: zero diagnostics | [verification.md](verification.md) |
@@ -205,7 +216,7 @@ cmake --build build/coverage --target coverage-check
 cmake -S . -B build/benchmark-tidy \
   -DCMAKE_BUILD_TYPE=Release \
   -DENABLE_CLANG_TIDY=ON \
-  -DFUGACITY_BUILD_BENCHMARKS=ON \
+  -DBUILD_BENCHMARKS=ON \
   -DEnzyme_DIR=/opt/enzyme/lib/cmake/Enzyme
 cmake --build build/benchmark-tidy --parallel
 cmake --build build/benchmark-tidy --target bench-ideal-registry-check
