@@ -8,7 +8,7 @@
 /// kernel.
 ///
 /// Annotate small helper functions called by a model's Helmholtz calculations.
-/// The macro expands to ``[[clang::always_inline]]`` under Clang and to nothing
+/// The macro expands to `[[clang::always_inline]]` under Clang and to nothing
 /// for documentation or unsupported compilers.
 ///
 #if defined(FUGACITY_DOCUMENTATION)

@@ -1,6 +1,8 @@
 name: Documentation
 
 on:
+  pull_request:
+    branches: [main]
   push:
     branches: [main]
   workflow_dispatch:
@@ -9,30 +11,31 @@ permissions:
   contents: read
 
 concurrency:
-  group: pages
-  cancel-in-progress: false
+  group: documentation-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   build:
+    name: Build documentation
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
         uses: actions/checkout@v6
 
-      - name: Set up Python
-        uses: actions/setup-python@v6
-        with:
-          python-version: "3.12"
-          cache: pip
-          cache-dependency-path: docs/requirements.txt
-
-      - name: Install documentation dependencies
-        run: python -m pip install -r docs/requirements.txt
-
-      - name: Install Clang headers
+      - name: Install Doxygen
         run: |
           sudo apt-get update
-          sudo apt-get install --yes clang
+          sudo apt-get install --yes doxygen
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: docs/package-lock.json
+
+      - name: Install Sourcey
+        run: npm ci --prefix docs
 
       - name: Configure documentation
         run: cmake --preset docs
@@ -41,14 +44,17 @@ jobs:
         run: cmake --build --preset docs
 
       - name: Configure GitHub Pages
+        if: github.event_name == 'push'
         uses: actions/configure-pages@v5
 
       - name: Upload GitHub Pages artifact
+        if: github.event_name == 'push'
         uses: actions/upload-pages-artifact@v4
         with:
-          path: build/docs/html
+          path: docs/dist
 
   deploy:
+    if: github.event_name == 'push'
     needs: build
     permissions:
       pages: write

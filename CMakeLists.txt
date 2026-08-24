@@ -71,7 +71,7 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_BINARY_DIR)
     )
 endif()
 
-option(FUGACITY_BUILD_DOCUMENTATION "Add the Sphinx documentation target" OFF)
+option(FUGACITY_BUILD_DOCUMENTATION "Add the Doxygen and Sourcey documentation target" OFF)
 
 if(NOT FUGACITY_DOCUMENTATION_ONLY)
     set(CMAKE_CXX_STANDARD 23)

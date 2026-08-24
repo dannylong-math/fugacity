@@ -1,0 +1,42 @@
+PROJECT_NAME           = "Fugacity"
+PROJECT_BRIEF          = "Helmholtz-energy equations of state for C++23"
+PROJECT_NUMBER         = "0.1.0"
+
+OUTPUT_DIRECTORY       = build/doxygen
+INPUT                  = include docs/api-groups.dox
+FILE_PATTERNS          = *.h *.hpp *.dox
+RECURSIVE              = YES
+STRIP_FROM_PATH        = include
+STRIP_FROM_INC_PATH    = include
+
+EXTRACT_ALL            = NO
+EXTRACT_PRIVATE        = NO
+EXTRACT_STATIC         = NO
+EXTRACT_LOCAL_CLASSES  = NO
+EXTRACT_ANON_NSPACES   = NO
+HIDE_UNDOC_MEMBERS     = YES
+INTERNAL_DOCS          = NO
+JAVADOC_AUTOBRIEF      = YES
+MARKDOWN_SUPPORT       = YES
+AUTOLINK_SUPPORT       = NO
+
+# Implementation-only names are intentionally absent from the public API.
+EXCLUDE_SYMBOLS        = fugacity::detail \
+                         fugacity::detail::* \
+                         __enzyme_* \
+                         enzyme_*
+
+GENERATE_HTML          = NO
+GENERATE_LATEX         = NO
+GENERATE_XML           = YES
+XML_OUTPUT             = xml
+XML_PROGRAMLISTING     = NO
+
+QUIET                  = YES
+WARNINGS               = YES
+WARN_IF_UNDOCUMENTED   = YES
+WARN_IF_DOC_ERROR      = YES
+# Doxygen 1.9.8 reports false positives for documented C++23 functions here;
+# parameter and return documentation remains a project contribution rule.
+WARN_NO_PARAMDOC       = NO
+WARN_AS_ERROR          = FAIL_ON_WARNINGS

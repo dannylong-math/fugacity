@@ -85,19 +85,22 @@ cmake --build build
 
 ## Documentation
 
-- [Getting started](https://dannylong-math.github.io/fugacity/getting_started.html)
-- [Model and property tutorial](https://dannylong-math.github.io/fugacity/tutorial.html)
-- [Implementing a new model](https://dannylong-math.github.io/fugacity/implementing_a_new_eos.html)
-- [C++ API reference](https://dannylong-math.github.io/fugacity/api/index.html)
+- [Getting started](https://dannylong-math.github.io/fugacity/getting-started/)
+- [Model and property tutorial](https://dannylong-math.github.io/fugacity/tutorial/)
+- [Implementing a new model](https://dannylong-math.github.io/fugacity/implementing-a-new-eos/)
+- [C++ API reference](https://dannylong-math.github.io/fugacity/api/)
 
 Build the documentation locally with:
 
 ```sh
-python3 -m venv .dependencies/docs
-.dependencies/docs/bin/pip install -r docs/requirements.txt
+npm ci --prefix docs
 cmake --preset docs
 cmake --build --preset docs
 ```
+
+The documentation build requires Doxygen 1.9.8 or newer and Node.js 22.12 or
+newer. It writes Doxygen XML to `build/doxygen/xml` and the static Sourcey site
+to `docs/dist`.
 
 ## Building and testing the repository
 

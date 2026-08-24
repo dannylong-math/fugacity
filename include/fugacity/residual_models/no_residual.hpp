@@ -11,25 +11,26 @@ namespace fugacity {
 ///
 /// The residual molar Helmholtz energy and Helmholtz energy density are
 ///
-/// .. math::
+/// \f[
 ///
-///    a^\mathrm{res}(c,\boldsymbol{x},T)=0,\qquad
-///    \Psi^\mathrm{res}(\boldsymbol{\rho},T)=0.
+/// a^\mathrm{res}(c,\boldsymbol{x},T)=0,\qquad
+/// \Psi^\mathrm{res}(\boldsymbol{\rho},T)=0.
 ///
-/// .. code-block:: cpp
+/// \f]
+/// \code{.cpp}
 ///
-///    fugacity::NoResidual<2> residual;
-///    const std::array<double, 2> x{0.4, 0.6};
-///    const double a_res = residual.calc_helmholtz(40.0, x.data(), 300.0);
+/// fugacity::NoResidual<2> residual;
+/// const std::array<double, 2> x{0.4, 0.6};
+/// const double a_res = residual.calc_helmholtz(40.0, x.data(), 300.0);
 ///
-/// :tparam N: Component count, or ``std::dynamic_extent`` for a runtime count.
+/// \endcode
+/// \tparam N Component count, or `std::dynamic_extent` for a runtime count.
 ///
 /// \ingroup residual-models
 template<std::size_t N> class NoResidual : public BaseEoS<N> {
 public:
     ///
     /// Construct a model whose component count is known at compile time.
-    /// \id fixed-size
     ///
     constexpr NoResidual() noexcept
         requires(N != std::dynamic_extent)
@@ -38,8 +39,7 @@ public:
     ///
     /// Construct a model with a runtime component count.
     ///
-    /// :param n: Component count.
-    /// \id runtime-size
+    /// \param n Component count.
     ///
     constexpr explicit NoResidual(const std::size_t n) noexcept
         requires(N == std::dynamic_extent)
@@ -50,7 +50,7 @@ public:
     ///
     /// Return the molar residual Helmholtz energy [J/mol].
     ///
-    /// :returns: ``Number{0}``.
+    /// \return `Number{0}`.
     ///
     template<std::floating_point Number>
     Number calc_helmholtz(const Number /*c*/, const Number* /*x*/, const Number /*T*/) const
@@ -61,7 +61,7 @@ public:
     ///
     /// Return the residual Helmholtz energy density [J/m^3].
     ///
-    /// :returns: ``Number{0}``.
+    /// \return `Number{0}`.
     ///
     template<std::floating_point Number>
     Number calc_helmholtz_density(const Number* /*rho_i*/, const Number /*T*/) const
@@ -72,7 +72,7 @@ public:
     ///
     /// Set every per-component residual Helmholtz energy density to zero.
     ///
-    /// :param out: Output array of length ``size()`` [J/m^3].
+    /// \param out Output array of length `size()` [J/m^3].
     ///
     template<std::floating_point Number>
     void calc_partial_helmholtz(const Number* /*rho_i*/, const Number /*T*/, Number* out) const

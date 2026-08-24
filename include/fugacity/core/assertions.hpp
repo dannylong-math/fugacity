@@ -9,11 +9,11 @@
 ///
 /// Check a programmer precondition in debug builds.
 ///
-/// Throw ``std::logic_error`` when ``cond`` is false. The check is omitted when
-/// ``NDEBUG`` is defined. The exception message includes the condition and source
+/// Throw `std::logic_error` when `cond` is false. The check is omitted when
+/// `NDEBUG` is defined. The exception message includes the condition and source
 /// location.
 ///
-/// :param cond: Expression contextually convertible to ``bool``.
+/// \param cond Expression contextually convertible to `bool`.
 ///
 /// \ingroup core
 #ifdef NDEBUG
@@ -28,10 +28,10 @@
 ///
 /// Require a strictly positive absolute temperature.
 ///
-/// Throw ``std::domain_error`` when ``T <= 0``. This check remains enabled in
+/// Throw `std::domain_error` when `T <= 0`. This check remains enabled in
 /// release builds.
 ///
-/// :param T: Temperature [K].
+/// \param T Temperature [K].
 ///
 /// \ingroup core
 #define FUGACITY_REQUIRE_POSITIVE_TEMPERATURE(T)                                                                     \

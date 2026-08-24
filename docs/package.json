@@ -1,0 +1,15 @@
+{
+  "name": "fugacity-docs",
+  "private": true,
+  "scripts": {
+    "build": "node filter-doxygen-xml.mjs && sourcey build -o dist && node render-math.mjs",
+    "dev": "sourcey dev"
+  },
+  "devDependencies": {
+    "katex": "0.18.4",
+    "sourcey": "3.6.5"
+  },
+  "engines": {
+    "node": ">=22.12"
+  }
+}
