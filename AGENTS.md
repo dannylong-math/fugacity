@@ -151,8 +151,8 @@
     -exec clang-format --dry-run --Werror {} +
   ```
 
-- Apply formatting with `./format.sh`. It rewrites files and currently omits
-  `benchmarks/`; update it when benchmark sources become in-scope.
+- Apply formatting with `./format.sh`. It rewrites the authoritative
+  `include`, `tests`, and `benchmarks` scope.
 
 ## Documentation and development records
 

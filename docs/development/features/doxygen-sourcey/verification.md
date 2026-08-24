@@ -157,6 +157,11 @@ instances, so the merged report is not used as the completion gate.
 
 ## Source-token and repository checks
 
+The following 17-header token-equivalence result is historical evidence for
+the documentation-migration stage, comparing its comment-only header changes
+with feature base `9b6933f`. It is not a claim that the later quality cleanup
+is token-identical to cleanup base `3a37a63`.
+
 For every modified public header, Clang 22 raw tokens were dumped for the
 feature tree and feature base. Comment and whitespace (`unknown`) tokens and
 source locations were removed before byte comparison:
@@ -165,11 +170,18 @@ source locations were removed before byte comparison:
 clang++ -std=c++23 -Xclang -dump-raw-tokens -fsyntax-only <header>
 ```
 
-Result: pass for all 17 modified headers. The normalized token streams were
-identical, establishing that declarations and executable/source tokens did not
-change. The corrective run repeated this with Clang's preprocessed token dump,
-normalizing built-in source-location macros (`__FILE__` and `__LINE__`) so
-documentation-only line movement could not create false differences.
+Result for that migration stage: pass for all 17 modified headers. The
+normalized token streams were identical. The corrective run repeated this with
+Clang's preprocessed token dump, normalizing built-in source-location macros
+(`__FILE__` and `__LINE__`) so documentation-only line movement could not
+create false differences.
+
+The expanded cleanup intentionally changes equivalent or local tokens,
+including `Number` to `auto`, C++23 `#elifdef`, and removal of a private
+redundant `typename`. Current compatibility evidence instead comes from public
+declaration review plus a cleanup-base/current external consumer: layouts and
+six hexadecimal thermodynamic results were identical, while Enzyme intrinsic
+spelling, activity tags, and plugin loading were preserved.
 
 ```console
 find include tests benchmarks -type f \

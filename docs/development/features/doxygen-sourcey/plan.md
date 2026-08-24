@@ -109,9 +109,9 @@ point, performance, and Enzyme risk.
 - The normal Debug and Release library configure/build/test workflows remain
   green, establishing that the documentation-only migration did not affect
   executable behavior.
-- `git diff --check` passes and the migration introduces no new C++ formatting
-  diagnostics. The repository-wide zero-diagnostic formatting policy remains
-  unmet by the feature-base baseline.
+- `git diff --check` passes, `format.sh` is idempotent, and the authoritative
+  `include`, `tests`, and `benchmarks` dry run reports zero diagnostics across
+  41 files. The cleanup base had 89 diagnostics in 14 files.
 
 ## Task plan
 
@@ -142,7 +142,12 @@ point, performance, and Enzyme risk.
 
 ## V&V and performance applicability
 
-This feature changes documentation tooling and prose only. Physical model
-validation, calculation/solution verification, uncertainty quantification,
-and performance optimization are not applicable. Existing unit and numerical
-verification tests are regression gates, not new V&V evidence.
+This feature began as a documentation-toolchain migration and was expanded to
+include semantics-preserving production/test quality cleanup, a test-oracle
+lifetime repair, strict coverage enforcement, and benchmark-registry repair.
+It does not change a physical model, numerical method, production calculation,
+scientific data format, or performance claim. Physical model validation,
+calculation/solution verification, uncertainty quantification, and performance
+optimization therefore remain not applicable. Existing unit and numerical
+verification tests, layout/hexadecimal-output comparisons, and the 100%
+coverage gate are code-regression evidence, not new physical V&V evidence.
