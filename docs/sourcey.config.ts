@@ -3,8 +3,7 @@ import { defineConfig, doxygen, markdown } from "sourcey";
 export default defineConfig({
   name: "Fugacity",
   repo: "https://github.com/dannylong-math/fugacity",
-  editBranch: "main",
-  prettyUrls: "slash",
+  prettyUrls: false,
   theme: {
     colors: {
       primary: "#0F5A78",

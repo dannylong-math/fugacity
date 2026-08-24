@@ -85,15 +85,14 @@ cmake --build build
 
 ## Documentation
 
-- [Getting started](https://dannylong-math.github.io/fugacity/getting-started/)
-- [Model and property tutorial](https://dannylong-math.github.io/fugacity/tutorial/)
-- [Implementing a new model](https://dannylong-math.github.io/fugacity/implementing-a-new-eos/)
-- [C++ API reference](https://dannylong-math.github.io/fugacity/api/)
+- [Getting started](https://dannylong-math.github.io/fugacity/getting-started.html)
+- [Model and property tutorial](https://dannylong-math.github.io/fugacity/tutorial.html)
+- [Implementing a new model](https://dannylong-math.github.io/fugacity/implementing-a-new-eos.html)
+- [C++ API reference](https://dannylong-math.github.io/fugacity/api.html)
 
 Build the documentation locally with:
 
 ```sh
-npm ci --prefix docs
 cmake --preset docs
 cmake --build --preset docs
 ```

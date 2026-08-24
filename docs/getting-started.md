@@ -68,7 +68,7 @@ infinity behavior.
 
 ## Next step
 
-Continue with [tutorial](/tutorial/) to assemble an ideal and residual model, define a
+Continue with the [tutorial](/tutorial.html) to assemble an ideal and residual model, define a
 thermodynamic state, and calculate properties.
 
 ## Building the documentation

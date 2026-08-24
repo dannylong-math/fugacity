@@ -39,6 +39,16 @@ Use a CMake-owned two-stage pipeline:
    and publishes `docs/dist` only for pushes.
 5. Generated Doxygen XML, `docs/node_modules`, and `docs/dist` are ignored and
    never edited manually.
+6. Sourcey emits flat `.html` artifacts so its generated Doxygen links resolve
+   on a static host. Build-time compatibility redirects retain the former
+   `getting_started.html`, `tutorial.html`, `implementing_a_new_eos.html`, and
+   `api/concepts.html` entry points and bridge Sourcey 3.6.5's `api/index.html`
+   navigation target to its emitted `api.html` overview.
+7. The npm build renders TeX with exactly pinned KaTeX 0.18.4, then fails on
+   malformed or unmatched delimiters, orphan XML references, missing public API
+   inventory, internal API leakage, and any non-existent exact static target or
+   fragment. HTML attributes and code-like elements are excluded from TeX
+   parsing.
 
 A standalone shell-only pipeline was rejected because it would bypass the
 project's stable CMake preset/target and diverge from the approved Rift
@@ -47,6 +57,7 @@ reference workflow.
 ## Acceptance criteria
 
 - `sourcey` is pinned exactly to 3.6.5 in a committed npm lockfile.
+- `katex` is pinned exactly to 0.18.4 in the same lockfile.
 - A clean `docs` configure/build produces Doxygen XML and the Sourcey site.
 - Doxygen and Sourcey complete without warnings or errors.
 - The public API reference excludes `fugacity::detail` and does not expose
@@ -68,8 +79,8 @@ reference workflow.
 | ID | Dependency | Owner | Branch/worktree | Status | Acceptance evidence |
 | --- | --- | --- | --- | --- | --- |
 | A1 | — | scientific software architect | `sourcey` | Complete | Architecture decision and compatibility risks recorded above |
-| I1 | A1 | scientific implementation engineer | `task/doxygen-sourcey/migration` | Pending | Doxyfile, Sourcey lock/config, Markdown, CMake, CI, and documentation build |
-| S1 | I1 | test skeptic | integration tree | Pending | Adversarial review of API/page/link coverage and Sphinx-removal completeness |
+| I1 | A1 | scientific implementation engineer | `task/doxygen-sourcey/migration` | Complete | Doxyfile, exact pins, Markdown, CMake/CI, strict output checks, legacy redirects, and clean documentation build |
+| S1 | I1 | test skeptic | integration tree | Re-review pending | Initial audit found URL, API inventory, math, redirect, edit-link, and checking gaps; corrective implementation is ready for re-review |
 | Q1 | S1 | quality gate auditor | integration tree | Pending | Independent documentation, build/test, formatting, and repository audit |
 | R1 | Q1 | project manager | PR-ready branch | Pending | Squashed commit and evidence-based PR report |
 

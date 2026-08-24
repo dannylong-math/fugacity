@@ -44,7 +44,11 @@ add_custom_target(docs
         "${CMAKE_CURRENT_SOURCE_DIR}/package-lock.json"
         "${CMAKE_CURRENT_SOURCE_DIR}/sourcey.config.ts"
         "${CMAKE_CURRENT_SOURCE_DIR}/filter-doxygen-xml.mjs"
+        "${CMAKE_CURRENT_SOURCE_DIR}/check-output.mjs"
         "${CMAKE_CURRENT_SOURCE_DIR}/render-math.mjs"
+        "${CMAKE_CURRENT_SOURCE_DIR}/test-render-math.mjs"
+        "${CMAKE_CURRENT_SOURCE_DIR}/test-filter-doxygen-xml.mjs"
+        "${CMAKE_CURRENT_SOURCE_DIR}/write-legacy-redirects.mjs"
         ${FUGACITY_DOCUMENTATION_SOURCES}
         ${FUGACITY_PUBLIC_HEADERS}
     WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"

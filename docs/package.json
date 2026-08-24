@@ -2,7 +2,8 @@
   "name": "fugacity-docs",
   "private": true,
   "scripts": {
-    "build": "node filter-doxygen-xml.mjs && sourcey build -o dist && node render-math.mjs",
+    "test": "node test-render-math.mjs && node test-filter-doxygen-xml.mjs",
+    "build": "npm test && node filter-doxygen-xml.mjs && sourcey build -o dist && node write-legacy-redirects.mjs && node render-math.mjs && node check-output.mjs",
     "dev": "sourcey dev"
   },
   "devDependencies": {

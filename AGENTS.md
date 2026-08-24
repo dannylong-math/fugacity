@@ -154,10 +154,10 @@
 
 ## Documentation and development records
 
-- The first managed task after this bootstrap is to replace Sphinx with Doxygen
-  XML plus Sourcey, using Rift as the local reference implementation.
-- Pin Sourcey 3.6.5 in `docs/package.json` and `docs/package-lock.json`; require
-  Node.js 22.12 or newer.
+- Documentation uses Doxygen XML plus Sourcey, adapted from Rift's reference
+  implementation. The former Sphinx pipeline has been removed.
+- Pin Sourcey 3.6.5 and KaTeX 0.18.4 exactly in `docs/package.json` and
+  `docs/package-lock.json`; require Node.js 22.12 or newer.
 - Target documentation build:
 
   ```console
@@ -170,14 +170,13 @@
 - Retain `cmake --preset docs` and `cmake --build --preset docs` as the stable
   project-facing wrapper around that build.
 - Generate Doxygen XML under `build/doxygen/xml` and the Sourcey site under
-  `docs/dist`. Update GitHub Pages to publish `docs/dist`.
+  `docs/dist`. Sourcey uses flat `.html` URLs plus checked compatibility
+  redirects. GitHub Pages publishes `docs/dist`.
 - Convert narrative RST pages to Markdown and preserve the current public API
   scope, including exclusion of `fugacity::detail`.
-- Make Doxygen warnings fatal. Verify Sourcey output, navigation, API coverage,
-  internal links, mathematical notation, code examples, and representative
-  rendered pages before removing Sphinx.
-- Do not delete the Sphinx configuration or dependencies until the replacement
-  passes locally and in the documentation CI job.
+- Make Doxygen warnings fatal. The npm build must pass its math-renderer tests,
+  exact static-artifact link and fragment checks, public API inventory checks,
+  legacy-URL checks, and internal-API exclusion checks.
 - Do not hand-edit generated Doxygen XML, `docs/node_modules/`, `docs/dist/`,
   `docs/api/generated/`, or CMake-generated benchmark headers.
 - Store feature records under `docs/development/features/<slug>/`, using only

@@ -36,9 +36,12 @@ npm run --prefix docs build
 
 Result: pass. Doxygen emitted no warnings; the XML filter excluded 55 private
 implementation members and removed 608 ambiguous member references with zero
-remaining orphan references. Sourcey built 26 content pages, and KaTeX rendered
-41 display plus 138 inline equations across 27 HTML files. `npm audit` reported
-zero vulnerabilities.
+remaining orphan references. It also reassigned 51 duplicate namespace member
+references to their public groups and attached the three public concepts.
+Sourcey built 29 content pages; four compatibility redirects plus the generated
+index produced 34 HTML artifacts. KaTeX rendered 43 display and 266 inline
+equations. `npm audit` reported zero vulnerabilities during the original
+migration build.
 
 The stable project wrapper was also rebuilt after removing `build/docs`,
 `build/doxygen`, and `docs/dist`:
@@ -48,34 +51,62 @@ cmake --preset docs
 cmake --build --preset docs
 ```
 
-Result: pass. Doxygen 1.9.8 and Node.js 24.19.0 were detected, and the same page
-and equation inventory was generated under `docs/dist`.
+Result: pass. Doxygen 1.9.8 and Node.js 24.19.0 were detected, and the same page,
+API, link, redirect, and equation inventory was generated under `docs/dist`.
+`WARN_AS_ERROR=FAIL_ON_WARNINGS` gates every enabled Doxygen warning.
+`WARN_NO_PARAMDOC` remains narrowly disabled because Doxygen 1.9.8 reports
+false positives for documented constrained C++23 functions; parameter
+documentation remains a review rule rather than a reliable 1.9.8 build gate.
+
+The Pages workflow no longer installs npm dependencies separately: the CMake
+`docs` target owns the single `npm ci` and then runs the checked npm build.
 
 ## Generated-site checks
 
-Representative guide and API outputs were asserted to exist, including
-`introduction`, `getting-started`, `tutorial`, `implementing-a-new-eos`,
-`concepts`, `fugacity::EoS`, `fugacity::Nasa7`, and
-`fugacity::PengRobinson`. Searches of generated HTML and Doxygen compound XML
-found no `fugacity::detail` compound or Enzyme declaration exposed as public
-API.
+The initial post-migration checker was permissive: it treated a missing
+`api/name.html` target as successful when `api/name/index.html` existed. The
+skeptic's exact-artifact oracle correctly found 879 missing targets among 1,673
+links. This was a false pass in the initial verification, not a deployment-safe
+site.
 
-An independent local static-link script checked generated `href` targets and
-fragments:
+The correction uses Sourcey's flat `.html` output, supplies its missing
+`api/index.html` compatibility target, and commits an exact checker that runs in
+every npm/CMake/CI documentation build:
 
 ```console
-node /tmp/check_sourcey_links.mjs docs/dist
+node docs/check-output.mjs
 ```
 
-Result: pass, 1,673 internal links checked across 27 HTML pages. No repository
-or generated-file link checker was added to the product.
+Result: pass, 2,119 exact local `href`/`src` targets and HTML fragments checked
+across 34 HTML pages, with no fallback from one URL layout to another. The same
+gate verified all 50 public core function overloads, `ideal_gas_constant`, the
+`EquationOfState`, `IdealEoS`, and `ResidualEoS` concept pages, the four legacy
+URLs, absence of Edit-this-page links, and absence of `fugacity::detail` or
+Enzyme declarations from generated API pages.
 
-Browser inspection used a temporary localhost server. The tutorial and
+The XML filter's orphan-reference behavior and the parser-aware math renderer
+have committed negative tests:
+
+```console
+npm test --prefix docs
+```
+
+Result: pass. An unmatched inline delimiter (`$x^2`), unmatched display
+delimiter, invalid TeX, and a compound XML orphan all fail. Dollar signs inside
+HTML attributes, `pre`, and `code` remain untouched. Formula markers use
+unambiguous non-base64 framing, and KaTeX CSS/fonts are copied locally.
+
+Original browser inspection used a temporary localhost server. The tutorial and
 Peng-Robinson API pages were inspected through the rendered DOM and screenshots.
 Tables, code blocks, navigation, full public include paths, inheritance links,
 inline equations, and display equations rendered. The Peng-Robinson page had
 16 KaTeX equations (six display equations), no literal `$$` delimiters, and no
 detail/Enzyme API text. Long equations remained within the content column.
+
+A corrective-run browser reconnect was attempted after the exact-link/API/math
+fixes, but the in-app browser reported no available browser. The generated
+artifacts therefore passed the stronger committed static/content gates above,
+while browser re-inspection remains an explicit item for independent re-review.
 
 Tracked-tree searches found no surviving Sphinx configuration, dependency, RST
 source, or Sphinx workflow reference outside this feature's historical plan and
@@ -114,7 +145,9 @@ clang++ -std=c++23 -Xclang -dump-raw-tokens -fsyntax-only <header>
 
 Result: pass for all 17 modified headers. The normalized token streams were
 identical, establishing that declarations and executable/source tokens did not
-change.
+change. The corrective run repeated this with Clang's preprocessed token dump,
+normalizing built-in source-location macros (`__FILE__` and `__LINE__`) so
+documentation-only line movement could not create false differences.
 
 ```console
 find include tests benchmarks -type f \

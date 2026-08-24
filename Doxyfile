@@ -36,7 +36,8 @@ QUIET                  = YES
 WARNINGS               = YES
 WARN_IF_UNDOCUMENTED   = YES
 WARN_IF_DOC_ERROR      = YES
-# Doxygen 1.9.8 reports false positives for documented C++23 functions here;
-# parameter and return documentation remains a project contribution rule.
+# Doxygen 1.9.8 reports false positives for documented constrained C++23
+# functions here; parameter documentation remains a review rule, and all
+# enabled warnings are fatal.
 WARN_NO_PARAMDOC       = NO
 WARN_AS_ERROR          = FAIL_ON_WARNINGS
