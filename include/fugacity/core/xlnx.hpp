@@ -114,17 +114,17 @@ template<int N, std::floating_point Number> constexpr Number smooth_step(const N
 
 } // namespace detail
 ///
-/// Evaluate :math:`x\ln x` with value zero for nonpositive arguments.
+/// Evaluate \f$x\ln x\f$ with value zero for nonpositive arguments.
 ///
-/// This definition uses :math:`\lim_{x\to0^+}x\ln x=0` at the origin and does
-/// not call ``std::log`` for :math:`x\le0`.
+/// This definition uses \f$\lim_{x\to0^+}x\ln x=0\f$ at the origin and does
+/// not call `std::log` for \f$x\le0\f$.
 ///
 ///
-/// :tparam Number: A floating-point type.
-/// :param x: The argument.
-/// :returns: :math:`x \ln(x)` for :math:`x > 0`, otherwise :math:`0`.
+/// \tparam Number A floating-point type.
+/// \param x The argument.
+/// \return \f$x \ln(x)\f$ for \f$x > 0\f$, otherwise \f$0\f$.
 ///
-/// \id exact
+/// \anchor exact
 /// \ingroup core
 template<std::floating_point Number> Number xlnx(const Number x)
 {
@@ -132,23 +132,23 @@ template<std::floating_point Number> Number xlnx(const Number x)
 }
 
 ///
-/// Evaluate a smooth extension of :math:`x\ln x` at the origin.
+/// Evaluate a smooth extension of \f$x\ln x\f$ at the origin.
 ///
-/// ``Continuity == 0`` is equivalent to the unsmoothed ``xlnx`` overload. For
-/// ``Continuity >= 1``, a smoothstep modifies the function over
-/// :math:`0<x<\varepsilon`, where :math:`\varepsilon` is machine epsilon. The
-/// result has ``Continuity`` continuous derivatives and equals :math:`x\ln x`
-/// for :math:`x\ge\varepsilon`.
+/// `Continuity == 0` is equivalent to the unsmoothed `xlnx` overload. For
+/// `Continuity >= 1`, a smoothstep modifies the function over
+/// \f$0<x<\varepsilon\f$, where \f$\varepsilon\f$ is machine epsilon. The
+/// result has `Continuity` continuous derivatives and equals \f$x\ln x\f$
+/// for \f$x\ge\varepsilon\f$.
 ///
 ///
-/// :tparam Continuity: The order of continuity to enforce at the origin
+/// \tparam Continuity The order of continuity to enforce at the origin
 ///                    (number of continuous derivatives). Must be non-negative;
 ///                    see detail::smooth_step for the supported upper bound.
-/// :tparam Number: A floating-point type.
-/// :param x: The argument.
-/// :returns: The :math:`C^{\text{Continuity}}` extension of :math:`x \ln(x)`.
+/// \tparam Number A floating-point type.
+/// \param x The argument.
+/// \return The \f$C^{\text{Continuity}}\f$ extension of \f$x \ln(x)\f$.
 ///
-/// \id smooth
+/// \anchor smooth
 /// \ingroup core
 template<int Continuity, std::floating_point Number> Number xlnx(const Number x)
 {

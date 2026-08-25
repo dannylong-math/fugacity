@@ -25,13 +25,14 @@
 //     c_c = eta_c / b (equivalently Z_c = Omega_b / eta_c ~ 0.3074),
 //   - the pressure-explicit PR form p = cRT/(1-bc) - a(T) c^2/(1+2bc-(bc)^2).
 //
-#include "support/eos_test_suite.hpp"
-#include "support/numeric_checks.hpp"
 #include "fugacity/core/core_calculations.hpp"
 #include "fugacity/core/eos_pair.hpp"
 #include "fugacity/core/numbers.hpp"
 #include "fugacity/ideal_models/const_cp.hpp"
 #include "fugacity/residual_models/peng_robinson.hpp"
+#include "support/eos_test_state.hpp"
+#include "support/eos_test_suite.hpp"
+#include "support/numeric_checks.hpp"
 
 #include <array>
 #include <boost/ut.hpp>
@@ -49,7 +50,7 @@ namespace {
 
 namespace fug = fugacity;
 
-template<std::size_t N> using Input = typename fug::PengRobinson<N>::SpeciesInput;
+template<std::size_t N> using Input = fug::PengRobinson<N>::SpeciesInput;
 
 // CH4 and CO2 critical data; CH4's small T_c makes alpha < 0 reachable.
 constexpr Input<2> ch4{.T_c = 190.564, .P_c = 4.5992e6, .omega = 0.011};
@@ -110,7 +111,7 @@ auto make_dynamic_binary_eos()
     };
     const std::vector<double> kij(binary_kij.begin(), binary_kij.end());
     return fug::EoS{make_dynamic_ideal<2>(),
-                   Residual{std::span<const Residual::SpeciesInput>{inputs}, std::span<const double>{kij}}};
+                    Residual{std::span<const Residual::SpeciesInput>{inputs}, std::span<const double>{kij}}};
 }
 
 std::vector<eos_test_state> unary_contract_states()
@@ -201,9 +202,11 @@ long double ref_helmholtz(const std::array<Input<N>, N>& in, const std::array<do
 
 } // namespace
 
+// Test entry points intentionally let assertion failures escape to the runner.
+// NOLINTNEXTLINE(bugprone-exception-escape)
 int main()
 {
-    suite<"peng_robinson_unary_contracts"> unary_contracts = [] {
+    const suite<"peng_robinson_unary_contracts"> unary_contracts = [] {
         auto dynamic_eos = make_dynamic_unary_eos();
         const auto fixture = eos_test_fixture{.contribution = dynamic_eos.residual(),
                                               .eos = dynamic_eos,
@@ -216,7 +219,7 @@ int main()
                                                   unary_contract_states());
     };
 
-    suite<"peng_robinson"> pr_suite = [] {
+    const suite<"peng_robinson"> pr_suite = [] {
         auto dynamic_eos = make_dynamic_binary_eos();
         const auto fixture = eos_test_fixture{.contribution = dynamic_eos.residual(),
                                               .eos = dynamic_eos,
@@ -414,12 +417,12 @@ int main()
         "pure species pressure matches pressure-explicit form"_test = [] {
             const fug::EoS eos{make_ideal<1>(), fug::PengRobinson<1>(unary_inputs)};
             const double R = fug::ideal_gas_constant<double>;
-            const double b = static_cast<double>(pr_b(co2.T_c, co2.P_c));
+            const auto b = static_cast<double>(pr_b(co2.T_c, co2.P_c));
             const std::array<double, 1> x{1.0};
             const std::span<const double, 1> xs{x};
             for (const double c : {1.0, 100.0, 5000.0, 15000.0}) {
                 for (const double T : {220.0, 320.0, 500.0}) {
-                    const double a_T = static_cast<double>(pr_aii(unary_inputs[0], T));
+                    const auto a_T = static_cast<double>(pr_aii(unary_inputs[0], T));
                     const double bc = b * c;
                     const double p_ref = (c * R * T / (1.0 - bc)) - (a_T * c * c / (1.0 + (2.0 * bc) - (bc * bc)));
                     check_rel("p (pressure-explicit PR)", fug::calc_pressure(eos, c, xs, T), p_ref, 1e-9);
@@ -434,8 +437,8 @@ int main()
         // ===================================================================
         "pure species reproduces its critical point"_test = [] {
             const fug::EoS eos{make_ideal<1>(), fug::PengRobinson<1>(unary_inputs)};
-            const double b = static_cast<double>(pr_b(co2.T_c, co2.P_c));
-            const double c_c = static_cast<double>(pr_eta_c()) / b;
+            const auto b = static_cast<double>(pr_b(co2.T_c, co2.P_c));
+            const auto c_c = static_cast<double>(pr_eta_c()) / b;
             const std::array<double, 1> x{1.0};
             const std::span<const double, 1> xs{x};
             check_rel("p(T_c, c_c) == P_c", fug::calc_pressure(eos, c_c, xs, co2.T_c), co2.P_c, 1e-9);

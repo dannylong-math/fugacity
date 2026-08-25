@@ -36,7 +36,16 @@ python3 -m venv .venv
    - draws an interactive Plotly plot — dropdowns pick the **calculation** and
      **model**; x = `N`, y = CPU time; four lines (Static/Dynamic × SoA/AoS);
      forward and reverse modes shown together for the gradient calculations;
-     click legend entries to toggle series.
+   click legend entries to toggle series.
+
+The ideal-model executable's grouped default sweep uses the component counts
+`1, 2, 10, 50, 100, 1000`: unary and binary cases followed by a logarithmic
+scaling sweep. Registration and default iteration share one compile-time
+registry. Check that registry without timing benchmarks with:
+
+```bash
+cmake --build build/release --target bench-ideal-registry-check
+```
 
 Edit `EXE_PATH`, `MIN_TIME`, or set `RUN_BENCHMARK = False` (to reuse an existing
 capture) in the first code cell.

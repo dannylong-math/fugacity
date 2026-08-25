@@ -21,95 +21,101 @@ namespace fugacity {
 ///
 /// The molar residual Helmholtz energy is
 ///
-/// .. math::
+/// \f[
 ///
-///    a^\mathrm{res}
-///    =-RT\ln(1-b_m c)
-///    -\frac{a_m}{b_m(\Delta_1-\Delta_2)}
-///    \ln\!\left(\frac{1+\Delta_1b_mc}{1+\Delta_2b_mc}\right),
-///    \qquad \Delta_{1,2}=1\mathbin{\pm}\sqrt{2}.
+/// a^\mathrm{res}
+/// =-RT\ln(1-b_m c)
+/// -\frac{a_m}{b_m(\Delta_1-\Delta_2)}
+/// \ln\!\left(\frac{1+\Delta_1b_mc}{1+\Delta_2b_mc}\right),
+/// \qquad \Delta_{1,2}=1\mathbin{\pm}\sqrt{2}.
 ///
+/// \f]
 /// The mixture parameters are
 ///
-/// .. math::
+/// \f[
 ///
-///    a_m=\sum_i\sum_jx_ix_j(1-\bar{k}_{ij})
-///        \sqrt{a_{ii}(T)a_{jj}(T)},\qquad
-///    b_m=\sum_i x_i b_{ii},\qquad
-///    \bar{k}_{ij}=\frac{k_{ij}+k_{ji}}{2},
+/// a_m=\sum_i\sum_jx_ix_j(1-\bar{k}_{ij})
+///     \sqrt{a_{ii}(T)a_{jj}(T)},\qquad
+/// b_m=\sum_i x_i b_{ii},\qquad
+/// \bar{k}_{ij}=\frac{k_{ij}+k_{ji}}{2},
 ///
-/// .. math::
+/// \f]
+/// \f[
 ///
-///    a_{ii}(T)=a_{0,ii}
-///      \left[1+m_{ii}\left(1-\sqrt{T/T_{c,i}}\right)\right]^2.
+/// a_{ii}(T)=a_{0,ii}
+///   \left[1+m_{ii}\left(1-\sqrt{T/T_{c,i}}\right)\right]^2.
 ///
+/// \f]
 /// Compute the pure-species parameters from critical properties as
 ///
-/// .. math::
+/// \f[
 ///
-///      \eta_c = \left(1 + \sqrt[3]{4 - \sqrt 8} + \sqrt[3]{4 + \sqrt 8}\right)^{-1},
-///      \qquad
-///      \Omega_a = \frac{8 + 40\eta_c}{49 - 37\eta_c},
-///      \qquad
-///      \Omega_b = \frac{\eta_c}{3 + \eta_c},
+///   \eta_c = \left(1 + \sqrt[3]{4 - \sqrt 8} + \sqrt[3]{4 + \sqrt 8}\right)^{-1},
+///   \qquad
+///   \Omega_a = \frac{8 + 40\eta_c}{49 - 37\eta_c},
+///   \qquad
+///   \Omega_b = \frac{\eta_c}{3 + \eta_c},
 ///
-/// .. math::
+/// \f]
+/// \f[
 ///
-///      a_{0,ii} = \Omega_a \frac{(R T_c)^2}{P_c},
-///      \qquad
-///      b_{ii} = \Omega_b \frac{R T_c}{P_c},
+///   a_{0,ii} = \Omega_a \frac{(R T_c)^2}{P_c},
+///   \qquad
+///   b_{ii} = \Omega_b \frac{R T_c}{P_c},
 ///
+/// \f]
 /// and compute the alpha-function coefficient from the acentric factor:
 ///
-/// .. math::
+/// \f[
 ///
-///      m_{ii} = 0.37464 + 1.54226\,\omega - 0.26992\,\omega^2
-///      \quad \text{for } \omega \le 0.491,
+///   m_{ii} = 0.37464 + 1.54226\,\omega - 0.26992\,\omega^2
+///   \quad \text{for } \omega \le 0.491,
 ///
-///      m_{ii} = 0.379642 + 1.48503\,\omega - 0.164423\,\omega^2
-///      + 0.016666\,\omega^3
-///      \quad \text{for } \omega > 0.491.
+///   m_{ii} = 0.379642 + 1.48503\,\omega - 0.164423\,\omega^2
+///   + 0.016666\,\omega^3
+///   \quad \text{for } \omega > 0.491.
 ///
-/// .. code-block:: cpp
+/// \f]
+/// \code{.cpp}
 ///
-///    using PR = fugacity::PengRobinson<2>;
-///    const std::array<PR::SpeciesInput, 2> species{{
-///        {.T_c = 190.564, .P_c = 4.5992e6, .omega = 0.011},
-///        {.T_c = 304.1282, .P_c = 7.3773e6, .omega = 0.22394},
-///    }};
-///    const std::array<double, 4> kij{0.0, 0.09,
-///                                     0.09, 0.0};
-///    const PR residual{species, kij};
+/// using PR = fugacity::PengRobinson<2>;
+/// const std::array<PR::SpeciesInput, 2> species{{
+///     {.T_c = 190.564, .P_c = 4.5992e6, .omega = 0.011},
+///     {.T_c = 304.1282, .P_c = 7.3773e6, .omega = 0.22394},
+/// }};
+/// const std::array<double, 4> kij{0.0, 0.09,
+///                                  0.09, 0.0};
+/// const PR residual{species, kij};
 ///
-///    const std::array<double, 2> x{0.4, 0.6};
-///    const double a_res = residual.calc_helmholtz(500.0, x.data(), 300.0);
+/// const std::array<double, 2> x{0.4, 0.6};
+/// const double a_res = residual.calc_helmholtz(500.0, x.data(), 300.0);
 ///
 ///
-/// :tparam N: Component count, or ``std::dynamic_extent`` for a runtime count.
+/// \endcode
+/// \tparam N Component count, or `std::dynamic_extent` for a runtime count.
 ///
 /// \ingroup residual-models
 template<std::size_t N = std::dynamic_extent> class PengRobinson : public BaseCubic<PengRobinson<N>, N> {
 public:
     /// Critical properties for one species.
     struct SpeciesInput {
-        double T_c;   ///< Critical temperature :math:`T_c` [K].
-        double P_c;   ///< Critical pressure :math:`P_c` [Pa].
-        double omega; ///< Acentric factor :math:`\omega` [-].
+        double T_c;   ///< Critical temperature \f$T_c\f$ [K].
+        double P_c;   ///< Critical pressure \f$P_c\f$ [Pa].
+        double omega; ///< Acentric factor \f$\omega\f$ [-].
     };
 
-    /// Generalized-cubic constant :math:`\Delta_1 = 1 + \sqrt 2`.
+    /// Generalized-cubic constant \f$\Delta_1 = 1 + \sqrt 2\f$.
     static constexpr double delta1 = 1.0 + std::numbers::sqrt2;
-    /// Generalized-cubic constant :math:`\Delta_2 = 1 - \sqrt 2`.
+    /// Generalized-cubic constant \f$\Delta_2 = 1 - \sqrt 2\f$.
     static constexpr double delta2 = 1.0 - std::numbers::sqrt2;
 
     ///
     /// Construct a fixed-size model from critical properties.
     ///
-    /// :param inputs: One :cpp:class:`SpeciesInput` per species.
-    /// :param kij: Full row-major :math:`N \times N` binary-interaction matrix
-    ///               :math:`k_{ij}` [-], stored as ``kij[i*N + j]``. The default
+    /// \param inputs One `SpeciesInput` per species.
+    /// \param kij Full row-major \f$N \times N\f$ binary-interaction matrix
+    ///               \f$k_{ij}\f$ [-], stored as `kij[i*N + j]`. The default
     ///               matrix is zero. The model uses its symmetric part.
-    /// \id fixed-size
     ///
     explicit PengRobinson(const std::array<SpeciesInput, N>& inputs, const std::array<double, N * N>& kij = {})
         requires(N != std::dynamic_extent)
@@ -120,11 +126,10 @@ public:
     ///
     /// Construct a runtime-size model from critical properties.
     ///
-    /// :param inputs: One :cpp:class:`SpeciesInput` per species.
-    /// :param kij: Full row-major :math:`n \times n` binary-interaction matrix
-    ///               :math:`k_{ij}` [-], or an empty span for a zero matrix.
-    ///               Supply exactly ``inputs.size() * inputs.size()`` entries.
-    /// \id runtime-size
+    /// \param inputs One `SpeciesInput` per species.
+    /// \param kij Full row-major \f$n \times n\f$ binary-interaction matrix
+    ///               \f$k_{ij}\f$ [-], or an empty span for a zero matrix.
+    ///               Supply exactly `inputs.size() * inputs.size()` entries.
     ///
     explicit PengRobinson(std::span<const SpeciesInput> inputs, std::span<const double> kij = {})
         requires(N == std::dynamic_extent)
@@ -134,7 +139,7 @@ public:
 
 private:
     using Base = BaseCubic<PengRobinson<N>, N>;
-    using Pure = typename Base::PureSpecies;
+    using Pure = Base::PureSpecies;
 
     // Map one species' critical data to the generalized cubic parameters.
     static Pure to_pure(const SpeciesInput& in)

@@ -1,0 +1,10 @@
+/**
+ * \defgroup core Core API
+ * Core concepts, equation-of-state composition, and property calculations.
+ *
+ * \defgroup ideal-models Ideal-gas models
+ * Bundled ideal Helmholtz-energy contributions.
+ *
+ * \defgroup residual-models Residual models
+ * Bundled residual Helmholtz-energy contributions.
+ */

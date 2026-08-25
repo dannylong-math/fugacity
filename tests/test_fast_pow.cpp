@@ -11,13 +11,15 @@ using namespace boost::ut;
 // Exercises the compile-time integer power helper fugacity::detail::fast_pow.
 // The previous implementation had a dead `N % 2 == 2` branch; these checks pin
 // down correct results for even, odd, zero, one, and negative exponents.
+// Test entry points intentionally let assertion failures escape to the runner.
+// NOLINTNEXTLINE(bugprone-exception-escape)
 int main()
 {
     using fugacity::detail::fast_pow;
 
-    suite<"fast_pow"> s = [] {
+    const suite<"fast_pow"> s = [] {
         "matches std::pow for several exponents"_test = []<typename Number> {
-            const Number base = Number{1.5};
+            const auto base = Number{1.5};
             // Tolerance scaled to the type's precision: fast_pow uses repeated
             // multiplication while std::pow uses exp/log, so they differ by a
             // few ulps (which is ~1e-7 for float, ~1e-16 for double).

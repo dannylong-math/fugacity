@@ -79,9 +79,11 @@ void run_model_test(const UnaryInput& unary_input, const BinaryInput& binary_inp
 }
 } // namespace
 
+// Test entry points intentionally let assertion failures escape to the runner.
+// NOLINTNEXTLINE(bugprone-exception-escape)
 int main()
 {
-    suite<"constant-cp ideal mixing"> constant_cp = [] {
+    const suite<"constant-cp ideal mixing"> constant_cp = [] {
         "physical mixing terms"_test = [] {
             using Unary = fug::ConstantCp<1>;
             using Binary = fug::ConstantCp<2>;
@@ -104,7 +106,7 @@ int main()
         };
     };
 
-    suite<"NASA7 ideal mixing"> nasa7 = [] {
+    const suite<"NASA7 ideal mixing"> nasa7 = [] {
         "physical mixing terms"_test = [] {
             using Unary = fug::Nasa7<1>;
             using Binary = fug::Nasa7<2>;
@@ -132,7 +134,7 @@ int main()
         };
     };
 
-    suite<"NASA9 ideal mixing"> nasa9 = [] {
+    const suite<"NASA9 ideal mixing"> nasa9 = [] {
         "physical mixing terms"_test = [] {
             using Unary = fug::Nasa9<1>;
             using Binary = fug::Nasa9<2>;

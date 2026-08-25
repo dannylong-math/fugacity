@@ -28,7 +28,7 @@ template<class Fixture> void validate_fixture(const Fixture& fixture)
     }
 }
 
-template<class Fixture> void register_eos_contract_tests(Fixture fixture)
+template<class Fixture> void register_eos_contract_tests(const Fixture& fixture)
 {
     using namespace boost::ut;
     validate_fixture(fixture);
@@ -61,7 +61,7 @@ template<class Fixture> void register_eos_contract_tests(Fixture fixture)
     };
 }
 
-template<class Fixture> void register_ideal_gas_contract_tests(Fixture fixture)
+template<class Fixture> void register_ideal_gas_contract_tests(const Fixture& fixture)
 {
     using namespace boost::ut;
     validate_fixture(fixture);
@@ -72,7 +72,7 @@ template<class Fixture> void register_ideal_gas_contract_tests(Fixture fixture)
     };
 }
 
-template<class Fixture> void register_residual_contract_tests(Fixture fixture, residual_contract_options options)
+template<class Fixture> void register_residual_contract_tests(const Fixture& fixture, residual_contract_options options)
 {
     using namespace boost::ut;
     validate_fixture(fixture);

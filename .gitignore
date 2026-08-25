@@ -4,4 +4,6 @@ build-*/
 .dependencies/
 compile_commands.json
 docs/api/generated/
+docs/node_modules/
+docs/dist/
 .vscode/

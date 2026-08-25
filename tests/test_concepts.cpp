@@ -1,5 +1,5 @@
-#include "support/analytic_eos_models.hpp"
 #include "fugacity/core/concepts.hpp"
+#include "support/analytic_eos_models.hpp"
 
 #include <boost/ut.hpp>
 
@@ -33,9 +33,11 @@ static_assert(!fug::ResidualEoS<NotAnEoS>);
 static_assert(fug::IdealEoS<IdealGasTestModel<3>>);
 static_assert(fug::ResidualEoS<VirialResidualTestModel<3>>);
 
+// Test entry points intentionally let assertion failures escape to the runner.
+// NOLINTNEXTLINE(bugprone-exception-escape)
 int main()
 {
-    suite<"concepts"> s = [] {
+    const suite<"concepts"> s = [] {
         "models satisfy the expected concepts"_test = [] {
             // The static_asserts above already enforce this at compile time;
             // mirror them at runtime so the test reports as executed.

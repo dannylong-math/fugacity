@@ -71,7 +71,7 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_BINARY_DIR)
     )
 endif()
 
-option(FUGACITY_BUILD_DOCUMENTATION "Add the Sphinx documentation target" OFF)
+option(FUGACITY_BUILD_DOCUMENTATION "Add the Doxygen and Sourcey documentation target" OFF)
 
 if(NOT FUGACITY_DOCUMENTATION_ONLY)
     set(CMAKE_CXX_STANDARD 23)
@@ -143,8 +143,17 @@ endif()
 # clang-tidy — enable with ENABLE_CLANG_TIDY=ON or add to a preset
 option(ENABLE_CLANG_TIDY "Run clang-tidy during compilation" OFF)
 if(ENABLE_CLANG_TIDY)
-    find_program(CLANG_TIDY_EXE NAMES clang-tidy REQUIRED)
-    set(CMAKE_CXX_CLANG_TIDY "${CLANG_TIDY_EXE}")
+    string(REGEX MATCH "^[0-9]+" CXX_COMPILER_MAJOR "${CMAKE_CXX_COMPILER_VERSION}")
+    find_program(CLANG_TIDY_EXE
+        NAMES clang-tidy-${CXX_COMPILER_MAJOR} clang-tidy
+        REQUIRED
+    )
+    # Enzyme's frontend plugin remains loaded by the real compiler. clang-tidy
+    # also tries to load it into its analyzer subprocess, where analyzer plugin
+    # compatibility is irrelevant and produces a false diagnostic.
+    set(FUGACITY_CLANG_TIDY_COMMAND
+        "${CLANG_TIDY_EXE};--extra-arg=-Wno-analyzer-incompatible-plugin"
+    )
 endif()
 
 # Header-only interface library
@@ -167,6 +176,22 @@ option(BUILD_TESTING "Build tests" ON)
 if(BUILD_TESTING)
     enable_testing()
     add_subdirectory(tests)
+    if(ENABLE_COVERAGE)
+        find_package(Python3 REQUIRED COMPONENTS Interpreter)
+        string(REGEX MATCH "^[0-9]+" CXX_COMPILER_MAJOR "${CMAKE_CXX_COMPILER_VERSION}")
+        find_program(LLVM_PROFDATA_EXE NAMES llvm-profdata-${CXX_COMPILER_MAJOR} llvm-profdata REQUIRED)
+        find_program(LLVM_COV_EXE NAMES llvm-cov-${CXX_COMPILER_MAJOR} llvm-cov REQUIRED)
+        add_custom_target(coverage-check
+            COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/scripts/check_coverage.py"
+                --build-dir "${CMAKE_BINARY_DIR}"
+                --source-root "${CMAKE_CURRENT_SOURCE_DIR}"
+                --llvm-profdata "${LLVM_PROFDATA_EXE}"
+                --llvm-cov "${LLVM_COV_EXE}"
+            DEPENDS ${FUGACITY_TEST_TARGETS}
+            USES_TERMINAL
+            VERBATIM
+        )
+    endif()
 endif()
 
 # Benchmarks for the bundled ideal models (off by default; needs Google

@@ -6,8 +6,8 @@
 // by FUGACITY_ASSERT, which throws std::logic_error on a mismatch; in a release
 // build the check is elided (so the throwing test is compiled only under debug).
 //
-#include "support/analytic_eos_models.hpp"
 #include "fugacity/core/eos_pair.hpp"
+#include "support/analytic_eos_models.hpp"
 
 #include <boost/ut.hpp>
 #include <stdexcept>
@@ -15,9 +15,11 @@
 using namespace boost::ut;
 using namespace fugacity_test;
 
+// Test entry points intentionally let assertion failures escape to the runner.
+// NOLINTNEXTLINE(bugprone-exception-escape)
 int main()
 {
-    suite<"eos_pair"> s = [] {
+    const suite<"eos_pair"> s = [] {
         // A well-formed pair (matching component counts) must construct cleanly.
         "matched component counts construct"_test = [] {
             auto eos = make_binary_model();

@@ -3,12 +3,13 @@
 ///
 /// Include the complete public API.
 ///
-/// .. code-block:: cpp
+/// \code{.cpp}
 ///
-///    #include <fugacity/fugacity.hpp>
+/// #include <fugacity/fugacity.hpp>
 ///
-/// Include individual headers from ``core/``, ``ideal_models/``, or
-/// ``residual_models/`` when the umbrella header is not required.
+/// \endcode
+/// Include individual headers from `core/`, `ideal_models/`, or
+/// `residual_models/` when the umbrella header is not required.
 ///
 
 #include "fugacity/core/core_calculations.hpp"

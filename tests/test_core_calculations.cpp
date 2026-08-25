@@ -1,11 +1,14 @@
+#include "fugacity/core/core_calculations.hpp"
+#include "fugacity/core/numbers.hpp"
 #include "support/analytic_eos_models.hpp"
+#include "support/eos_test_state.hpp"
 #include "support/eos_test_suite.hpp"
 #include "support/numeric_checks.hpp"
-#include "fugacity/core/core_calculations.hpp"
 
 #include <array>
 #include <boost/ut.hpp>
 #include <cmath>
+#include <cstddef>
 #include <span>
 #include <vector>
 
@@ -33,9 +36,11 @@ struct BinaryAnalytic {
 
 } // namespace
 
+// Test entry points intentionally let assertion failures escape to the runner.
+// NOLINTNEXTLINE(bugprone-exception-escape)
 int main()
 {
-    suite<"core_calculations_unary_contracts"> unary_contracts = [] {
+    const suite<"core_calculations_unary_contracts"> unary_contracts = [] {
         const auto eos = make_unary_model();
         const std::vector<eos_test_state> states{
             {.c = 120.0, .x = {1.0}, .T = 310.0, .effective_molar_mass = 0.02, .label = "representative"},
@@ -53,7 +58,7 @@ int main()
 
     // NOTE: boost::ut requires the suite lambda to be captureless (it is
     // converted to a function pointer), so shared state lives inside it.
-    suite<"core_calculations"> core = [] {
+    const suite<"core_calculations"> core = [] {
         const double R = fugacity::ideal_gas_constant<double>;
         auto binary = make_binary_model();
         auto unary = make_unary_model();
@@ -78,8 +83,8 @@ int main()
         // -------------------------------------------------------------------
         "virial pressure analytic"_test = [&] {
             const std::array<double, 2> x{0.35, 0.65};
-            for (double c : {40.0, 120.0, 260.0}) {
-                for (double T : {270.0, 330.0, 410.0}) {
+            for (const double c : {40.0, 120.0, 260.0}) {
+                for (const double T : {270.0, 330.0, 410.0}) {
                     const double B = BinaryAnalytic::Bmix(x, T);
                     const double C = BinaryAnalytic::Cmix(x);
                     const double p_exact = R * T * (c + (B * c * c) + (C * c * c * c));
@@ -109,7 +114,7 @@ int main()
                                        (0.5 * c * c * BinaryAnalytic::gamma[i]));
                 mu_exact[i] = mu_ideal + mu_res;
             }
-            std::span<const double, 2> rhos{rho};
+            const std::span<const double, 2> rhos{rho};
             std::array<double, 2> mu{};
             fugacity::calc_chemical_potential(binary, rhos, T, std::span<double, 2>{mu});
             check_rel("mu[0]", mu[0], mu_exact[0], 1e-11);

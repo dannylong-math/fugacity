@@ -16,9 +16,11 @@
 
 using namespace boost::ut;
 
+// Test entry points intentionally let assertion failures escape to the runner.
+// NOLINTNEXTLINE(bugprone-exception-escape)
 int main()
 {
-    suite<"eos_base"> s = [] {
+    const suite<"eos_base"> s = [] {
         // -------------------------------------------------------------------
         // Compile-time extent: every index visited once, in ascending order.
         // -------------------------------------------------------------------

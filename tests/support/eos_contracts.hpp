@@ -2,9 +2,9 @@
 
 #include "derivative_oracle.hpp"
 #include "eos_test_state.hpp"
-#include "property_catalog.hpp"
 #include "fugacity/core/core_calculations.hpp"
 #include "fugacity/core/numbers.hpp"
+#include "property_catalog.hpp"
 
 #include <algorithm>
 #include <boost/ut.hpp>
@@ -48,15 +48,15 @@ template<class EoSPair> void check_property_wrapper_contracts(const EoSPair& eos
     std::vector<double> pointer_gradient(eos.size());
     std::vector<double> wrapper_gradient(eos.size());
 
-#define FUGACITY_CHECK_WRAPPER(NAME, VALUE, DT, DC, DX)                                                              \
-    check_close(#VALUE " pointer/container", fug::VALUE(eos, state.c, x.data(), state.T),                               \
-                fug::VALUE(eos, state.c, x, state.T), structural_tolerance, state);                                     \
-    check_close(#DT " pointer/container", fug::DT(eos, state.c, x.data(), state.T), fug::DT(eos, state.c, x, state.T),   \
+#define FUGACITY_CHECK_WRAPPER(NAME, VALUE, DT, DC, DX)                                                                \
+    check_close(#VALUE " pointer/container", fug::VALUE(eos, state.c, x.data(), state.T),                              \
+                fug::VALUE(eos, state.c, x, state.T), structural_tolerance, state);                                    \
+    check_close(#DT " pointer/container", fug::DT(eos, state.c, x.data(), state.T), fug::DT(eos, state.c, x, state.T), \
                 structural_tolerance, state);                                                                          \
-    check_close(#DC " pointer/container", fug::DC(eos, state.c, x.data(), state.T), fug::DC(eos, state.c, x, state.T),   \
+    check_close(#DC " pointer/container", fug::DC(eos, state.c, x.data(), state.T), fug::DC(eos, state.c, x, state.T), \
                 structural_tolerance, state);                                                                          \
-    fug::DX(eos, state.c, x.data(), state.T, pointer_gradient.data());                                                  \
-    fug::DX(eos, state.c, x, state.T, wrapper_gradient);                                                                \
+    fug::DX(eos, state.c, x.data(), state.T, pointer_gradient.data());                                                 \
+    fug::DX(eos, state.c, x, state.T, wrapper_gradient);                                                               \
     for (std::size_t component = 0; component < eos.size(); ++component) {                                             \
         check_close(#DX " pointer/container", pointer_gradient[component], wrapper_gradient[component],                \
                     structural_tolerance, state);                                                                      \
@@ -64,15 +64,15 @@ template<class EoSPair> void check_property_wrapper_contracts(const EoSPair& eos
     FUGACITY_TEST_PROPERTY_CATALOG(FUGACITY_CHECK_WRAPPER)
 #undef FUGACITY_CHECK_WRAPPER
 
-#define FUGACITY_CHECK_MOLAR_MASS_WRAPPER(NAME, VALUE, DT, DC, DX)                                                   \
-    check_close(#VALUE " pointer/container", fug::VALUE(eos, state.c, x.data(), state.T, state.effective_molar_mass),   \
-                fug::VALUE(eos, state.c, x, state.T, state.effective_molar_mass), structural_tolerance, state);         \
-    check_close(#DT " pointer/container", fug::DT(eos, state.c, x.data(), state.T, state.effective_molar_mass),         \
-                fug::DT(eos, state.c, x, state.T, state.effective_molar_mass), structural_tolerance, state);            \
-    check_close(#DC " pointer/container", fug::DC(eos, state.c, x.data(), state.T, state.effective_molar_mass),         \
-                fug::DC(eos, state.c, x, state.T, state.effective_molar_mass), structural_tolerance, state);            \
-    fug::DX(eos, state.c, x.data(), state.T, state.effective_molar_mass, pointer_gradient.data());                      \
-    fug::DX(eos, state.c, x, state.T, state.effective_molar_mass, wrapper_gradient);                                    \
+#define FUGACITY_CHECK_MOLAR_MASS_WRAPPER(NAME, VALUE, DT, DC, DX)                                                     \
+    check_close(#VALUE " pointer/container", fug::VALUE(eos, state.c, x.data(), state.T, state.effective_molar_mass),  \
+                fug::VALUE(eos, state.c, x, state.T, state.effective_molar_mass), structural_tolerance, state);        \
+    check_close(#DT " pointer/container", fug::DT(eos, state.c, x.data(), state.T, state.effective_molar_mass),        \
+                fug::DT(eos, state.c, x, state.T, state.effective_molar_mass), structural_tolerance, state);           \
+    check_close(#DC " pointer/container", fug::DC(eos, state.c, x.data(), state.T, state.effective_molar_mass),        \
+                fug::DC(eos, state.c, x, state.T, state.effective_molar_mass), structural_tolerance, state);           \
+    fug::DX(eos, state.c, x.data(), state.T, state.effective_molar_mass, pointer_gradient.data());                     \
+    fug::DX(eos, state.c, x, state.T, state.effective_molar_mass, wrapper_gradient);                                   \
     for (std::size_t component = 0; component < eos.size(); ++component) {                                             \
         check_close(#DX " pointer/container", pointer_gradient[component], wrapper_gradient[component],                \
                     structural_tolerance, state);                                                                      \
@@ -91,7 +91,7 @@ template<class EoSPair> void check_public_preconditions(const EoSPair& eos, cons
         expect(throws<std::domain_error>(operation)) << name << " must reject T <= 0";
     };
 
-#define FUGACITY_CHECK_TEMPERATURE(NAME, VALUE)                                                                      \
+#define FUGACITY_CHECK_TEMPERATURE(NAME, VALUE)                                                                        \
     must_reject_temperature(#VALUE, [&] { (void)fug::VALUE(eos, state.c, x, bad_temperature); })
     FUGACITY_CHECK_TEMPERATURE(pressure, calc_pressure);
     FUGACITY_CHECK_TEMPERATURE(internal_energy, calc_internal_energy);
@@ -108,16 +108,47 @@ template<class EoSPair> void check_public_preconditions(const EoSPair& eos, cons
         (void)fug::calc_sound_speed_squared(eos, state.c, x, bad_temperature, state.effective_molar_mass);
     });
 
+    // Exercise the raw-pointer overloads directly. The container overloads
+    // reject the same input before forwarding, so they cannot cover these
+    // independent public precondition checks.
+    std::vector<double> pointer_gradient(eos.size());
+    must_reject_temperature("calc_pressure pointer",
+                            [&] { (void)fug::calc_pressure(eos, state.c, x.data(), bad_temperature); });
+    must_reject_temperature("calc_pressure_dT pointer",
+                            [&] { (void)fug::calc_pressure_dT(eos, state.c, x.data(), bad_temperature); });
+    must_reject_temperature("calc_pressure_dc pointer",
+                            [&] { (void)fug::calc_pressure_dc(eos, state.c, x.data(), bad_temperature); });
+    must_reject_temperature("calc_pressure_dx pointer", [&] {
+        fug::calc_pressure_dx(eos, state.c, x.data(), bad_temperature, pointer_gradient.data());
+    });
+    must_reject_temperature("calc_internal_energy pointer",
+                            [&] { (void)fug::calc_internal_energy(eos, state.c, x.data(), bad_temperature); });
+    must_reject_temperature("calc_enthalpy pointer",
+                            [&] { (void)fug::calc_enthalpy(eos, state.c, x.data(), bad_temperature); });
+    must_reject_temperature("calc_entropy pointer",
+                            [&] { (void)fug::calc_entropy(eos, state.c, x.data(), bad_temperature); });
+    must_reject_temperature("calc_gibbs pointer",
+                            [&] { (void)fug::calc_gibbs(eos, state.c, x.data(), bad_temperature); });
+    must_reject_temperature("calc_dp_dc pointer",
+                            [&] { (void)fug::calc_dp_dc(eos, state.c, x.data(), bad_temperature); });
+    must_reject_temperature("calc_dp_dT pointer",
+                            [&] { (void)fug::calc_dp_dT(eos, state.c, x.data(), bad_temperature); });
+    must_reject_temperature("calc_cv pointer", [&] { (void)fug::calc_cv(eos, state.c, x.data(), bad_temperature); });
+    must_reject_temperature("calc_cp pointer", [&] { (void)fug::calc_cp(eos, state.c, x.data(), bad_temperature); });
+    must_reject_temperature("calc_sound_speed_squared pointer", [&] {
+        (void)fug::calc_sound_speed_squared(eos, state.c, x.data(), bad_temperature, state.effective_molar_mass);
+    });
+
 #ifndef NDEBUG
     std::vector<double> bad_x(eos.size() + 1, 1.0 / static_cast<double>(eos.size() + 1));
     std::vector<double> bad_gradient(eos.size() + 1);
     auto must_reject_size = [&](std::string_view name, auto&& operation) {
         expect(throws<std::logic_error>(operation)) << name << " must reject mismatched composition size";
     };
-#define FUGACITY_CHECK_SIZE(NAME, VALUE, DT, DC, DX)                                                                 \
-    must_reject_size(#VALUE, [&] { (void)fug::VALUE(eos, state.c, bad_x, state.T); });                                  \
-    must_reject_size(#DT, [&] { (void)fug::DT(eos, state.c, bad_x, state.T); });                                        \
-    must_reject_size(#DC, [&] { (void)fug::DC(eos, state.c, bad_x, state.T); });                                        \
+#define FUGACITY_CHECK_SIZE(NAME, VALUE, DT, DC, DX)                                                                   \
+    must_reject_size(#VALUE, [&] { (void)fug::VALUE(eos, state.c, bad_x, state.T); });                                 \
+    must_reject_size(#DT, [&] { (void)fug::DT(eos, state.c, bad_x, state.T); });                                       \
+    must_reject_size(#DC, [&] { (void)fug::DC(eos, state.c, bad_x, state.T); });                                       \
     must_reject_size(#DX, [&] { fug::DX(eos, state.c, bad_x, state.T, bad_gradient); });
     FUGACITY_TEST_PROPERTY_CATALOG(FUGACITY_CHECK_SIZE)
 #undef FUGACITY_CHECK_SIZE
@@ -132,6 +163,19 @@ template<class EoSPair> void check_public_preconditions(const EoSPair& eos, cons
     });
     must_reject_size("calc_sound_speed_squared_dx", [&] {
         fug::calc_sound_speed_squared_dx(eos, state.c, bad_x, state.T, state.effective_molar_mass, bad_gradient);
+    });
+
+    std::vector<double> rho(eos.size(), state.c / static_cast<double>(eos.size()));
+    std::vector<double> chemical_potential(eos.size());
+    std::vector<double> undersized_rho(eos.size() - 1, state.c / static_cast<double>(eos.size()));
+    std::vector<double> undersized_chemical_potential(eos.size() - 1);
+    must_reject_size("calc_chemical_potential rho_i", [&] {
+        fug::calc_chemical_potential(eos, std::span<const double>{undersized_rho}, state.T,
+                                     std::span<double>{chemical_potential});
+    });
+    must_reject_size("calc_chemical_potential output", [&] {
+        fug::calc_chemical_potential(eos, std::span<const double>{rho}, state.T,
+                                     std::span<double>{undersized_chemical_potential});
     });
 #endif
 }
@@ -168,7 +212,7 @@ template<class EoSPair> void check_complete_eos_identities(const EoSPair& eos, c
     std::vector<double> log_phi(eos.size());
     std::vector<double> fugacity(eos.size());
     fug::calc_log_fugacity_coeff(eos, state.c, std::span<const double>{x}, state.T, std::span<const double>{rho},
-                                std::span<double>{log_phi});
+                                 std::span<double>{log_phi});
     fug::calc_fugacity(eos, std::span<const double>{rho}, state.T, std::span<double>{fugacity});
     for (std::size_t component = 0; component < eos.size(); ++component) {
         check_close("fugacity/log(phi) consistency", fugacity[component],
@@ -182,20 +226,20 @@ void check_public_first_derivatives(const EoSPair& eos, const eos_test_state& st
     namespace fug = fugacity;
     auto x = state.x;
 
-#define FUGACITY_CHECK_DERIVATIVES(NAME, VALUE, DT, DC, DX)                                                          \
+#define FUGACITY_CHECK_DERIVATIVES(NAME, VALUE, DT, DC, DX)                                                            \
     {                                                                                                                  \
         const auto reference_T =                                                                                       \
-            adaptive_first_derivative<double>([&](double value) { return fug::VALUE(eos, state.c, x, value); },         \
+            adaptive_first_derivative<double>([&](double value) { return fug::VALUE(eos, state.c, x, value); },        \
                                               state.T, 1.0, domain.T_min, domain.T_max);                               \
-        check_close(#DT, fug::DT(eos, state.c, x, state.T), reference_T.value, derivative_tolerance, state,             \
+        check_close(#DT, fug::DT(eos, state.c, x, state.T), reference_T.value, derivative_tolerance, state,            \
                     reference_T.step, reference_T.error);                                                              \
         const auto reference_c =                                                                                       \
-            adaptive_first_derivative<double>([&](double value) { return fug::VALUE(eos, value, x, state.T); },         \
+            adaptive_first_derivative<double>([&](double value) { return fug::VALUE(eos, value, x, state.T); },        \
                                               state.c, 1.0, domain.c_min, domain.c_max);                               \
-        check_close(#DC, fug::DC(eos, state.c, x, state.T), reference_c.value, derivative_tolerance, state,             \
+        check_close(#DC, fug::DC(eos, state.c, x, state.T), reference_c.value, derivative_tolerance, state,            \
                     reference_c.step, reference_c.error);                                                              \
         std::vector<double> gradient(eos.size());                                                                      \
-        fug::DX(eos, state.c, x, state.T, gradient);                                                                    \
+        fug::DX(eos, state.c, x, state.T, gradient);                                                                   \
         for (std::size_t component = 0; component + 1 < eos.size(); ++component) {                                     \
             const std::size_t dependent = eos.size() - 1;                                                              \
             const double lower = std::max(domain.minimum_mole_fraction - x[component], x[dependent] - 1.0);            \
@@ -205,7 +249,7 @@ void check_public_first_derivatives(const EoSPair& eos, const eos_test_state& st
                     auto perturbed = x;                                                                                \
                     perturbed[component] += delta;                                                                     \
                     perturbed[dependent] -= delta;                                                                     \
-                    return fug::VALUE(eos, state.c, perturbed, state.T);                                                \
+                    return fug::VALUE(eos, state.c, perturbed, state.T);                                               \
                 },                                                                                                     \
                 0.0, 1.0, lower, upper);                                                                               \
             check_close(std::format("{}[{}]-{}[{}] (simplex tangent)", #DX, component, #DX, dependent),                \
@@ -216,20 +260,20 @@ void check_public_first_derivatives(const EoSPair& eos, const eos_test_state& st
     FUGACITY_TEST_PROPERTY_CATALOG(FUGACITY_CHECK_DERIVATIVES)
 #undef FUGACITY_CHECK_DERIVATIVES
 
-#define FUGACITY_CHECK_MOLAR_MASS_DERIVATIVES(NAME, VALUE, DT, DC, DX)                                               \
+#define FUGACITY_CHECK_MOLAR_MASS_DERIVATIVES(NAME, VALUE, DT, DC, DX)                                                 \
     {                                                                                                                  \
         const auto reference_T = adaptive_first_derivative<double>(                                                    \
-            [&](double value) { return fug::VALUE(eos, state.c, x, value, state.effective_molar_mass); }, state.T, 1.0, \
-            domain.T_min, domain.T_max);                                                                               \
-        check_close(#DT, fug::DT(eos, state.c, x, state.T, state.effective_molar_mass), reference_T.value,              \
+            [&](double value) { return fug::VALUE(eos, state.c, x, value, state.effective_molar_mass); }, state.T,     \
+            1.0, domain.T_min, domain.T_max);                                                                          \
+        check_close(#DT, fug::DT(eos, state.c, x, state.T, state.effective_molar_mass), reference_T.value,             \
                     derivative_tolerance, state, reference_T.step, reference_T.error);                                 \
         const auto reference_c = adaptive_first_derivative<double>(                                                    \
-            [&](double value) { return fug::VALUE(eos, value, x, state.T, state.effective_molar_mass); }, state.c, 1.0, \
-            domain.c_min, domain.c_max);                                                                               \
-        check_close(#DC, fug::DC(eos, state.c, x, state.T, state.effective_molar_mass), reference_c.value,              \
+            [&](double value) { return fug::VALUE(eos, value, x, state.T, state.effective_molar_mass); }, state.c,     \
+            1.0, domain.c_min, domain.c_max);                                                                          \
+        check_close(#DC, fug::DC(eos, state.c, x, state.T, state.effective_molar_mass), reference_c.value,             \
                     derivative_tolerance, state, reference_c.step, reference_c.error);                                 \
         std::vector<double> gradient(eos.size());                                                                      \
-        fug::DX(eos, state.c, x, state.T, state.effective_molar_mass, gradient);                                        \
+        fug::DX(eos, state.c, x, state.T, state.effective_molar_mass, gradient);                                       \
         for (std::size_t component = 0; component + 1 < eos.size(); ++component) {                                     \
             const std::size_t dependent = eos.size() - 1;                                                              \
             const double lower = std::max(domain.minimum_mole_fraction - x[component], x[dependent] - 1.0);            \
@@ -239,7 +283,7 @@ void check_public_first_derivatives(const EoSPair& eos, const eos_test_state& st
                     auto perturbed = x;                                                                                \
                     perturbed[component] += delta;                                                                     \
                     perturbed[dependent] -= delta;                                                                     \
-                    return fug::VALUE(eos, state.c, perturbed, state.T, state.effective_molar_mass);                    \
+                    return fug::VALUE(eos, state.c, perturbed, state.T, state.effective_molar_mass);                   \
                 },                                                                                                     \
                 0.0, 1.0, lower, upper);                                                                               \
             check_close(std::format("{}[{}]-{}[{}] (simplex tangent)", #DX, component, #DX, dependent),                \
@@ -280,7 +324,7 @@ void check_ideal_gas_contracts(const EoSPair& eos, const eos_test_state& state, 
     std::vector<double> log_phi(eos.size());
     std::vector<double> fugacity(eos.size());
     fug::calc_log_fugacity_coeff(eos, state.c, std::span<const double>{x}, state.T, std::span<const double>{rho},
-                                std::span<double>{log_phi});
+                                 std::span<double>{log_phi});
     fug::calc_fugacity(eos, std::span<const double>{rho}, state.T, std::span<double>{fugacity});
     for (std::size_t component = 0; component < eos.size(); ++component) {
         check_close("ideal log(phi) == 0", log_phi[component], 0.0, identity_tolerance, state);
@@ -311,8 +355,8 @@ void check_residual_dilute_limit(const EoSPair& eos, eos_test_state state, resid
     std::ranges::transform(x, rho.begin(), [&](double xi) { return state.c * xi; });
     std::vector<double> log_phi(eos.size());
     fug::calc_log_fugacity_coeff(eos, state.c, std::span<const double>{x}, state.T, std::span<const double>{rho},
-                                std::span<double>{log_phi});
-    for (double value : log_phi) {
+                                 std::span<double>{log_phi});
+    for (const double value : log_phi) {
         check_close("dilute log(phi) -> 0", value, 0.0, options.dilute_tolerance, state);
     }
 }
@@ -349,15 +393,15 @@ void check_static_dynamic_equivalence(const StaticEoS& fixed, const DynamicEoS& 
 
     std::vector<double> fixed_gradient(fixed.size());
     std::vector<double> dynamic_gradient(dynamic.size());
-#define FUGACITY_CHECK_STATIC_DYNAMIC(NAME, VALUE, DT, DC, DX)                                                       \
-    check_close(#VALUE " static/dynamic", fug::VALUE(fixed, state.c, x, state.T),                                       \
-                fug::VALUE(dynamic, state.c, x, state.T), structural_tolerance, state);                                 \
-    check_close(#DT " static/dynamic", fug::DT(fixed, state.c, x, state.T), fug::DT(dynamic, state.c, x, state.T),       \
+#define FUGACITY_CHECK_STATIC_DYNAMIC(NAME, VALUE, DT, DC, DX)                                                         \
+    check_close(#VALUE " static/dynamic", fug::VALUE(fixed, state.c, x, state.T),                                      \
+                fug::VALUE(dynamic, state.c, x, state.T), structural_tolerance, state);                                \
+    check_close(#DT " static/dynamic", fug::DT(fixed, state.c, x, state.T), fug::DT(dynamic, state.c, x, state.T),     \
                 structural_tolerance, state);                                                                          \
-    check_close(#DC " static/dynamic", fug::DC(fixed, state.c, x, state.T), fug::DC(dynamic, state.c, x, state.T),       \
+    check_close(#DC " static/dynamic", fug::DC(fixed, state.c, x, state.T), fug::DC(dynamic, state.c, x, state.T),     \
                 structural_tolerance, state);                                                                          \
-    fug::DX(fixed, state.c, x, state.T, fixed_gradient);                                                                \
-    fug::DX(dynamic, state.c, x, state.T, dynamic_gradient);                                                            \
+    fug::DX(fixed, state.c, x, state.T, fixed_gradient);                                                               \
+    fug::DX(dynamic, state.c, x, state.T, dynamic_gradient);                                                           \
     for (std::size_t component = 0; component < fixed.size(); ++component) {                                           \
         check_close(#DX " static/dynamic", fixed_gradient[component], dynamic_gradient[component],                     \
                     structural_tolerance, state);                                                                      \
@@ -365,15 +409,15 @@ void check_static_dynamic_equivalence(const StaticEoS& fixed, const DynamicEoS& 
     FUGACITY_TEST_PROPERTY_CATALOG(FUGACITY_CHECK_STATIC_DYNAMIC)
 #undef FUGACITY_CHECK_STATIC_DYNAMIC
 
-#define FUGACITY_CHECK_MOLAR_MASS_STATIC_DYNAMIC(NAME, VALUE, DT, DC, DX)                                            \
-    check_close(#VALUE " static/dynamic", fug::VALUE(fixed, state.c, x, state.T, state.effective_molar_mass),           \
-                fug::VALUE(dynamic, state.c, x, state.T, state.effective_molar_mass), structural_tolerance, state);     \
-    check_close(#DT " static/dynamic", fug::DT(fixed, state.c, x, state.T, state.effective_molar_mass),                 \
-                fug::DT(dynamic, state.c, x, state.T, state.effective_molar_mass), structural_tolerance, state);        \
-    check_close(#DC " static/dynamic", fug::DC(fixed, state.c, x, state.T, state.effective_molar_mass),                 \
-                fug::DC(dynamic, state.c, x, state.T, state.effective_molar_mass), structural_tolerance, state);        \
-    fug::DX(fixed, state.c, x, state.T, state.effective_molar_mass, fixed_gradient);                                    \
-    fug::DX(dynamic, state.c, x, state.T, state.effective_molar_mass, dynamic_gradient);                                \
+#define FUGACITY_CHECK_MOLAR_MASS_STATIC_DYNAMIC(NAME, VALUE, DT, DC, DX)                                              \
+    check_close(#VALUE " static/dynamic", fug::VALUE(fixed, state.c, x, state.T, state.effective_molar_mass),          \
+                fug::VALUE(dynamic, state.c, x, state.T, state.effective_molar_mass), structural_tolerance, state);    \
+    check_close(#DT " static/dynamic", fug::DT(fixed, state.c, x, state.T, state.effective_molar_mass),                \
+                fug::DT(dynamic, state.c, x, state.T, state.effective_molar_mass), structural_tolerance, state);       \
+    check_close(#DC " static/dynamic", fug::DC(fixed, state.c, x, state.T, state.effective_molar_mass),                \
+                fug::DC(dynamic, state.c, x, state.T, state.effective_molar_mass), structural_tolerance, state);       \
+    fug::DX(fixed, state.c, x, state.T, state.effective_molar_mass, fixed_gradient);                                   \
+    fug::DX(dynamic, state.c, x, state.T, state.effective_molar_mass, dynamic_gradient);                               \
     for (std::size_t component = 0; component < fixed.size(); ++component) {                                           \
         check_close(#DX " static/dynamic", fixed_gradient[component], dynamic_gradient[component],                     \
                     structural_tolerance, state);                                                                      \

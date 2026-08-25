@@ -5,8 +5,8 @@ set -euo pipefail
 
 DIRECTORIES=(
     include
-    src
     tests
+    benchmarks
 )
 
 EXTENSIONS=(

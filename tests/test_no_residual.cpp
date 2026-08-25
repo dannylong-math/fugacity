@@ -6,10 +6,11 @@
 // support/eos_test_suite.hpp. The explicit tests below cover the model's own
 // zero-output and extent behavior.
 //
-#include "support/eos_test_suite.hpp"
 #include "fugacity/core/eos_pair.hpp"
 #include "fugacity/ideal_models/const_cp.hpp"
 #include "fugacity/residual_models/no_residual.hpp"
+#include "support/eos_test_state.hpp"
+#include "support/eos_test_suite.hpp"
 
 #include <array>
 #include <boost/ut.hpp>
@@ -51,7 +52,7 @@ auto make_dynamic_eos()
 {
     const auto inputs = dynamic_ideal_inputs();
     return fug::EoS{DynamicIdeal{std::span<const DynamicIdeal::SpeciesInput>{inputs}},
-                   NoResidual<std::dynamic_extent>{inputs.size()}};
+                    NoResidual<std::dynamic_extent>{inputs.size()}};
 }
 
 std::vector<eos_test_state> contract_states()
@@ -71,9 +72,11 @@ constexpr eos_valid_domain valid_domain{.c_min = 0.5,
 
 } // namespace
 
+// Test entry points intentionally let assertion failures escape to the runner.
+// NOLINTNEXTLINE(bugprone-exception-escape)
 int main()
 {
-    suite<"no_residual"> s = [] {
+    const suite<"no_residual"> s = [] {
         auto dynamic_eos = make_dynamic_eos();
         const auto fixture = eos_test_fixture{.contribution = dynamic_eos.residual(),
                                               .eos = dynamic_eos,

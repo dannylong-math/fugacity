@@ -19,13 +19,14 @@
 // model entropy carries the ideal-gas mixing term  -R ln(c / c_ref).
 // Enthalpy and c_p are pressure/concentration independent for an ideal gas.
 //
-#include "support/eos_test_suite.hpp"
-#include "support/numeric_checks.hpp"
 #include "fugacity/core/core_calculations.hpp"
 #include "fugacity/core/eos_pair.hpp"
 #include "fugacity/core/numbers.hpp"
 #include "fugacity/ideal_models/nasa7.hpp"
 #include "fugacity/residual_models/no_residual.hpp"
+#include "support/eos_test_state.hpp"
+#include "support/eos_test_suite.hpp"
+#include "support/numeric_checks.hpp"
 
 #include <array>
 #include <boost/ut.hpp>
@@ -41,7 +42,7 @@ namespace {
 
 namespace fug = fugacity;
 
-template<std::size_t N> using Input = typename fug::Nasa7<N>::SpeciesInput;
+template<std::size_t N> using Input = fug::Nasa7<N>::SpeciesInput;
 
 // Build a complete EoS: a NASA-7 ideal contribution + a vanishing residual.
 template<std::size_t N> auto make_nasa7_eos(const std::array<Input<N>, N>& in)
@@ -95,7 +96,7 @@ auto make_dynamic_nasa7_eos()
 {
     const auto inputs = dynamic_binary_inputs();
     return fug::EoS{fug::Nasa7<>{std::span<const fug::Nasa7<>::SpeciesInput>{inputs}},
-                   fug::NoResidual<std::dynamic_extent>{inputs.size()}};
+                    fug::NoResidual<std::dynamic_extent>{inputs.size()}};
 }
 
 std::vector<eos_test_state> nasa7_contract_states()
@@ -152,9 +153,11 @@ double nasa7_entropy_std(const Input<1>& in, double T)
 
 } // namespace
 
+// Test entry points intentionally let assertion failures escape to the runner.
+// NOLINTNEXTLINE(bugprone-exception-escape)
 int main()
 {
-    suite<"nasa7"> nasa7 = [] {
+    const suite<"nasa7"> nasa7 = [] {
         const double R = fug::ideal_gas_constant<double>;
 
         auto dynamic_eos = make_dynamic_nasa7_eos();
@@ -182,8 +185,8 @@ int main()
             check_rel("calc_cp       == NASA7 c_p", fug::calc_cp(eos, c_ref, xs, T_ref), nasa7_cp(in, T_ref), 1e-9);
             check_rel("calc_enthalpy == NASA7 h", fug::calc_enthalpy(eos, c_ref, xs, T_ref), nasa7_enthalpy(in, T_ref),
                       1e-9);
-            check_rel("calc_entropy  == NASA7 s", fug::calc_entropy(eos, c_ref, xs, T_ref), nasa7_entropy_std(in, T_ref),
-                      1e-9);
+            check_rel("calc_entropy  == NASA7 s", fug::calc_entropy(eos, c_ref, xs, T_ref),
+                      nasa7_entropy_std(in, T_ref), 1e-9);
         };
 
         // ===================================================================

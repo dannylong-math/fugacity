@@ -14,16 +14,17 @@ namespace fugacity {
 ///
 /// For molar Helmholtz energy,
 ///
-/// .. math::
+/// \f[
 ///
-///    a(c,\boldsymbol{x},T)
-///    = a^\mathrm{ideal}(c,\boldsymbol{x},T)
-///    + a^\mathrm{res}(c,\boldsymbol{x},T).
+/// a(c,\boldsymbol{x},T)
+/// = a^\mathrm{ideal}(c,\boldsymbol{x},T)
+/// + a^\mathrm{res}(c,\boldsymbol{x},T).
 ///
-/// Pass the resulting object to the ``calc_*`` property functions.
+/// \f]
+/// Pass the resulting object to the `calc_*` property functions.
 ///
-/// :tparam Ideal: Ideal contribution satisfying :cpp:concept:`fugacity::IdealEoS`.
-/// :tparam Residual: Residual contribution satisfying :cpp:concept:`fugacity::ResidualEoS`.
+/// \tparam Ideal Ideal contribution satisfying `fugacity::IdealEoS`.
+/// \tparam Residual Residual contribution satisfying `fugacity::ResidualEoS`.
 ///
 /// \ingroup core
 template<IdealEoS Ideal, ResidualEoS Residual> class EoS {
@@ -34,10 +35,10 @@ public:
     ///
     /// Construct a complete equation of state.
     ///
-    /// :param ideal: Ideal contribution.
-    /// :param residual: Residual contribution.
-    /// :precondition: ``ideal.size() == residual.size()``. A mismatch throws
-    ///                ``std::logic_error`` in debug builds; the check is omitted
+    /// \param ideal Ideal contribution.
+    /// \param residual Residual contribution.
+    /// \pre `ideal.size() == residual.size()`. A mismatch throws
+    ///                `std::logic_error` in debug builds; the check is omitted
     ///                in release builds.
     ///
     EoS(Ideal ideal, Residual residual)
@@ -54,13 +55,15 @@ public:
     }
 
     /// Return the ideal contribution.
+    // NOLINTNEXTLINE(modernize-use-nodiscard) -- retained source API; callers may intentionally probe and discard.
     const Ideal& ideal() const noexcept { return ideal_; }
     /// Return the residual contribution.
+    // NOLINTNEXTLINE(modernize-use-nodiscard) -- retained source API; callers may intentionally probe and discard.
     const Residual& residual() const noexcept { return residual_; }
     ///
     /// Number of chemical components.
     ///
-    /// :returns: Component count (equal for both contributions).
+    /// \return Component count (equal for both contributions).
     ///
     [[nodiscard]] constexpr std::size_t size() const noexcept { return ideal_.size(); }
 

@@ -15,10 +15,27 @@ endif()
 find_package(benchmark REQUIRED CONFIG)
 
 add_executable(bench_ideal_models src/bench_ideal_models.cpp)
+if(ENABLE_CLANG_TIDY)
+    set_property(TARGET bench_ideal_models PROPERTY CXX_CLANG_TIDY "${FUGACITY_CLANG_TIDY_COMMAND}")
+endif()
 target_link_libraries(bench_ideal_models PRIVATE
     ${PROJECT_NAME}::${PROJECT_NAME}
     benchmark::benchmark
 )
+find_package(Python3 REQUIRED COMPONENTS Interpreter)
+add_custom_target(bench-ideal-registry-check
+    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/check_ideal_registry.py"
+        "$<TARGET_FILE:bench_ideal_models>"
+    DEPENDS bench_ideal_models
+    USES_TERMINAL
+    VERBATIM
+)
+if(BUILD_TESTING)
+    add_test(NAME bench_ideal_registry
+        COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/check_ideal_registry.py"
+            "$<TARGET_FILE:bench_ideal_models>"
+    )
+endif()
 target_compile_options(bench_ideal_models PRIVATE -Wall -Wextra)
 
 # ----------------------------------------------------------------------------
@@ -41,6 +58,9 @@ FetchContent_Declare(teqp
 FetchContent_MakeAvailable(teqp)
 
 add_executable(bench_cubic_vs_teqp src/bench_cubic_vs_teqp.cpp)
+if(ENABLE_CLANG_TIDY)
+    set_property(TARGET bench_cubic_vs_teqp PROPERTY CXX_CLANG_TIDY "${FUGACITY_CLANG_TIDY_COMMAND}")
+endif()
 target_link_libraries(bench_cubic_vs_teqp PRIVATE
     ${PROJECT_NAME}::${PROJECT_NAME}
     benchmark::benchmark

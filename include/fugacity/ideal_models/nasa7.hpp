@@ -24,76 +24,80 @@ namespace fugacity {
 ///
 /// For each species, the NASA-7 equations are
 ///
-/// .. math::
+/// \f[
 ///
-///    \frac{c_{p,i}^\circ}{R}
-///      =a_{0,i}+a_{1,i}T+a_{2,i}T^2+a_{3,i}T^3+a_{4,i}T^4,
+/// \frac{c_{p,i}^\circ}{R}
+///   =a_{0,i}+a_{1,i}T+a_{2,i}T^2+a_{3,i}T^3+a_{4,i}T^4,
 ///
-/// .. math::
+/// \f]
+/// \f[
 ///
-///    \frac{h_i^\circ}{RT}
-///      =a_{0,i}+\frac{a_{1,i}}{2}T+\frac{a_{2,i}}{3}T^2
-///       +\frac{a_{3,i}}{4}T^3+\frac{a_{4,i}}{5}T^4+\frac{a_{5,i}}{T},
+/// \frac{h_i^\circ}{RT}
+///   =a_{0,i}+\frac{a_{1,i}}{2}T+\frac{a_{2,i}}{3}T^2
+///    +\frac{a_{3,i}}{4}T^3+\frac{a_{4,i}}{5}T^4+\frac{a_{5,i}}{T},
 ///
-/// .. math::
+/// \f]
+/// \f[
 ///
-///    \frac{s_i^\circ}{R}
-///      =a_{0,i}\ln T+a_{1,i}T+\frac{a_{2,i}}{2}T^2
-///       +\frac{a_{3,i}}{3}T^3+\frac{a_{4,i}}{4}T^4+a_{6,i}.
+/// \frac{s_i^\circ}{R}
+///   =a_{0,i}\ln T+a_{1,i}T+\frac{a_{2,i}}{2}T^2
+///    +\frac{a_{3,i}}{3}T^3+\frac{a_{4,i}}{4}T^4+a_{6,i}.
 ///
+/// \f]
 /// The molar ideal Helmholtz energy is
 ///
-/// .. math::
+/// \f[
 ///
-///    a^\mathrm{ideal}
-///    =\sum_i x_i\left[
-///      h_i^\circ-Ts_i^\circ
-///      +RT\ln\!\left(\frac{x_i cRT}{p_{i,\mathrm{ref}}}\right)
-///      \right]-RT.
+/// a^\mathrm{ideal}
+/// =\sum_i x_i\left[
+///   h_i^\circ-Ts_i^\circ
+///   +RT\ln\!\left(\frac{x_i cRT}{p_{i,\mathrm{ref}}}\right)
+///   \right]-RT.
 ///
+/// \f]
 /// Supply a single coefficient range that is valid at the evaluation
 /// temperature. The model does not select between low- and high-temperature
 /// coefficient ranges.
 ///
-/// .. code-block:: cpp
+/// \code{.cpp}
 ///
-///    using Ideal = fugacity::Nasa7<1>;
-///    const std::array<Ideal::SpeciesInput, 1> species{{{
-///        .a0 = 3.53100528, .a1 = -1.23660988e-4,
-///        .a2 = -5.02999433e-7, .a3 = 2.43530612e-9,
-///        .a4 = -1.40881235e-12, .a5 = -1046.97628,
-///        .a6 = 2.96747038, .T_ref = 298.15, .p_ref = 1.0e5,
-///    }}};
-///    const Ideal ideal{species};
-///    const fugacity::EoS eos{ideal, fugacity::NoResidual<1>{}};
+/// using Ideal = fugacity::Nasa7<1>;
+/// const std::array<Ideal::SpeciesInput, 1> species{{{
+///     .a0 = 3.53100528, .a1 = -1.23660988e-4,
+///     .a2 = -5.02999433e-7, .a3 = 2.43530612e-9,
+///     .a4 = -1.40881235e-12, .a5 = -1046.97628,
+///     .a6 = 2.96747038, .T_ref = 298.15, .p_ref = 1.0e5,
+/// }}};
+/// const Ideal ideal{species};
+/// const fugacity::EoS eos{ideal, fugacity::NoResidual<1>{}};
 ///
-///    const std::array<double, 1> x{1.0};
-///    const double cp = fugacity::calc_cp(eos, 40.0, x, 350.0);
+/// const std::array<double, 1> x{1.0};
+/// const double cp = fugacity::calc_cp(eos, 40.0, x, 350.0);
 ///
 ///
-/// :tparam N: Component count, or ``std::dynamic_extent`` for a runtime count.
+/// \endcode
+/// \tparam N Component count, or `std::dynamic_extent` for a runtime count.
 ///
 /// \ingroup ideal-models
 template<std::size_t N = std::dynamic_extent> class Nasa7 : public BaseEoS<N>, public BaseIdealEoS {
 public:
     /// NASA-7 coefficients and standard-state data for one species.
     struct SpeciesInput {
-        double a0;    ///< Coefficient :math:`a_0` [-].
-        double a1;    ///< Coefficient :math:`a_1` [1/K].
-        double a2;    ///< Coefficient :math:`a_2` [1/K^2].
-        double a3;    ///< Coefficient :math:`a_3` [1/K^3].
-        double a4;    ///< Coefficient :math:`a_4` [1/K^4].
-        double a5;    ///< Enthalpy integration coefficient :math:`a_5` [K].
-        double a6;    ///< Entropy integration coefficient :math:`a_6` [-].
+        double a0;    ///< Coefficient \f$a_0\f$ [-].
+        double a1;    ///< Coefficient \f$a_1\f$ [1/K].
+        double a2;    ///< Coefficient \f$a_2\f$ [1/K^2].
+        double a3;    ///< Coefficient \f$a_3\f$ [1/K^3].
+        double a4;    ///< Coefficient \f$a_4\f$ [1/K^4].
+        double a5;    ///< Enthalpy integration coefficient \f$a_5\f$ [K].
+        double a6;    ///< Entropy integration coefficient \f$a_6\f$ [-].
         double T_ref; ///< Temperature paired with the standard pressure [K].
-        double p_ref; ///< Standard-state pressure :math:`p_\mathrm{ref}` [Pa].
+        double p_ref; ///< Standard-state pressure \f$p_\mathrm{ref}\f$ [Pa].
     };
 
     ///
     /// Construct a fixed-size model.
     ///
-    /// :param inputs: One :cpp:class:`SpeciesInput` per species.
-    /// \id fixed-size
+    /// \param inputs One `SpeciesInput` per species.
     ///
     explicit Nasa7(const std::array<SpeciesInput, N>& inputs)
         requires(N != std::dynamic_extent)
@@ -106,9 +110,8 @@ public:
     ///
     /// Construct a runtime-size model.
     ///
-    /// :param inputs: One :cpp:class:`SpeciesInput` per species. ``size()`` is
-    ///                set to ``inputs.size()``.
-    /// \id runtime-size
+    /// \param inputs One `SpeciesInput` per species. `size()` is
+    ///                set to `inputs.size()`.
     ///
     explicit Nasa7(std::span<const SpeciesInput> inputs)
         requires(N == std::dynamic_extent)
@@ -124,10 +127,10 @@ public:
     ///
     /// Return the molar ideal Helmholtz energy.
     ///
-    /// :param c: Molar concentration [mol/m^3].
-    /// :param x: Mole-fraction array [-].
-    /// :param T: Temperature [K].
-    /// :returns: Molar Helmholtz energy [J/mol].
+    /// \param c Molar concentration [mol/m^3].
+    /// \param x Mole-fraction array [-].
+    /// \param T Temperature [K].
+    /// \return Molar Helmholtz energy [J/mol].
     ///
     template<std::floating_point Number> [[nodiscard]] Number calc_helmholtz(Number c, const Number* x, Number T) const
     {
@@ -139,7 +142,8 @@ public:
         Number a{0};
         for (std::size_t i = 0; i < n; ++i) {
             // The NASA-7 Helmholtz contribution is a 5th-degree polynomial in T.
-            std::array<Number, 6> coeffs;
+            // Every element is assigned below before the array is read.
+            std::array<Number, 6> coeffs; // NOLINT(cppcoreguidelines-pro-type-member-init)
             coeffs[0] = data_[(col_a5 * n) + i];
             coeffs[1] = (data_[(col_a0 * n) + i] * (Number{1} - lnT)) - data_[(col_a6 * n) + i] + lnT + lnC -
                         data_[(col_ln_cref_Tref * n) + i] - Number{1};
@@ -154,11 +158,11 @@ public:
 
     ///
     /// Return the ideal Helmholtz energy density
-    /// :math:`\Psi^\mathrm{ideal}=c a^\mathrm{ideal}`.
+    /// \f$\Psi^\mathrm{ideal}=c a^\mathrm{ideal}\f$.
     ///
-    /// :param rho_i: Partial molar concentrations [mol/m^3].
-    /// :param T: Temperature [K].
-    /// :returns: Helmholtz energy density [J/m^3].
+    /// \param rho_i Partial molar concentrations [mol/m^3].
+    /// \param T Temperature [K].
+    /// \return Helmholtz energy density [J/m^3].
     ///
     template<std::floating_point Number>
     [[nodiscard]] Number calc_helmholtz_density(const Number* rho_i, Number T) const
@@ -169,7 +173,8 @@ public:
 
         Number psi{0};
         for (std::size_t i = 0; i < n; ++i) {
-            std::array<Number, 6> coeffs;
+            // Every element is assigned below before the array is read.
+            std::array<Number, 6> coeffs; // NOLINT(cppcoreguidelines-pro-type-member-init)
             coeffs[0] = data_[(col_a5 * n) + i];
             coeffs[1] = (data_[(col_a0 * n) + i] * (Number{1} - lnT)) - data_[(col_a6 * n) + i] + lnT -
                         data_[(col_ln_cref_Tref * n) + i] - Number{1};
@@ -185,9 +190,9 @@ public:
     ///
     /// Return a per-component decomposition of the ideal Helmholtz energy density.
     ///
-    /// :param rho_i: Partial molar concentrations [mol/m^3].
-    /// :param T: Temperature [K].
-    /// :param out: Per-component Helmholtz energy density [J/m^3]; length ``size()``.
+    /// \param rho_i Partial molar concentrations [mol/m^3].
+    /// \param T Temperature [K].
+    /// \param out Per-component Helmholtz energy density [J/m^3]; length `size()`.
     ///
     template<std::floating_point Number> void calc_partial_helmholtz(const Number* rho_i, Number T, Number* out) const
     {
@@ -196,7 +201,8 @@ public:
         const Number lnT = std::log(T);
 
         for (std::size_t i = 0; i < n; ++i) {
-            std::array<Number, 6> coeffs;
+            // Every element is assigned below before the array is read.
+            std::array<Number, 6> coeffs; // NOLINT(cppcoreguidelines-pro-type-member-init)
             coeffs[0] = data_[(col_a5 * n) + i];
             coeffs[1] = (data_[(col_a0 * n) + i] * (Number{1} - lnT)) - data_[(col_a6 * n) + i] + lnT -
                         data_[(col_ln_cref_Tref * n) + i] - Number{1};

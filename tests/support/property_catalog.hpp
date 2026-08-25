@@ -4,7 +4,10 @@
 #include <string_view>
 
 // name, value function, d/dT function, d/dc function, composition-gradient function
-#define FUGACITY_TEST_PROPERTY_CATALOG(X)                                                                            \
+// The X-macro is deliberately the single inventory used to generate several
+// different compile-time contract checks without duplicating property names.
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define FUGACITY_TEST_PROPERTY_CATALOG(X)                                                                              \
     X(helmholtz, calc_helmholtz, calc_helmholtz_dT, calc_helmholtz_dc, calc_helmholtz_dx)                              \
     X(pressure, calc_pressure, calc_pressure_dT, calc_pressure_dc, calc_pressure_dx)                                   \
     X(internal_energy, calc_internal_energy, calc_internal_energy_dT, calc_internal_energy_dc,                         \
@@ -19,7 +22,8 @@
 
 // Same shape as the scalar catalogue, but each function also takes an
 // effective molar mass immediately after temperature.
-#define FUGACITY_TEST_MOLAR_MASS_PROPERTY_CATALOG(X)                                                                 \
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage) -- paired X-macro inventory; see above.
+#define FUGACITY_TEST_MOLAR_MASS_PROPERTY_CATALOG(X)                                                                   \
     X(sound_speed_squared, calc_sound_speed_squared, calc_sound_speed_squared_dT, calc_sound_speed_squared_dc,         \
       calc_sound_speed_squared_dx)
 
