@@ -28,9 +28,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--source-root", type=Path, required=True)
     parser.add_argument("--llvm-profdata", required=True)
     parser.add_argument("--llvm-cov", required=True)
-    parser.add_argument("--expected-lines", type=int, default=1031)
-    parser.add_argument("--expected-functions", type=int, default=150)
-    parser.add_argument("--expected-branch-outcomes", type=int, default=244)
+    parser.add_argument("--expected-lines", type=int, default=1081)
+    parser.add_argument("--expected-functions", type=int, default=151)
+    parser.add_argument("--expected-branch-outcomes", type=int, default=266)
     return parser.parse_args()
 
 

@@ -124,7 +124,7 @@
   the per-executable reports. This avoids losing header-only template mappings
   to llvm-cov's `mismatched data` handling. It requires exactly 100% line,
   source-function, and source-site branch-outcome coverage and verifies the
-  current 1031/150/244 denominator. The merged lcov sequence in CI remains an
+  current 1081/151/266 denominator. The merged lcov sequence in CI remains an
   informational Codecov artifact, not the completion gate.
 - Ensure the matching LLVM toolchain is on `PATH`; local installations may
   expose only versioned names such as `llvm-cov-22` and `llvm-profdata-22`.
