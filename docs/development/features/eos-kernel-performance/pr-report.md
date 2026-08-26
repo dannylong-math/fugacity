@@ -168,7 +168,8 @@ Full results, raw hashes, and commands are in `performance.md` and
 | clang-tidy/static analysis | Full debug-tidy build/test | PASS | 15/15; zero first-party diagnostics |
 | Sanitizers | Debug ASan/LSan outside ptrace sandbox | PASS | 15/15; leak detection enabled in final audit |
 | ABI compatibility | Header-only/no binary ABI | NOT APPLICABLE | Public signatures/layout unchanged |
-| Adversarial tooling | Deterministic properties/manual mutants | PASS with tooling gaps | Skeptic report |
+| Independent adversarial audit | Deterministic properties/manual mutants | PASS | Skeptic report |
+| Property/fuzz/mutation frameworks | Repository tool inventory | NOT CONFIGURED | Tooling gap; nothing installed |
 | Integration/V&V | MP and complete Release derivative campaign | PASS | `vv.md` |
 | Documentation | Doxygen + Sourcey | PASS | 29 pages, 34 HTML, 2119 links |
 | Formatting/diff hygiene | clang-format + `git diff --check` | PASS | Exact final audit |
@@ -181,7 +182,7 @@ Final independent auditor verdict: **READY FOR HUMAN REVIEW**.
 - Base revision: `522c5879bf207be6c3679f27a7e080111dc20f70`
 - Integration branch: `feature/eos-kernel-performance`
 - Audited integration revision: `1689422d5be10b21d45c7f92b229af88d30e379a`
-- PR-ready local branch: `feature/eos-kernel-performance-pr`
+- Planned PR-ready local branch: `feature/eos-kernel-performance-pr`
 - Final squash commit: this report's containing squash commit; exact SHA is reported in the
   local handoff because a commit cannot contain its own hash.
 - Squashed-tree equivalence check: required after the local squash and reported in the
@@ -193,7 +194,7 @@ Final independent auditor verdict: **READY FOR HUMAN REVIEW**.
 ```sh
 cmake --preset debug -DEnzyme_DIR=/opt/enzyme/lib/cmake/Enzyme
 cmake --build --preset debug --parallel
-ASAN_OPTIONS=detect_leaks=0 ctest --preset debug --output-on-failure
+ctest --preset debug --output-on-failure
 
 cmake --preset release -DEnzyme_DIR=/opt/enzyme/lib/cmake/Enzyme
 cmake --build --preset release --parallel
@@ -223,6 +224,10 @@ git diff --check 522c587..HEAD
 The throwaway benchmark and independent V&V harnesses are intentionally not committed.
 Their exact compile/run commands and artifact hashes are recorded in `performance.md`,
 `vv.md`, and the `/tmp` reports cited above.
+
+When tests are run inside a ptrace-constrained sandbox where LSan refuses to start, use
+`ASAN_OPTIONS=detect_leaks=0` as an environment-specific fallback. The final independent
+sanitizer gate ran outside that constraint with leak detection enabled.
 
 ## Documentation
 
