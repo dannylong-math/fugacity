@@ -84,8 +84,17 @@ decision.
 |---|---|---|---|---|---|
 | PERF-1 | none | C++ performance engineer | audit branch/worktree | complete; no commit | Baselines, profiles, model matrix, assembly, and candidate/no-change recommendation |
 | ARCH-1 | PERF-1 | software architect | integration branch, read-only source review | complete; no commit | Dynamic-double-only eight-row blocking; no API or allocation |
-| IMPL-1 | ARCH-1 | implementation engineer | dedicated task branch/worktree | in progress | Characterization tests, minimal source change, focused/regression tests, commit SHA |
+| IMPL-1 | ARCH-1 | implementation engineer | dedicated task branch/worktree | paused at numerical gate; uncommitted | Characterization tests pass; Release cp/sound differ by 8/6 ULP |
 | TEST-1 | IMPL-1 | test skeptic | audited implementation tree | pending if needed | Fault hypotheses, adequacy findings, coverage/tooling gaps |
 | VV-1 | IMPL-1 | V&V scientist | audited implementation tree | pending if needed | Predeclared code-verification criteria and numerical parity evidence |
 | PERF-2 | IMPL-1 | C++ performance engineer | audited implementation tree | pending if needed | Paired before/after benchmark and causal code-generation explanation |
 | QA-1 | accepted tree | quality-gate auditor | integration branch | pending | Independent final gate matrix and READY/NOT READY verdict |
+
+## Pending user decision
+
+The frozen molar-only candidate materially improves dynamic-double pressure, cp, and sound
+speed, but Enzyme's Release derivative graph is not universally bitwise identical. Direct
+primal values, pressure, density, and fugacity remain exact in the sampled evidence; the
+widest permanent-test differences are 8 ULP for cp and 6 ULP for sound speed. Production
+implementation and quality gates remain paused until the user either approves this bounded
+roundoff envelope or retains the existing scalar loop.

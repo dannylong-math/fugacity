@@ -64,8 +64,10 @@ This is faster for two related reasons:
 
 1. expensive multiply/absolute-value factor work falls from approximately N-squared
    evaluations to about N-squared divided by eight, plus N row factors; and
-2. eight independent accumulators expose instruction-level parallelism and allow Clang to
-   vectorize across rows without reassociating any individual floating-point reduction.
+2. eight independent accumulators expose instruction-level parallelism. Under the strict
+   floating-point profile Clang unrolls them into independent scalar FMA chains and reuses
+   the computed column factor; it does not pack-vectorize or reassociate an individual
+   reduction.
 
 The design uses two fixed eight-element stack arrays and no heap allocation. It remains an
 O(N-squared) generalized-cubic mixing calculation; it reduces the constant work inside the
@@ -93,13 +95,52 @@ and `long double` remain unchanged. The float speedup is not accepted because sa
 Enzyme-derived float sound-speed and fugacity results rounded differently despite identical
 primal values.
 
-## Final acceptance benchmark
+## Frozen production-candidate A/B
 
-Pending implementation. The final paired benchmark must compare the unmodified and
-candidate production classes at identical flags and cover dynamic N near the threshold and
-block tails, raw molar/density kernels, representative public differentiated calculations,
-and unchanged static/small-N controls. The benchmark source remains throwaway; commands,
-raw hashes, variability, and results will be recorded here.
+The candidate was narrowed to the molar Helmholtz kernel after blocking the density kernel
+changed reverse-mode fugacity bits. The density kernel and all chemical-potential/fugacity
+paths therefore retain the original expression graph.
+
+The final throwaway benchmark compiled one identical harness against the exact base and
+the frozen uncommitted candidate. It used 15 alternating, bracketed process pairs on one
+core, at least 0.1 seconds calibration per case, and bootstrap confidence intervals for the
+paired median speedup.
+
+| Calculation | N10 speedup (95% interval) | N50 speedup (95% interval) |
+|---|---:|---:|
+| Raw molar Helmholtz | 1.50x [1.43, 1.57] | 2.91x [2.63, 2.96] |
+| Pressure | 1.48x [1.34, 1.51] | 2.87x [2.74, 2.95] |
+| cp | 1.41x [1.31, 1.44] | 2.11x [1.96, 2.18] |
+| Sound speed squared | 1.38x [1.18, 1.46] | 2.03x [1.88, 2.12] |
+| Fugacity | 1.03x [0.96, 1.08] | 0.98x [0.92, 0.99] |
+
+Raw density, small-N, static, and float controls stayed within the noisy baseline-control
+envelope. The N50 fugacity result shows an approximately two-percent apparent regression,
+but that code path is source-identical and the interval is consistent with observed process
+drift rather than a causal production change.
+
+Strict-FP assembly contains eight independent scalar FMA accumulator chains. The helper
+has a 216-byte stack frame and no allocation. The deepest sampled dynamic Enzyme derivative
+frame increased from 152 to 1080 bytes, while the measured differentiated calculations
+still improved. Binary text grew by 8856 bytes, about 1.55 percent.
+
+### Numerical decision gate
+
+A deterministic sweep covered 125 states at N=10, 16, 20, 50, and 100, temperatures from
+180 to 900 K, concentrations from 5 to 1000 mol/m3, and 6025 scalar outputs.
+
+- Molar/density primal values, pressure, lambda(0,1), lambda(0,2), and all 4900 fugacity
+  outputs were bitwise identical.
+- lambda(1,1) differed by at most 3 ULP.
+- lambda(2,0) differed by at most 20 ULP, with maximum relative difference
+  `3.98e-15`.
+- cp differed in 1 of 125 states, by 1 ULP.
+- sound speed squared differed in 4 of 125 states, by at most 2 ULP.
+- The permanent-test states found a wider cp/sound envelope of 8 and 6 ULP under Release.
+
+The candidate therefore passes the performance gate but is not accepted until the user
+decides whether this derivative roundoff envelope is compatible with the project's
+numerical policy.
 
 ## First-pass artifact provenance
 
@@ -113,4 +154,9 @@ raw hashes, variability, and results will be recorded here.
 | `/tmp/fugacity-eos-perf-audit-522c587/pr_vectorization_remarks.txt` | `195ec95de77484e6aca712658b27a716c543eb27dd4413e9412d443e8ada725e` |
 | `/tmp/fugacity-eos-perf-audit-522c587/pr_cache_objdump.txt` | `9b59b653dd6bbc3edf02a2eefce3ceed1264945183dfdd4b430624ac246441ca` |
 | `/tmp/fugacity-eos-perf-audit-522c587/enzyme_block_smoke.stdout` | `4613867d3f098b7e3defd67884f9ce45767943baf6205793eda337688b4a2ae4` |
-
+| `/tmp/fugacity-eos-perf-ab-522c587/PERF2_REPORT.md` | `a8e5d8ec5847b6f84fdc3a54747e5c4bfa9722890cdfdb8b19dab89f2a3bc33b` |
+| `/tmp/fugacity-eos-perf-ab-522c587/paired_runs.tar` | `1d75cb2530dd3d7b9e8135df134baf4acc9c51e33e9e695be51c97a43c75571e` |
+| `/tmp/fugacity-eos-perf-ab-522c587/paired_summary.csv` | `14d20cd75146457ae7a2b07b1931ce19e26bb03f5af1bc7c918edac13a2905fc` |
+| `/tmp/fugacity-eos-perf-ab-522c587/paired_raw.csv` | `b2605121278b32b82d4857f98b2e4645a4a9a539819886ea13355dd003245721` |
+| `/tmp/fugacity-eos-perf-ab-522c587/ulp_summary.csv` | `fdcce2b573b5befb26796d635a73e6eec95aa07be246daae50f10f0f9a3ac1f6` |
+| `/tmp/fugacity-eos-perf-ab-522c587/candidate_cubic.patch` | `c8544cadebf02e069b43f85085539cabbca7001e3b5eae085cc0eaf3322333ec` |
