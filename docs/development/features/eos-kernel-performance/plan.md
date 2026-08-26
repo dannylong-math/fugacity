@@ -36,6 +36,29 @@ An implementation change is accepted only when:
 5. optimized IR/assembly explains the speedup without relying on relaxed arithmetic; and
 6. the complete coverage, warning, formatting, sanitizer, and applicable V&V gates pass.
 
+## Architecture decision
+
+The initial audit found one material opportunity: the runtime-sized generalized-cubic
+attractive mixing term recomputes a temperature/composition factor inside every matrix
+interaction. The accepted design processes eight rows at a time and keeps eight independent
+row accumulators on the stack.
+
+- Apply the blocked path only to runtime-sized `double` models with at least 10 components.
+- Preserve the existing scalar loop literally for static extents, smaller dynamic models,
+  `float`, and `long double`.
+- Keep each row's inner accumulation and the final row accumulation in their original order.
+- Share one private helper between the molar and density kernels; allocate no heap storage
+  and mutate no model state.
+- Limit production changes to `include/fugacity/residual_models/cubic.hpp` and permanent
+  characterization tests to `tests/test_peng_robinson.cpp`.
+
+Alternatives rejected for this pass are a heap-allocated full cache, mutable model-owned
+cache, caller workspace/API, changing the static loop, and applying blocking to `float`.
+Although the float primal was bitwise identical, sampled Enzyme-derived float sound speed
+and fugacity values rounded differently. The dynamic-double-only design therefore preserves
+the project's current numerical-compatibility policy without requiring a new tolerance
+decision.
+
 ## Protected unrelated work
 
 - `docs/development/features/flash-calculations/plan.md` is pre-existing and untracked in
@@ -59,11 +82,10 @@ An implementation change is accepted only when:
 
 | ID | Dependency | Owner | Branch/worktree | Status | Required evidence |
 |---|---|---|---|---|---|
-| PERF-1 | none | C++ performance engineer | audit branch/worktree | in progress | Baselines, profiles, model matrix, assembly, and candidate/no-change recommendation |
-| ARCH-1 | PERF-1 | software architect | integration branch, read-only source review | pending | Internal design, compatibility and numerical-ordering assessment |
-| IMPL-1 | ARCH-1 | implementation engineer | dedicated task branch/worktree | pending if needed | Red equivalence test, minimal source change, focused/regression tests, commit SHA |
+| PERF-1 | none | C++ performance engineer | audit branch/worktree | complete; no commit | Baselines, profiles, model matrix, assembly, and candidate/no-change recommendation |
+| ARCH-1 | PERF-1 | software architect | integration branch, read-only source review | complete; no commit | Dynamic-double-only eight-row blocking; no API or allocation |
+| IMPL-1 | ARCH-1 | implementation engineer | dedicated task branch/worktree | in progress | Characterization tests, minimal source change, focused/regression tests, commit SHA |
 | TEST-1 | IMPL-1 | test skeptic | audited implementation tree | pending if needed | Fault hypotheses, adequacy findings, coverage/tooling gaps |
 | VV-1 | IMPL-1 | V&V scientist | audited implementation tree | pending if needed | Predeclared code-verification criteria and numerical parity evidence |
 | PERF-2 | IMPL-1 | C++ performance engineer | audited implementation tree | pending if needed | Paired before/after benchmark and causal code-generation explanation |
 | QA-1 | accepted tree | quality-gate auditor | integration branch | pending | Independent final gate matrix and READY/NOT READY verdict |
-
