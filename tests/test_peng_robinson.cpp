@@ -35,12 +35,18 @@
 #include "support/numeric_checks.hpp"
 
 #include <array>
+#include <bit>
 #include <boost/ut.hpp>
 #include <cmath>
+#include <concepts>
 #include <cstddef>
+#include <cstdint>
+#include <limits>
 #include <numbers>
+#include <random>
 #include <span>
 #include <stdexcept>
+#include <string_view>
 #include <vector>
 
 using namespace boost::ut;
@@ -198,6 +204,375 @@ long double ref_helmholtz(const std::array<Input<N>, N>& in, const std::array<do
     const long double psi1 = -std::log(1.0L - (bm * c));
     const long double psi2 = std::log(((d1 * bm * c) + 1.0L) / ((d2 * bm * c) + 1.0L)) / (bm * (d1 - d2));
     return (Rld * T * psi1) - (am * psi2);
+}
+
+// Deterministic, deliberately nonuniform mixtures used to characterize the
+// runtime-size path around the row-blocking threshold and its tails. The
+// asymmetry of kij and unique values at every species index make first/last
+// and block-boundary indexing errors observable.
+constexpr std::uint64_t blocking_characterization_seed = 0xB10C5EED;
+
+template<std::size_t N> struct blocking_case {
+    struct species_data {
+        double T_c;
+        double P_c;
+        double omega;
+        double c_p;
+    };
+
+    std::array<species_data, N> species{};
+    std::array<double, N * N> kij{};
+    std::array<double, N> x{};
+    std::array<double, N> rho{};
+    double c{};
+    double T{};
+};
+
+template<std::size_t N> blocking_case<N> make_blocking_case()
+{
+    // A reproducible characterization sequence is intentional, not security-sensitive randomness.
+    // NOLINTNEXTLINE(bugprone-random-generator-seed)
+    std::mt19937_64 generator{blocking_characterization_seed};
+    std::uniform_real_distribution<double> unit{0.0, 1.0};
+    blocking_case<N> test_case;
+    double x_sum = 0.0;
+    for (std::size_t i = 0; i < N; ++i) {
+        test_case.species[i] = {.T_c = 180.0 + (420.0 * unit(generator)) + static_cast<double>(i),
+                                .P_c = 3.5e6 + (4.0e6 * unit(generator)) + (1000.0 * static_cast<double>(i)),
+                                .omega = 0.02 + (0.65 * unit(generator)),
+                                .c_p = 24.0 + (18.0 * unit(generator)) + (0.125 * static_cast<double>(i))};
+        test_case.x[i] = 0.1 + unit(generator) + (0.01 * static_cast<double>(i));
+        x_sum += test_case.x[i];
+    }
+    for (double& xi : test_case.x) {
+        xi /= x_sum;
+    }
+    test_case.c = 1250.0;
+    test_case.T = 415.0;
+    for (std::size_t i = 0; i < N; ++i) {
+        test_case.rho[i] = test_case.c * test_case.x[i];
+        for (std::size_t j = 0; j < N; ++j) {
+            test_case.kij[(i * N) + j] =
+                (i == j) ? 0.0 : -0.08 + (0.20 * unit(generator)) + (1.0e-5 * static_cast<double>((i * N) + j));
+        }
+    }
+    return test_case;
+}
+
+template<std::size_t N> auto make_fixed_pr(const blocking_case<N>& test_case)
+{
+    using Model = fug::PengRobinson<N>;
+    std::array<typename Model::SpeciesInput, N> inputs{};
+    for (std::size_t i = 0; i < N; ++i) {
+        inputs[i] = {
+            .T_c = test_case.species[i].T_c, .P_c = test_case.species[i].P_c, .omega = test_case.species[i].omega};
+    }
+    return Model{inputs, test_case.kij};
+}
+
+template<std::size_t N> auto make_dynamic_pr(const blocking_case<N>& test_case)
+{
+    using Model = fug::PengRobinson<>;
+    std::vector<Model::SpeciesInput> inputs(N);
+    for (std::size_t i = 0; i < N; ++i) {
+        inputs[i] = {
+            .T_c = test_case.species[i].T_c, .P_c = test_case.species[i].P_c, .omega = test_case.species[i].omega};
+    }
+    return Model{std::span<const typename Model::SpeciesInput>{inputs}, std::span<const double>{test_case.kij}};
+}
+
+} // namespace
+
+// Test-only copy of the pre-optimization runtime loop. Keeping runtime-sized
+// storage and loop bounds in the oracle avoids compiler unrolling differences
+// between fixed and dynamic model types when Enzyme differentiates the code.
+// External linkage is required because Enzyme instantiates differentiation intrinsics with this type.
+// NOLINTNEXTLINE(misc-use-internal-linkage)
+class legacy_runtime_pr {
+public:
+    template<std::size_t N>
+    explicit legacy_runtime_pr(const blocking_case<N>& test_case) : b_(N), p_(N), q_(N), a_(N * N)
+    {
+        constexpr double R = fug::ideal_gas_constant<double>;
+        const double s8 = std::sqrt(8.0);
+        const double eta_c = 1.0 / (1.0 + std::cbrt(4.0 - s8) + std::cbrt(4.0 + s8));
+        const double omega_a = (8.0 + (40.0 * eta_c)) / (49.0 - (37.0 * eta_c));
+        const double omega_b = eta_c / (3.0 + eta_c);
+        std::vector<double> a0(N);
+        for (std::size_t i = 0; i < N; ++i) {
+            const double w = test_case.species[i].omega;
+            const double m = w <= 0.491 ? 0.37464 + (1.54226 * w) - (0.26992 * w * w)
+                                        : 0.379642 + (1.48503 * w) - (0.164423 * w * w) + (0.016666 * w * w * w);
+            const double RTc = R * test_case.species[i].T_c;
+            a0[i] = omega_a * RTc * RTc / test_case.species[i].P_c;
+            b_[i] = omega_b * RTc / test_case.species[i].P_c;
+            p_[i] = 1.0 + m;
+            q_[i] = m / std::sqrt(test_case.species[i].T_c);
+        }
+        for (std::size_t i = 0; i < N; ++i) {
+            for (std::size_t j = 0; j < N; ++j) {
+                const double k_sym = 0.5 * (test_case.kij[(i * N) + j] + test_case.kij[(j * N) + i]);
+                a_[(i * N) + j] = (1.0 - k_sym) * std::sqrt(a0[i] * a0[j]);
+            }
+        }
+    }
+
+    [[nodiscard]] std::size_t size() const noexcept { return b_.size(); }
+
+    template<std::floating_point Number>
+    [[nodiscard]] Number calc_helmholtz(const Number c, const Number* x, const Number T) const
+    {
+        constexpr double d1 = 1.0 + std::numbers::sqrt2;
+        constexpr double d2 = 1.0 - std::numbers::sqrt2;
+        const Number R = fug::ideal_gas_constant<Number>;
+        const std::size_t n = size();
+        const Number sT = std::sqrt(T);
+        Number am{0};
+        Number bm{0};
+        for (std::size_t i = 0; i < n; ++i) {
+            bm += x[i] * b_[i];
+            const Number ti = x[i] * std::abs(p_[i] - (q_[i] * sT));
+            Number row{0};
+            for (std::size_t j = 0; j < n; ++j) {
+                row += x[j] * std::abs(p_[j] - (q_[j] * sT)) * a_[(i * n) + j];
+            }
+            am += ti * row;
+        }
+        const Number bc = bm * c;
+        const Number psi1 = -std::log(Number{1} - bc);
+        const Number psi2 = std::log(((d1 * bc) + Number{1}) / ((d2 * bc) + Number{1})) / (bm * (d1 - d2));
+        return (R * T * psi1) - (am * psi2);
+    }
+
+    template<std::floating_point Number>
+    [[nodiscard]] Number calc_helmholtz_density(const Number* rho_i, const Number T) const
+    {
+        constexpr double d1 = 1.0 + std::numbers::sqrt2;
+        constexpr double d2 = 1.0 - std::numbers::sqrt2;
+        const Number R = fug::ideal_gas_constant<Number>;
+        const std::size_t n = size();
+        const Number sT = std::sqrt(T);
+        Number c{0};
+        Number bc{0};
+        Number ac{0};
+        for (std::size_t i = 0; i < n; ++i) {
+            c += rho_i[i];
+            bc += rho_i[i] * b_[i];
+            const Number ti = rho_i[i] * std::abs(p_[i] - (q_[i] * sT));
+            Number row{0};
+            for (std::size_t j = 0; j < n; ++j) {
+                row += rho_i[j] * std::abs(p_[j] - (q_[j] * sT)) * a_[(i * n) + j];
+            }
+            ac += ti * row;
+        }
+        const Number psi1 = -std::log(Number{1} - bc);
+        return (R * T * c * psi1) -
+               (ac * std::log(((d1 * bc) + Number{1}) / ((d2 * bc) + Number{1})) / (bc * (d1 - d2)));
+    }
+
+    template<std::floating_point Number>
+    void calc_partial_helmholtz(const Number* rho_i, const Number T, Number* out) const
+    {
+        Number c{0};
+        for (std::size_t i = 0; i < size(); ++i) {
+            c += rho_i[i];
+        }
+        const Number scale = calc_helmholtz_density(rho_i, T) / c;
+        for (std::size_t i = 0; i < size(); ++i) {
+            out[i] = rho_i[i] * scale;
+        }
+    }
+
+private:
+    std::vector<double> b_;
+    std::vector<double> p_;
+    std::vector<double> q_;
+    std::vector<double> a_;
+};
+
+namespace {
+
+template<std::size_t N> auto make_dynamic_blocking_eos(const blocking_case<N>& test_case)
+{
+    using Ideal = fug::ConstantCp<>;
+    std::vector<Ideal::SpeciesInput> inputs(N);
+    for (std::size_t i = 0; i < N; ++i) {
+        inputs[i] = {.T_ref = 298.15,
+                     .p_ref = 1.0e5 + (100.0 * static_cast<double>(i)),
+                     .c_p = test_case.species[i].c_p,
+                     .h_ref = 125.0 * static_cast<double>(i),
+                     .s_ref = 130.0 + (0.5 * static_cast<double>(i))};
+    }
+    return fug::EoS{Ideal{std::span<const typename Ideal::SpeciesInput>{inputs}}, make_dynamic_pr(test_case)};
+}
+
+template<std::size_t N> auto make_legacy_blocking_eos(const blocking_case<N>& test_case)
+{
+    using Ideal = fug::ConstantCp<>;
+    std::vector<Ideal::SpeciesInput> inputs(N);
+    for (std::size_t i = 0; i < N; ++i) {
+        inputs[i] = {.T_ref = 298.15,
+                     .p_ref = 1.0e5 + (100.0 * static_cast<double>(i)),
+                     .c_p = test_case.species[i].c_p,
+                     .h_ref = 125.0 * static_cast<double>(i),
+                     .s_ref = 130.0 + (0.5 * static_cast<double>(i))};
+    }
+    return fug::EoS{Ideal{std::span<const typename Ideal::SpeciesInput>{inputs}}, legacy_runtime_pr{test_case}};
+}
+
+#ifdef __NO_MATH_ERRNO__
+constexpr bool relaxed_arithmetic_build = true;
+#else
+constexpr bool relaxed_arithmetic_build = false;
+#endif
+
+template<std::floating_point Number>
+void expect_relaxed_arithmetic_close(const std::string_view quantity, const Number actual, const Number expected)
+{
+    const Number magnitude = std::abs(expected) > Number{1} ? std::abs(expected) : Number{1};
+    const Number tolerance = Number{4096} * std::numeric_limits<Number>::epsilon() * magnitude;
+    expect(std::isfinite(actual) && std::isfinite(expected) && std::abs(actual - expected) <= tolerance)
+        << quantity << ": actual=" << actual << ", expected=" << expected << ", tolerance=" << tolerance;
+}
+
+void expect_same_double(const std::string_view quantity, const double actual, const double expected)
+{
+    if constexpr (relaxed_arithmetic_build) {
+        // release-max explicitly permits reassociation and changed rounding; it is
+        // an additional compatibility build, not the numerical baseline.
+        expect_relaxed_arithmetic_close(quantity, actual, expected);
+        return;
+    }
+    const auto actual_bits = std::bit_cast<std::uint64_t>(actual);
+    const auto expected_bits = std::bit_cast<std::uint64_t>(expected);
+    const auto ulp_distance = actual_bits > expected_bits ? actual_bits - expected_bits : expected_bits - actual_bits;
+    expect(actual_bits == expected_bits) << quantity << ": actual=" << actual << ", expected=" << expected
+                                         << ", ulp distance=" << ulp_distance;
+}
+
+std::uint64_t ordered_double_bits(const double value)
+{
+    constexpr std::uint64_t sign_bit = std::uint64_t{1} << 63U;
+    const auto bits = std::bit_cast<std::uint64_t>(value);
+    return (bits & sign_bit) != 0U ? ~bits : bits | sign_bit;
+}
+
+void expect_within_ulps(const std::string_view quantity, const double actual, const double expected,
+                        const std::uint64_t max_ulps)
+{
+    if constexpr (relaxed_arithmetic_build) {
+        expect_relaxed_arithmetic_close(quantity, actual, expected);
+        return;
+    }
+    const auto actual_bits = ordered_double_bits(actual);
+    const auto expected_bits = ordered_double_bits(expected);
+    const auto ulp_distance = actual_bits > expected_bits ? actual_bits - expected_bits : expected_bits - actual_bits;
+    expect(std::isfinite(actual) && std::isfinite(expected) && ulp_distance <= max_ulps)
+        << quantity << ": actual=" << actual << ", expected=" << expected << ", ulp distance=" << ulp_distance
+        << ", budget=" << max_ulps;
+}
+
+template<std::floating_point Number>
+void expect_same_number(const std::string_view quantity, const Number actual, const Number expected)
+{
+    if constexpr (std::same_as<Number, double>) {
+        expect_same_double(quantity, actual, expected);
+    }
+    else if constexpr (relaxed_arithmetic_build) {
+        expect_relaxed_arithmetic_close(quantity, actual, expected);
+    }
+    else {
+        expect(actual == expected) << quantity << ": actual=" << actual << ", expected=" << expected;
+    }
+}
+
+template<std::size_t N, std::floating_point Number> void check_molar_blocking_characterization()
+{
+    const auto test_case = make_blocking_case<N>();
+    const auto fixed = make_fixed_pr(test_case);
+    const auto dynamic = make_dynamic_pr(test_case);
+    std::array<Number, N> x{};
+    std::array<Number, N> rho{};
+    for (std::size_t i = 0; i < N; ++i) {
+        x[i] = static_cast<Number>(test_case.x[i]);
+        rho[i] = static_cast<Number>(test_case.rho[i]);
+    }
+    const auto c = static_cast<Number>(test_case.c);
+    const auto T = static_cast<Number>(test_case.T);
+    expect_same_number("molar runtime/static", dynamic.calc_helmholtz(c, x.data(), T),
+                       fixed.calc_helmholtz(c, x.data(), T));
+    expect_same_number("density runtime/static", dynamic.calc_helmholtz_density(rho.data(), T),
+                       fixed.calc_helmholtz_density(rho.data(), T));
+
+    std::array<Number, N> fixed_partial{};
+    std::array<Number, N> dynamic_partial{};
+    fixed.calc_partial_helmholtz(rho.data(), T, fixed_partial.data());
+    dynamic.calc_partial_helmholtz(rho.data(), T, dynamic_partial.data());
+    for (std::size_t i = 0; i < N; ++i) {
+        expect_same_number("partial runtime/static", dynamic_partial[i], fixed_partial[i]);
+    }
+    if constexpr (std::same_as<Number, double>) {
+        const legacy_runtime_pr legacy{test_case};
+        expect_same_double("molar runtime/legacy", dynamic.calc_helmholtz(c, x.data(), T),
+                           legacy.calc_helmholtz(c, x.data(), T));
+        expect_same_double("density runtime/legacy", dynamic.calc_helmholtz_density(rho.data(), T),
+                           legacy.calc_helmholtz_density(rho.data(), T));
+        std::array<double, N> legacy_partial{};
+        legacy.calc_partial_helmholtz(rho.data(), T, legacy_partial.data());
+        for (std::size_t i = 0; i < N; ++i) {
+            expect_same_double("partial runtime/legacy", dynamic_partial[i], legacy_partial[i]);
+        }
+    }
+}
+
+template<std::size_t N> void check_blocking_public_properties()
+{
+    const auto test_case = make_blocking_case<N>();
+    const auto legacy = make_legacy_blocking_eos(test_case);
+    const auto dynamic = make_dynamic_blocking_eos(test_case);
+    auto x = test_case.x;
+    // These ULP budgets are local regression limits for the blocked molar path.
+    // The independent scientific-oracle tests below retain their established tolerances.
+    expect_same_double("pressure runtime/legacy", fug::calc_pressure(dynamic, test_case.c, x, test_case.T),
+                       fug::calc_pressure(legacy, test_case.c, x, test_case.T));
+    expect_within_ulps("cp runtime/legacy", fug::calc_cp(dynamic, test_case.c, x, test_case.T),
+                       fug::calc_cp(legacy, test_case.c, x, test_case.T), 16);
+    expect_within_ulps("sound speed runtime/legacy",
+                       fug::calc_sound_speed_squared(dynamic, test_case.c, x, test_case.T, 0.035),
+                       fug::calc_sound_speed_squared(legacy, test_case.c, x, test_case.T, 0.035), 16);
+
+    const double invT = 1.0 / test_case.T;
+    const auto check_lambda = [&](const std::string_view name, const double actual, const double expected) {
+        expect_within_ulps(name, actual, expected, 32);
+    };
+    check_lambda("lambda(0,0) runtime/legacy",
+                 fug::detail::calc_lambda<0, 0>(dynamic.residual(), test_case.c, x.data(), invT),
+                 fug::detail::calc_lambda<0, 0>(legacy.residual(), test_case.c, x.data(), invT));
+    check_lambda("lambda(1,0) runtime/legacy",
+                 fug::detail::calc_lambda<1, 0>(dynamic.residual(), test_case.c, x.data(), invT),
+                 fug::detail::calc_lambda<1, 0>(legacy.residual(), test_case.c, x.data(), invT));
+    check_lambda("lambda(0,1) runtime/legacy",
+                 fug::detail::calc_lambda<0, 1>(dynamic.residual(), test_case.c, x.data(), invT),
+                 fug::detail::calc_lambda<0, 1>(legacy.residual(), test_case.c, x.data(), invT));
+    check_lambda("lambda(0,2) runtime/legacy",
+                 fug::detail::calc_lambda<0, 2>(dynamic.residual(), test_case.c, x.data(), invT),
+                 fug::detail::calc_lambda<0, 2>(legacy.residual(), test_case.c, x.data(), invT));
+    check_lambda("lambda(1,1) runtime/legacy",
+                 fug::detail::calc_lambda<1, 1>(dynamic.residual(), test_case.c, x.data(), invT),
+                 fug::detail::calc_lambda<1, 1>(legacy.residual(), test_case.c, x.data(), invT));
+    check_lambda("lambda(2,0) runtime/legacy",
+                 fug::detail::calc_lambda<2, 0>(dynamic.residual(), test_case.c, x.data(), invT),
+                 fug::detail::calc_lambda<2, 0>(legacy.residual(), test_case.c, x.data(), invT));
+
+    std::array<double, N> legacy_fugacity{};
+    std::array<double, N> dynamic_fugacity{};
+    fug::calc_fugacity(legacy, std::span<const double, N>{test_case.rho}, test_case.T,
+                       std::span<double, N>{legacy_fugacity});
+    fug::calc_fugacity(dynamic, std::span<const double, N>{test_case.rho}, test_case.T,
+                       std::span<double, N>{dynamic_fugacity});
+    for (std::size_t i = 0; i < N; ++i) {
+        expect_same_double("fugacity runtime/legacy", dynamic_fugacity[i], legacy_fugacity[i]);
+    }
 }
 
 } // namespace
@@ -384,6 +759,65 @@ int main()
                     check_rel("a_r (empty kij == zero matrix)", empty_kij.calc_helmholtz(c, x.data(), T),
                               zero_kij.calc_helmholtz(c, x.data(), T), 1e-15);
                 }
+            }
+        };
+
+        "runtime kernels preserve behavior around molar blocking boundaries"_test = [] {
+            check_molar_blocking_characterization<7, double>();
+            check_molar_blocking_characterization<8, double>();
+            check_molar_blocking_characterization<9, double>();
+            check_molar_blocking_characterization<10, double>();
+            check_molar_blocking_characterization<15, double>();
+            check_molar_blocking_characterization<16, double>();
+            check_molar_blocking_characterization<17, double>();
+            check_molar_blocking_characterization<23, double>();
+            check_molar_blocking_characterization<24, double>();
+            check_molar_blocking_characterization<25, double>();
+            check_molar_blocking_characterization<31, double>();
+            check_molar_blocking_characterization<32, double>();
+            check_molar_blocking_characterization<33, double>();
+        };
+
+        "non-double and static kernels remain scalar-path canaries"_test = [] {
+            check_molar_blocking_characterization<9, float>();
+            check_molar_blocking_characterization<10, float>();
+            check_molar_blocking_characterization<17, float>();
+            check_molar_blocking_characterization<9, long double>();
+            check_molar_blocking_characterization<10, long double>();
+            check_molar_blocking_characterization<17, long double>();
+        };
+
+        "runtime Enzyme properties preserve legacy order at dispatch and tail boundaries"_test = [] {
+            check_blocking_public_properties<9>();
+            check_blocking_public_properties<10>();
+            check_blocking_public_properties<17>();
+        };
+
+        "runtime mixture kernels are covariant under species reversal"_test = [] {
+            constexpr std::size_t n = 17;
+            const auto original_case = make_blocking_case<n>();
+            auto reversed_case = original_case;
+            for (std::size_t i = 0; i < n; ++i) {
+                reversed_case.species[i] = original_case.species[n - 1 - i];
+                reversed_case.x[i] = original_case.x[n - 1 - i];
+                reversed_case.rho[i] = original_case.rho[n - 1 - i];
+                for (std::size_t j = 0; j < n; ++j) {
+                    reversed_case.kij[(i * n) + j] = original_case.kij[((n - 1 - i) * n) + (n - 1 - j)];
+                }
+            }
+            const auto original = make_dynamic_pr(original_case);
+            const auto reversed = make_dynamic_pr(reversed_case);
+            check_rel("permuted molar",
+                      reversed.calc_helmholtz(reversed_case.c, reversed_case.x.data(), reversed_case.T),
+                      original.calc_helmholtz(original_case.c, original_case.x.data(), original_case.T), 2e-15);
+            check_rel("permuted density", reversed.calc_helmholtz_density(reversed_case.rho.data(), reversed_case.T),
+                      original.calc_helmholtz_density(original_case.rho.data(), original_case.T), 2e-15);
+            std::array<double, n> original_partial{};
+            std::array<double, n> reversed_partial{};
+            original.calc_partial_helmholtz(original_case.rho.data(), original_case.T, original_partial.data());
+            reversed.calc_partial_helmholtz(reversed_case.rho.data(), reversed_case.T, reversed_partial.data());
+            for (std::size_t i = 0; i < n; ++i) {
+                check_rel("permuted partial", reversed_partial[i], original_partial[n - 1 - i], 2e-15);
             }
         };
 
