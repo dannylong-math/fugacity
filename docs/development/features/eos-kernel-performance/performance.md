@@ -138,9 +138,13 @@ A deterministic sweep covered 125 states at N=10, 16, 20, 50, and 100, temperatu
 - sound speed squared differed in 4 of 125 states, by at most 2 ULP.
 - The permanent-test states found a wider cp/sound envelope of 8 and 6 ULP under Release.
 
-The candidate therefore passes the performance gate but is not accepted until the user
-decides whether this derivative roundoff envelope is compatible with the project's
-numerical policy.
+The user accepted derivative roundoff in exchange for the material speedup and clarified
+that optimized Release is the primary numerical context. A later independent campaign
+showed that raw ULP distance is not a reliable global acceptance measure for higher-order
+Enzyme results: some small derivatives have large ULP distances but relative errors remain
+tiny and independent multiprecision/finite-difference checks pass. Release acceptance is
+therefore based on the scientific-oracle evidence recorded in `vv.md`; the 32/16 ULP checks
+remain local characterization regressions only.
 
 ## First-pass artifact provenance
 

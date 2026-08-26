@@ -47,8 +47,9 @@ row accumulators on the stack.
 - Preserve the existing scalar loop literally for static extents, smaller dynamic models,
   `float`, and `long double`.
 - Keep each row's inner accumulation and the final row accumulation in their original order.
-- Share one private helper between the molar and density kernels; allocate no heap storage
-  and mutate no model state.
+- Use one private helper only from the molar kernel; allocate no heap storage and mutate no
+  model state. The density kernel retains its original expression graph because an early
+  blocked prototype changed reverse-mode fugacity bits.
 - Limit production changes to `include/fugacity/residual_models/cubic.hpp` and permanent
   characterization tests to `tests/test_peng_robinson.cpp`.
 
@@ -84,26 +85,26 @@ decision.
 |---|---|---|---|---|---|
 | PERF-1 | none | C++ performance engineer | audit branch/worktree | complete; no commit | Baselines, profiles, model matrix, assembly, and candidate/no-change recommendation |
 | ARCH-1 | PERF-1 | software architect | integration branch, read-only source review | complete; no commit | Dynamic-double-only eight-row blocking; no API or allocation |
-| IMPL-1 | ARCH-1 | implementation engineer | dedicated task branch/worktree | paused at numerical gate; uncommitted | Characterization tests pass; Release cp/sound differ by 8/6 ULP |
-| TEST-1 | IMPL-1 | test skeptic | audited implementation tree | pending if needed | Fault hypotheses, adequacy findings, coverage/tooling gaps |
-| VV-1 | IMPL-1 | V&V scientist | audited implementation tree | pending if needed | Predeclared code-verification criteria and numerical parity evidence |
-| PERF-2 | IMPL-1 | C++ performance engineer | audited implementation tree | pending if needed | Paired before/after benchmark and causal code-generation explanation |
+| IMPL-1 | ARCH-1 | implementation engineer | task branch/worktree | complete at `d15bec8`; follow-up pending | Characterization tests, source change, full regression, coverage |
+| TEST-1 | IMPL-1 | test skeptic | review worktree | complete; no commit | Release READY; Debug/O1 nested-AD limitation; Release-only regression requested |
+| VV-1 | IMPL-1 | V&V scientist | review worktree | complete; no commit | Release PASS against MP/finite differences; Debug limitation confirmed |
+| PERF-2 | IMPL-1 | C++ performance engineer | audited implementation tree | complete; no commit | Paired production A/B and causal code-generation explanation |
 | QA-1 | accepted tree | quality-gate auditor | integration branch | pending | Independent final gate matrix and READY/NOT READY verdict |
 
-## Pending user decision
+## Performance decision record
 
 The frozen molar-only candidate materially improves dynamic-double pressure, cp, and sound
-speed, but Enzyme's Release derivative graph is not universally bitwise identical. Direct
-primal values, pressure, density, and fugacity remain exact in the sampled evidence; the
-widest permanent-test differences are 8 ULP for cp and 6 ULP for sound speed. Production
-implementation and quality gates remain paused until the user either approves this bounded
-roundoff envelope or retains the existing scalar loop.
+speed, but Enzyme's derivative graph is not universally bitwise identical. The user
+approved proceeding with bounded roundoff after the paired performance evidence was
+presented.
 
 ## Numerical-policy decision
 
 On 2026-08-26, the user approved the measured derivative roundoff in exchange for the
-material dynamic Peng–Robinson speedup. Implementation may proceed with these conservative
-legacy-comparison test budgets:
+material dynamic Peng–Robinson speedup, then clarified that optimized Release is the
+primary context of use because Enzyme is optimization-sensitive.
+
+The focused legacy-characterization states retain these local regression checks:
 
 - direct primal Helmholtz values, pressure, density-derived quantities, and fugacity remain
   bitwise identical in the characterization matrix;
@@ -111,6 +112,9 @@ legacy-comparison test budgets:
 - cp and sound speed squared remain within 16 ULP of the legacy runtime loop; and
 - all independent scientific oracles and existing public tolerances remain unchanged.
 
-The 32/16 ULP limits bracket the observed 20 ULP internal-lambda and 8/6 ULP public-property
-maxima while allowing modest compiler-profile variation. They are regression limits for
-this restructuring, not a general relaxation of the library's numerical policy.
+The 32/16 ULP limits are local regression checks, not global error bounds. An expanded V&V
+matrix exceeded them in raw ULP distance while remaining well inside independent scientific
+tolerances. Release acceptance therefore depends on multiprecision and refined
+finite-difference oracles for the public API. Debug/O1 must compile and pass the existing
+ASan/test suite, but large-N nested composition gradients are not numerically qualified
+because the installed Enzyme produces optimization-sensitive results there.
