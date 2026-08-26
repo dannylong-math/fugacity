@@ -575,6 +575,76 @@ template<std::size_t N> void check_blocking_public_properties()
     }
 }
 
+#if defined(NDEBUG) && !defined(__FAST_MATH__) && !defined(__NO_MATH_ERRNO__)
+
+blocking_case<16> make_cp_dx_finite_difference_case()
+{
+    constexpr std::size_t n = 16;
+    constexpr std::uint64_t seed = 0xF1D1FFB10C5EED11;
+    // A reproducible regression sequence is intentional, not security-sensitive randomness.
+    // NOLINTNEXTLINE(bugprone-random-generator-seed)
+    std::mt19937_64 generator{seed};
+    std::uniform_real_distribution<double> unit{0.0, 1.0};
+    blocking_case<n> test_case;
+    double x_sum = 0.0;
+    for (std::size_t i = 0; i < n; ++i) {
+        test_case.species[i] = {.T_c = 180.0 + (420.0 * unit(generator)) + static_cast<double>(i),
+                                .P_c = 3.5e6 + (4.0e6 * unit(generator)) + (1000.0 * static_cast<double>(i)),
+                                .omega = 0.02 + (0.65 * unit(generator)),
+                                .c_p = 24.0 + (18.0 * unit(generator)) + (0.125 * static_cast<double>(i))};
+        test_case.x[i] = 0.1 + unit(generator) + (0.01 * static_cast<double>(i));
+        x_sum += test_case.x[i];
+    }
+    for (double& xi : test_case.x) {
+        xi /= x_sum;
+    }
+    test_case.c = 1250.0;
+    test_case.T = 415.0;
+    for (std::size_t i = 0; i < n; ++i) {
+        test_case.rho[i] = test_case.c * test_case.x[i];
+        for (std::size_t j = 0; j < n; ++j) {
+            test_case.kij[(i * n) + j] =
+                (i == j) ? 0.0 : -0.08 + (0.20 * unit(generator)) + (1.0e-5 * static_cast<double>((i * n) + j));
+        }
+    }
+    return test_case;
+}
+
+void check_cp_dx_against_five_point_finite_difference()
+{
+    constexpr std::size_t n = 16;
+    constexpr double step = 5.0e-4;
+    constexpr double max_scaled_error = 2.0e-7;
+    const auto test_case = make_cp_dx_finite_difference_case();
+    const auto eos = make_dynamic_blocking_eos(test_case);
+    auto x = test_case.x;
+    std::array<double, n> gradient{};
+    fug::calc_cp_dx(eos, test_case.c, x, test_case.T, gradient);
+
+    for (std::size_t direction = 0; direction < n; ++direction) {
+        const auto cp_at_offset = [&](const double offset) {
+            auto perturbed_x = test_case.x;
+            perturbed_x[direction] += offset;
+            return fug::calc_cp(eos, test_case.c, perturbed_x, test_case.T);
+        };
+        const double finite_difference = (-cp_at_offset(2.0 * step) + (8.0 * cp_at_offset(step)) -
+                                          (8.0 * cp_at_offset(-step)) + cp_at_offset(-2.0 * step)) /
+                                         (12.0 * step);
+        const double magnitude = std::abs(gradient[direction]) > std::abs(finite_difference)
+                                     ? std::abs(gradient[direction])
+                                     : std::abs(finite_difference);
+        const double scale = magnitude > 1.0 ? magnitude : 1.0;
+        const double scaled_error = std::abs(gradient[direction] - finite_difference) / scale;
+        expect(std::isfinite(gradient[direction]) && std::isfinite(finite_difference) &&
+               scaled_error <= max_scaled_error)
+            << "direction=" << direction << ", Enzyme=" << gradient[direction]
+            << ", finite difference=" << finite_difference << ", scaled error=" << scaled_error
+            << ", budget=" << max_scaled_error;
+    }
+}
+
+#endif
+
 } // namespace
 
 // Test entry points intentionally let assertion failures escape to the runner.
@@ -792,6 +862,15 @@ int main()
             check_blocking_public_properties<10>();
             check_blocking_public_properties<17>();
         };
+
+#if defined(NDEBUG) && !defined(__FAST_MATH__) && !defined(__NO_MATH_ERRNO__)
+        // Enzyme's reverse composition derivative is optimization-sensitive at
+        // Debug/O1. Keep this independent oracle on the strict Release/O3
+        // numerical baseline; release-max explicitly permits reassociation.
+        "runtime calc_cp_dx matches five-point finite differences"_test = [] {
+            check_cp_dx_against_five_point_finite_difference();
+        };
+#endif
 
         "runtime mixture kernels are covariant under species reversal"_test = [] {
             constexpr std::size_t n = 17;
