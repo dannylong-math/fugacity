@@ -98,3 +98,19 @@ primal values, pressure, density, and fugacity remain exact in the sampled evide
 widest permanent-test differences are 8 ULP for cp and 6 ULP for sound speed. Production
 implementation and quality gates remain paused until the user either approves this bounded
 roundoff envelope or retains the existing scalar loop.
+
+## Numerical-policy decision
+
+On 2026-08-26, the user approved the measured derivative roundoff in exchange for the
+material dynamic Peng–Robinson speedup. Implementation may proceed with these conservative
+legacy-comparison test budgets:
+
+- direct primal Helmholtz values, pressure, density-derived quantities, and fugacity remain
+  bitwise identical in the characterization matrix;
+- internal differentiated lambda values remain within 32 ULP of the legacy runtime loop;
+- cp and sound speed squared remain within 16 ULP of the legacy runtime loop; and
+- all independent scientific oracles and existing public tolerances remain unchanged.
+
+The 32/16 ULP limits bracket the observed 20 ULP internal-lambda and 8/6 ULP public-property
+maxima while allowing modest compiler-profile variation. They are regression limits for
+this restructuring, not a general relaxation of the library's numerical policy.
