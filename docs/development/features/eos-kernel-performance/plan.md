@@ -89,7 +89,7 @@ decision.
 | TEST-1 | IMPL-1 | test skeptic | review worktree | complete; no commit | Release READY; Debug/O1 nested-AD limitation; Release-only regression requested |
 | VV-1 | IMPL-1 | V&V scientist | review worktree | complete; no commit | Release PASS against MP/finite differences; Debug limitation confirmed |
 | PERF-2 | IMPL-1 | C++ performance engineer | audited implementation tree | complete; no commit | Paired production A/B and causal code-generation explanation |
-| QA-1 | accepted tree | quality-gate auditor | integration branch | in progress | Independent final gate matrix and READY/NOT READY verdict |
+| QA-1 | accepted tree | quality-gate auditor | integration branch | complete at `1689422`; no task commit | READY FOR HUMAN REVIEW; all final gates pass |
 
 ## Performance decision record
 
