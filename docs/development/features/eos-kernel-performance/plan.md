@@ -85,11 +85,11 @@ decision.
 |---|---|---|---|---|---|
 | PERF-1 | none | C++ performance engineer | audit branch/worktree | complete; no commit | Baselines, profiles, model matrix, assembly, and candidate/no-change recommendation |
 | ARCH-1 | PERF-1 | software architect | integration branch, read-only source review | complete; no commit | Dynamic-double-only eight-row blocking; no API or allocation |
-| IMPL-1 | ARCH-1 | implementation engineer | task branch/worktree | complete at `d15bec8`; follow-up pending | Characterization tests, source change, full regression, coverage |
+| IMPL-1 | ARCH-1 | implementation engineer | task branch/worktree | complete at `d15bec8`, `29763bc`, `56396e2` | Characterization tests, source change, Release FD regression, full regression, coverage |
 | TEST-1 | IMPL-1 | test skeptic | review worktree | complete; no commit | Release READY; Debug/O1 nested-AD limitation; Release-only regression requested |
 | VV-1 | IMPL-1 | V&V scientist | review worktree | complete; no commit | Release PASS against MP/finite differences; Debug limitation confirmed |
 | PERF-2 | IMPL-1 | C++ performance engineer | audited implementation tree | complete; no commit | Paired production A/B and causal code-generation explanation |
-| QA-1 | accepted tree | quality-gate auditor | integration branch | pending | Independent final gate matrix and READY/NOT READY verdict |
+| QA-1 | accepted tree | quality-gate auditor | integration branch | in progress | Independent final gate matrix and READY/NOT READY verdict |
 
 ## Performance decision record
 
