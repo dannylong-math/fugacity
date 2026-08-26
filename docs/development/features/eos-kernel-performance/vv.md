@@ -74,4 +74,3 @@ Clang/Enzyme toolchain and should be repeated after a material compiler or Enzym
 Independent report artifact:
 `/tmp/fugacity-eos-vv-3f5fae4/VV_REPORT.md`, SHA-256
 `a21e9661383b6ca9c4120986becec820de148e8de5f7f3df5c0787d0338c8e33`.
-

@@ -112,4 +112,3 @@ instruction-level parallelism; it does not rely on packed SIMD, fast-math, or re
   Release V&V and performance matrix after a material toolchain change.
 - The installed Enzyme package reports version 0.0.79/LLVM 22.1.7 compatibility, but package
   metadata may not fully identify the source revision. Evidence is tied to the plugin used.
-
