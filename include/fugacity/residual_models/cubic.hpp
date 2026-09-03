@@ -85,15 +85,40 @@ public:
 
         Number am{0};
         Number bm{0};
-        for (std::size_t i = 0; i < n; ++i) {
-            bm += x[i] * b_[i];
-            // |alpha_i|: a_ii = a0 alpha^2 >= 0, so sqrt(a_ii a_jj) carries |alpha|.
-            const Number ti = x[i] * std::abs(p_[i] - (q_[i] * sT));
-            Number row{0};
-            for (std::size_t j = 0; j < n; ++j) {
-                row += x[j] * std::abs(p_[j] - (q_[j] * sT)) * a_[(i * n) + j];
+        if constexpr (N == std::dynamic_extent && std::same_as<Number, double>) {
+            if (n >= molar_attractive_blocking_threshold) {
+                // Eight independent row sums expose instruction-level parallelism and reuse each
+                // temperature/composition column factor once per block. Row-wise j order and the
+                // final i order remain unchanged, preserving the scalar result bit for bit.
+                for (std::size_t i = 0; i < n; ++i) {
+                    bm += x[i] * b_[i];
+                }
+                am = calc_molar_attractive_quadratic_blocked(x, sT, n);
             }
-            am += ti * row;
+            else {
+                for (std::size_t i = 0; i < n; ++i) {
+                    bm += x[i] * b_[i];
+                    // |alpha_i|: a_ii = a0 alpha^2 >= 0, so sqrt(a_ii a_jj) carries |alpha|.
+                    const Number ti = x[i] * std::abs(p_[i] - (q_[i] * sT));
+                    Number row{0};
+                    for (std::size_t j = 0; j < n; ++j) {
+                        row += x[j] * std::abs(p_[j] - (q_[j] * sT)) * a_[(i * n) + j];
+                    }
+                    am += ti * row;
+                }
+            }
+        }
+        else {
+            for (std::size_t i = 0; i < n; ++i) {
+                bm += x[i] * b_[i];
+                // |alpha_i|: a_ii = a0 alpha^2 >= 0, so sqrt(a_ii a_jj) carries |alpha|.
+                const Number ti = x[i] * std::abs(p_[i] - (q_[i] * sT));
+                Number row{0};
+                for (std::size_t j = 0; j < n; ++j) {
+                    row += x[j] * std::abs(p_[j] - (q_[j] * sT)) * a_[(i * n) + j];
+                }
+                am += ti * row;
+            }
         }
         const Number bc = bm * c;
         const Number psi1 = -std::log(Number{1} - bc);
@@ -222,6 +247,43 @@ protected:
     }
 
 private:
+    static constexpr std::size_t molar_attractive_row_block_size = 8;
+    static constexpr std::size_t molar_attractive_blocking_threshold = 10;
+
+    [[nodiscard]] double calc_molar_attractive_quadratic_blocked(const double* x, const double sT,
+                                                                 const std::size_t n) const
+        requires(N == std::dynamic_extent)
+    {
+        double sum{0};
+        std::size_t row_begin = 0;
+        for (; row_begin + molar_attractive_row_block_size <= n; row_begin += molar_attractive_row_block_size) {
+            std::array<double, molar_attractive_row_block_size> row_factor{};
+            std::array<double, molar_attractive_row_block_size> row_sum{};
+            for (std::size_t row = 0; row < molar_attractive_row_block_size; ++row) {
+                const std::size_t i = row_begin + row;
+                row_factor[row] = x[i] * std::abs(p_[i] - (q_[i] * sT));
+            }
+            for (std::size_t j = 0; j < n; ++j) {
+                const double column_factor = x[j] * std::abs(p_[j] - (q_[j] * sT));
+                for (std::size_t row = 0; row < molar_attractive_row_block_size; ++row) {
+                    row_sum[row] += column_factor * a_[((row_begin + row) * n) + j];
+                }
+            }
+            for (std::size_t row = 0; row < molar_attractive_row_block_size; ++row) {
+                sum += row_factor[row] * row_sum[row];
+            }
+        }
+        for (std::size_t i = row_begin; i < n; ++i) {
+            const double row_factor = x[i] * std::abs(p_[i] - (q_[i] * sT));
+            double row_sum{0};
+            for (std::size_t j = 0; j < n; ++j) {
+                row_sum += x[j] * std::abs(p_[j] - (q_[j] * sT)) * a_[(i * n) + j];
+            }
+            sum += row_factor * row_sum;
+        }
+        return sum;
+    }
+
     using Vec = std::conditional_t<N == std::dynamic_extent, std::vector<double>, std::array<double, N>>;
     using Mat = std::conditional_t<N == std::dynamic_extent, std::vector<double>, std::array<double, N * N>>;
 
